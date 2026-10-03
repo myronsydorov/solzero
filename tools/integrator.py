@@ -10,7 +10,7 @@ from __future__ import annotations
 import numpy as np
 import sympy
 
-from schemas import LAW_VARIABLES, Law
+from schemas import LAW_VARIABLES, Law, parse_law_expr
 
 DT = 0.008  # s; validated against solve_ivp in tests/test_integrator.py (error ~1e-6 m)
 T_MAX = 8.0  # s; trajectories still airborne after this return NaN
@@ -25,8 +25,8 @@ class CompiledLaw:
         self.law = law
         self.param_names = list(law.params)
         local = {n: sympy.Symbol(n) for n in list(LAW_VARIABLES) + self.param_names}
-        ax = sympy.parse_expr(law.ax, local_dict=local)
-        az = sympy.parse_expr(law.az, local_dict=local)
+        ax = parse_law_expr(law.ax, self.param_names)
+        az = parse_law_expr(law.az, self.param_names)
         args = [local[n] for n in list(LAW_VARIABLES) + self.param_names]
         self._f = sympy.lambdify(args, [ax, az], modules="numpy", cse=True)
 

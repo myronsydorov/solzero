@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 from typing import Annotated, Any, Literal, Union
 
 import sympy
@@ -136,12 +137,59 @@ class ParamSpec(Record):
         return self
 
 
-def law_expr_symbols(expr: str, param_names: list[str] | tuple[str, ...] = ()) -> set[str]:
-    """Parse a law expression and return the names of its free symbols."""
-    names = list(LAW_VARIABLES) + list(param_names)
+# Law expressions arrive over HTTP and sympy.parse_expr evaluates Python, so every string is
+# checked against this arithmetic whitelist before sympy sees it.
+MAX_EXPR_LEN = 400
+LAW_FUNCTIONS = frozenset({"sqrt", "exp", "log", "sin", "cos", "tan", "tanh", "Abs", "abs"})
+_ALLOWED_NODES = (ast.Expression, ast.BinOp, ast.UnaryOp, ast.Constant, ast.Name, ast.Load, ast.Call,
+                  ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Pow, ast.UAdd, ast.USub)
+
+
+def check_expr(expr: str) -> set[str]:
+    """Reject anything but arithmetic on names, numbers and LAW_FUNCTIONS. Returns the
+    non-function names used."""
+    if len(expr) > MAX_EXPR_LEN:
+        raise ValueError(f"expression longer than {MAX_EXPR_LEN} characters")
+    try:
+        tree = ast.parse(expr, mode="eval")
+    except SyntaxError as exc:
+        raise ValueError(f"not an arithmetic expression: {exc.msg}") from None
+    names = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, _ALLOWED_NODES):
+            raise ValueError(f"forbidden syntax {type(node).__name__}")
+        if isinstance(node, ast.Constant) and (isinstance(node.value, bool)
+                                               or not isinstance(node.value, (int, float))):
+            raise ValueError("only numeric constants are allowed")
+        if isinstance(node, ast.Call):
+            if not isinstance(node.func, ast.Name) or node.func.id not in LAW_FUNCTIONS or node.keywords:
+                raise ValueError(f"only calls to {sorted(LAW_FUNCTIONS)} are allowed")
+        elif isinstance(node, ast.Name) and node.id not in LAW_FUNCTIONS:
+            if node.id.startswith("_"):
+                raise ValueError(f"forbidden name {node.id}")
+            names.add(node.id)
+    return names
+
+
+def parse_law_expr(expr: str, param_names: list[str] | tuple[str, ...] = ()) -> sympy.Expr:
+    """The only way law strings are parsed: whitelist check, then sympy with fixed globals."""
+    used = check_expr(expr)
+    names = set(LAW_VARIABLES) | set(param_names)
+    unknown = used - names
+    if unknown:
+        raise ValueError(f"unknown names {sorted(unknown)}")
     local = {n: sympy.Symbol(n) for n in names}
-    parsed = sympy.parse_expr(expr, local_dict=local, evaluate=True)
-    return {str(s) for s in parsed.free_symbols}
+    local.update({"abs": sympy.Abs, "Abs": sympy.Abs})
+    return sympy.parse_expr(expr, local_dict=local, global_dict=_SYMPY_GLOBALS, evaluate=True)
+
+
+def law_expr_symbols(expr: str, param_names: list[str] | tuple[str, ...] = ()) -> set[str]:
+    """Validate and parse a law expression; return the names of its free symbols."""
+    return {str(s) for s in parse_law_expr(expr, param_names).free_symbols}
+
+
+_SYMPY_GLOBALS = {"Integer": sympy.Integer, "Float": sympy.Float, "Rational": sympy.Rational,
+                  "Symbol": sympy.Symbol, **{f: getattr(sympy, f) for f in LAW_FUNCTIONS if f != "abs"}}
 
 
 class Law(Record):
@@ -166,7 +214,10 @@ class Law(Record):
             try:
                 used = law_expr_symbols(getattr(self, field), list(self.params))
             except Exception as exc:  # sympy raises many types
-                raise ValueError(f"{field} is not a valid expression: {exc}") from exc
+                msg = str(exc)
+                if "unknown names" in msg:
+                    raise ValueError(f"{field} uses {msg}") from None
+                raise ValueError(f"{field} is not a valid expression: {msg}") from None
             unknown = used - allowed
             if unknown:
                 raise ValueError(f"{field} uses unknown names {sorted(unknown)}")
