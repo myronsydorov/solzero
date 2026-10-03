@@ -1,0 +1,49 @@
+name: transport_orchestrator
+prompt: Transport-check stub. Follow the supplied record-routing request, preserve records exactly, and report tool evidence.
+executor:
+  harness: claude-sdk
+  model: sonnet
+skills: none
+async: false
+cancellable: false
+timers: false
+tools:
+  relay_spec:
+    type: function
+    callable: lab.smoke_tools.relay_spec
+  blocked_operation:
+    type: function
+    callable: lab.smoke_tools.blocked_operation
+  operator:
+    type: agent
+    description: Transport-check worker that returns a synthetic result for a supplied record.
+    prompt: Transport-check stub. Call execute_fixture with the received experiment record and return the complete JSON result unchanged.
+    executor:
+      harness: claude-sdk
+      model: sonnet
+    skills: none
+    async: false
+    pass_history: false
+    tools:
+      execute_fixture:
+        type: function
+        callable: lab.smoke_tools.execute_fixture
+  analyst:
+    type: agent
+    description: Transport-check worker that acknowledges a result record.
+    prompt: Transport-check stub. Call receive_result with the supplied full result and return the complete JSON unchanged.
+    executor:
+      harness: claude-sdk
+      model: sonnet
+    skills: none
+    async: false
+    pass_history: false
+    tools:
+      receive_result:
+        type: function
+        callable: lab.smoke_tools.receive_result
+policies:
+  sentinel:
+    type: function
+    handler: lab.smoke_tools.block_sentinel
+    on: [tool_call]
