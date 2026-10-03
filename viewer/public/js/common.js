@@ -1,14 +1,14 @@
 // Shared helpers for the replay and results pages. No build step; plain ES modules.
 
-export const CONDITIONS = ["lab", "random", "single", "oracle", "textbook"];
+export const CONDITIONS = ["lab", "random", "single", "oracle", "textbook", "random-scripted"];
 export const CONDITION_LABEL = {
   lab: "Sol Zero lab", random: "Random experiments", single: "Single agent",
-  oracle: "Oracle design", textbook: "Textbook",
+  oracle: "Oracle design", textbook: "Textbook", "random-scripted": "Scripted random",
 };
 // Colour follows the condition, never its rank (fixed categorical slots).
 export const CONDITION_COLOR = {
   lab: "var(--series-1)", random: "var(--series-2)", single: "var(--series-3)",
-  oracle: "var(--series-4)", textbook: "var(--series-5)",
+  oracle: "var(--series-4)", textbook: "var(--series-5)", "random-scripted": "var(--series-6)",
 };
 
 export async function fetchJSON(url) {

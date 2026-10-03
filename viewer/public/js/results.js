@@ -21,6 +21,7 @@ async function main() {
   // notes per condition
   const notes = Object.entries(agg.notes || {}).map(([c, n]) => `<li><span class="swatch" style="background:${CONDITION_COLOR[c] || "var(--axis)"}"></span><b>${esc(c === "all" ? "All conditions" : CONDITION_LABEL[c] || c)}</b>: ${esc(n)}</li>`);
   const missing = PRIMARY.filter((c) => !by[c].length);
+  $("#notes").hidden = !notes.length && !missing.length;
   $("#notes").innerHTML = `<ul style="margin:0;padding-left:18px">${notes.join("")}</ul>${missing.length ? `<p style="margin:8px 0 0">No rows yet for: ${missing.map((c) => `<b>${esc(CONDITION_LABEL[c])}</b>`).join(", ")}. Their table rows read "not run".</p>` : ""}`;
 
   // tiles: the primary metric per condition
@@ -84,7 +85,7 @@ async function main() {
   }).join("");
 
   // paired per-world differences (SPEC 7: lab minus random, lab minus single; references against random)
-  const PAIRS = [["lab", "random"], ["lab", "single"], ["single", "random"], ["oracle", "random"], ["textbook", "random"]];
+  const PAIRS = [["lab", "random"], ["lab", "single"], ["single", "random"], ["oracle", "random"], ["textbook", "random"], ["oracle", "random-scripted"], ["random", "random-scripted"]];
   const pairedRows = PAIRS.filter(([a, b]) => by[a]?.length && by[b]?.length).map(([a, b]) => {
     const pairs = by[a].map((r) => [r, by[b].find((q) => q.world === r.world)]).filter(([, q]) => q);
     if (!pairs.length) return `<tr class="nodata"><td>${esc(CONDITION_LABEL[a])} − ${esc(CONDITION_LABEL[b])}</td><td colspan="4" class="muted">no matched worlds</td></tr>`;

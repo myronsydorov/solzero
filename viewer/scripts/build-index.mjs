@@ -1,11 +1,11 @@
 // Scan viewer/public/runs/*/ and write viewer/public/runs/index.json (SPEC 5.7).
 // A run directory needs ledger.jsonl; metrics.json and video.mp4/.webm are optional.
-//   node viewer/scripts/build-index.mjs
+//   node viewer/scripts/build-index.mjs [runs-dir]
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const runsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "public", "runs");
+const runsDir = process.argv[2] ? resolve(process.argv[2]) : join(dirname(fileURLToPath(import.meta.url)), "..", "public", "runs");
 const runs = [];
 for (const name of existsSync(runsDir) ? readdirSync(runsDir).sort() : []) {
   const dir = join(runsDir, name);
