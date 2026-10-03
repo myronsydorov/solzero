@@ -254,6 +254,9 @@ def test_runner_tool_schemas_preserve_structured_inputs():
     assert schema["properties"]["predictions"]["type"] == "array"
     assert schema["properties"]["predictions"]["items"]["$ref"] == "#/$defs/Prediction"
     assert set(schema["$defs"]["Prediction"]["required"]) == {"law_id", "observables"}
+    comparison = tool_schema("disagreement")["parameters"]
+    assert comparison["properties"]["laws"]["items"]["$ref"] == "#/$defs/FittedLawInput"
+    assert comparison["$defs"]["FittedLawInput"]["required"] == ["law", "fit"]
 
 
 def test_reviewed_commit_hash_and_success_prevent_replay(environment, tmp_path, monkeypatch):
