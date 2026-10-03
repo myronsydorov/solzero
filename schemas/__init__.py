@@ -5,6 +5,7 @@ from .api import (
     CommitResponse,
     Condition,
     ExperimentRequest,
+    LawsRequest,
     NominateRequest,
     OkResponse,
     PredictionsRequest,
@@ -12,6 +13,8 @@ from .api import (
     SessionRequest,
 )
 from .records import (
+    HIT_RADIUS_FRAC,
+    HIT_RADIUS_MIN_M,
     LAW_VARIABLES,
     OBSERVABLES,
     Claim,
@@ -40,6 +43,7 @@ from .records import (
     Target,
     Verdict,
     WeighSpec,
+    hit_radius,
     law_expr_symbols,
     parse_spec,
 )

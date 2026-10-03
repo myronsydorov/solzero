@@ -52,7 +52,7 @@ Ranges are starting values. Calibration may adjust them on dev worlds only (sect
 - Motion is planar: x is downrange, z is up, the table surface is z = 0.
 - The launcher muzzle is at (x, z) = (0, 0.20).
 - Experiment launches land on the table plane z = 0.
-- A target has a centre (x_T, z_T) with z_T between 0 and 0.5 m. A shot hits if |x - x_T| <= 0.05 m when the sample crosses z = z_T moving downward.
+- A target has a centre (x_T, z_T) with z_T between 0 and 0.5 m and a hit radius r_T = max(0.05 m, 0.02 * |x_T - x_launcher|). A shot hits if |x - x_T| <= r_T when the sample crosses z = z_T moving downward. Each target in `SessionInfo` carries its `hit_radius_m`.
 
 ### Samples
 
@@ -69,10 +69,10 @@ All spheres have the same 2 cm radius, so the drag coefficient c is the same for
 | --- | --- | --- | --- | --- |
 | `weigh(sample, height)` | Sample, height | 0 to 1.2 m | Static force on the wrist sensor (N) | 2% of reading |
 | `drop(sample, height)` | Reference sample, height | 0.1 to 1.2 m | Fall time to the table (s) | 5 ms |
-| `launch(sample, speed, elevation)` | Reference sample, speed, angle | 1 to 4 m/s, 15 to 75 degrees | Landing distance (m), flight time (s) | 1 cm, 5 ms. Actuation error: speed 2%, angle 0.5 degrees |
+| `launch(sample, speed, elevation)` | Reference sample, speed, angle | 1 to 4 m/s, 15 to 75 degrees | Landing distance (m), flight time (s) | 1 cm, 5 ms. Actuation error: speed 0.5%, angle 0.1 degrees |
 
 - **Summary observables, not trajectories.** Timing gates and a landing sensor return one or two numbers per experiment. With dense trajectories almost any 12 experiments identify the law, and experiment choice stops mattering.
-- **Mission launcher:** the same fixture with its speed limit raised to 7 m/s.
+- **Mission launcher:** the same fixture with its speed limit raised to 7 m/s, and the same actuation error (speed 0.5%, angle 0.1 degrees).
 - **Targets:** five per world. Two are reachable inside the tested range. Three need launch speeds above 4 m/s or sit on a raised platform. Target positions are known to the agents.
 
 ### Robot execution
@@ -115,13 +115,16 @@ Agent-facing endpoints:
 | Method and path | Request | Response | Errors |
 | --- | --- | --- | --- |
 | `POST /session` | `{world_id, condition}` | `SessionInfo` | 404 unknown world |
-| `POST /predictions` | `{session_id, spec, predictions[], tentative_followup}` | `{prediction_table_id}` | 422 spec out of range |
+| `POST /laws` | `{session_id, live_laws: [Law]}` | `{ok: true}` | 404 unknown session; 409 already committed; 422 duplicate law_id |
+| `POST /predictions` | `{session_id, spec, predictions[], tentative_followup}` | `{prediction_table_id}` | 404 unknown session; 422 spec out of range, or predictions not covering exactly the live law set |
 | `POST /experiment` | `{session_id, spec, prediction_table_id}` | `Result` | 409 budget exhausted; 422 missing or mismatched prediction table, out-of-range spec, forbidden sample |
 | `POST /nominate` | `{session_id, law, fit}` | `{ok: true}` | |
 | `POST /commit` | `{session_id, law_id, shots[], claim, claims_non_ordinary}` | `{status: "committed"}` | 409 already committed |
 
 - `world_id` is opaque to agents. `condition` is one of `lab`, `random`, `single`.
-- `/predictions` is required before every `/experiment` in the `lab` and `single` conditions. `predictions` may be an empty list only when no law has been proposed yet (cycle 0).
+- `/laws` replaces the session's live law set (it starts empty). Every condition may call it.
+- `/predictions` is required before every `/experiment` in the `lab` and `single` conditions. Its `predictions` must contain exactly one entry per live law, with the same `law_id` set, or the server returns 422. It is an empty list only while the live set is empty (cycle 0).
+- A prediction table is used once, by an `/experiment` with the same spec. The live set at `/experiment` time must still be the one the table was made for, or the server returns 422.
 - `/nominate` is called after every experiment with the current best law. The server scores it on hidden probes and returns nothing about the score.
 - `/commit` returns no hit or miss information to agents.
 
@@ -143,7 +146,7 @@ Admin endpoints (never exposed to agent tools; protected by `SOLZERO_ADMIN_TOKEN
 // Result
 {"experiment_id": "e07", "index": 7, "spec": {...},
  "observables": {"landing_x_m": 1.92, "flight_time_s": 0.63},
- "noise_sd": {"landing_x_m": 0.01, "flight_time_s": 0.005, "speed_frac": 0.02, "elevation_deg": 0.5},
+ "noise_sd": {"landing_x_m": 0.01, "flight_time_s": 0.005, "speed_frac": 0.005, "elevation_deg": 0.1},
  "status": "ok", "budget_left": 5}
 // weigh observables: {"force_n": ...}; drop observables: {"fall_time_s": ...}
 // launch noise_sd also carries the launcher actuation error (speed_frac, elevation_deg),
@@ -157,9 +160,9 @@ Admin endpoints (never exposed to agent tools; protected by `SOLZERO_ADMIN_TOKEN
             "launch": {"speed_mps": [1, 4], "elevation_deg": [15, 75]},
             "mission": {"speed_mps": [1, 7], "elevation_deg": [15, 75]}},
  "noise_sd": {"force_frac": 0.02, "fall_time_s": 0.005, "landing_x_m": 0.01, "flight_time_s": 0.005,
-              "speed_frac": 0.02, "elevation_deg": 0.5},
+              "speed_frac": 0.005, "elevation_deg": 0.1},
  "launcher": {"x_m": 0.0, "z_m": 0.2},
- "targets": [{"target_id": "t1", "x_m": 1.4, "z_m": 0.0}, ...],
+ "targets": [{"target_id": "t1", "x_m": 1.4, "z_m": 0.0, "hit_radius_m": 0.05}, ...],
  "shot_zero": {"spec": {...}, "target_id": "t0", "landing_x_m": 1.1, "miss_m": 0.52}}
 
 // Law
@@ -270,18 +273,18 @@ Rules that make the orchestration consequential:
 - **Matched budgets:** same model, 12 experiments, same tools, same token cap, same world seeds, compared pairwise.
 - **Dev worlds:** seeds 1000 to 1999, for calibration and prompt work.
 - **Test worlds:** 12 seeds (three per family) drawn from 9000 to 9999 and written to `world/test_seeds.lock` at the freeze. Cut to 8 if time is short. No code path runs a test seed without the flag `--final-eval`.
-- **Hidden scoring:** after each experiment the server scores the nominated best law on 20 hidden probe launches (mixed samples, speeds up to 7 m/s). Agents never see these scores.
+- **Hidden scoring:** after each experiment the server scores the nominated best law on 40 hidden probe launches landing on the table, all with mixed samples: 20 in the tested range (1 to 4 m/s) and 20 beyond it (4 to 7 m/s). A probe counts as within the hit radius when the law's predicted landing point is within max(5 cm, 2% of the true landing distance) of the true one, with a perfect launcher. Agents never see these scores.
 
 | Metric | Definition |
 | --- | --- |
-| Experiments to accuracy | Experiments needed to bring median landing error on the hidden probes under 5 cm. Report the whole curve. |
-| Mission success | Hit rate and mean miss on the five targets, split into in-range and beyond-range |
-| Law recovery | The final law has the right dependence: gravity on mass, gravity on height, drag exponent within 0.3 |
-| False discovery | Share of control worlds where the lab claims non-ordinary physics |
+| Experiments to accuracy (headline) | Experiments needed until at least 80% of the beyond-range probes are within the hit radius. Report the whole curve. Secondary: median landing error over all 40 probes. |
+| Mission success | Hit rate, mean miss and median miss as a fraction of target distance on the five targets, split into in-range and beyond-range |
+| Law recovery (co-headline) | The final law has the right dependence: gravity on mass, gravity on height, drag exponent within 0.3 |
+| False discovery (co-headline) | Share of control worlds where the lab claims non-ordinary physics |
 | Abstention | Share of worlds ending in "insufficient evidence", and accuracy on the rest |
 | Evidence-driven replanning | Share of cycles logged as "plan changed by evidence", and runs where the initial explanation was rejected |
 
-- **Headline number:** experiments to accuracy for random / lab, with the hit-rate difference beside it. Report whatever comes out.
+- **Headline numbers:** experiments to accuracy for random / lab, with law recovery and control false discovery beside it, and the hit-rate difference. Report whatever comes out.
 - **Statistics:** per-world paired differences with a bootstrap interval. Twelve worlds is a small sample, and the write-up says so.
 - **Grading:** law recovery is graded by a script written before the test runs.
 
@@ -300,8 +303,9 @@ Start with 5 dev worlds to measure runtime. Expand to 20 to 30 if practical, and
 
 | Criterion | Reference level |
 | --- | --- |
-| Ceiling | True-form fit hits at least 80% of targets |
-| Headroom | Greedy reaches the 5 cm probe threshold within 12 experiments in at least 70% of worlds; random in at most 40% |
+| Ceiling | Exact-law shots hit at least 90% of targets (under actuation error). The true-form fit is reported beside it. |
+| Wrong-form check | The best wrong-form fit hits at most 30% of beyond-range targets. If it exceeds 30% with the 3% hit radius, use 2% and report both. |
+| Headroom | Greedy brings 80% of beyond-range probes within the hit radius within 12 experiments in at least 70% of worlds; random in at most 40% |
 | Mission separability | On beyond-range targets, the best wrong-form fit misses and the true-form fit hits, in at least 70% of non-control worlds |
 | Control | Greedy claims non-ordinary physics in under 10% of control worlds |
 

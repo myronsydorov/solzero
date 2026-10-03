@@ -30,10 +30,11 @@ import numpy as np
 
 from schemas import DropSpec, LaunchSpec, WeighSpec
 from tools.analysis import disagreement_many, fit_law, plan_shot, simulate_specs, compile_law
-from tools.defaults import HIT_RADIUS_M, NOISE_SD, RANGES, SAMPLES
+from schemas import HIT_RADIUS_FRAC, hit_radius
+from tools.defaults import NOISE_SD, RANGES, SAMPLES
 from world.generator import DEV_SEEDS, MASSES, World, make_world
 
-from .library import is_ordinary, library, true_form
+from .library import is_ordinary, library, nests_truth, true_form
 
 BUDGET = 12
 N_CANDIDATES = 60
@@ -68,9 +69,11 @@ GREEDY_SEED_DESIGN = [
 
 ZERO_NOISE = {k: 0.0 for k in NOISE_SD}
 
-# Diagnostic only: hit probability of the same planned shot under smaller actuation error
-# (speed_frac, elevation_deg). The design noise stays NOISE_SD; see STATUS.md.
+# Diagnostic: hit probability of the same planned shot under other actuation errors
+# (speed_frac, elevation_deg). The design value is NOISE_SD (0.005 / 0.1 since decision 1).
 ACTUATION_SWEEP = [(0.02, 0.5), (0.01, 0.25), (0.005, 0.1), (0.0, 0.0)]
+# Hit-radius fractions scored in Stage A (decision 1: 3%, fall back to 2%).
+HIT_FRACS = (0.03, 0.02)
 
 
 def random_spec(rng: np.random.Generator):
@@ -99,17 +102,33 @@ def bic(fit, law, results) -> float:
 
 
 def probe_errors(w: World, law, fit) -> np.ndarray:
+    """|predicted - true| landing x on the hidden probes; inf where the law never lands."""
     theta = np.array([[fit.params[k].value for k in law.params]])
     x = simulate_specs(compile_law(law), theta, w.probes, MASSES)[0, :, 0]
     err = np.abs(x - w.probe_x)
     return np.where(np.isfinite(err), err, np.inf)
 
 
-def mission(w: World, law, fit, seed: int) -> list[dict]:
-    """Plan the five shots with (law, fit) and score them against the hidden law."""
+def probe_scores(w: World, law, fit, hit_frac: float) -> dict:
+    """Headline probe metric (decision 2): share of probes whose predicted landing point is
+    within the hit radius of the true one. With a perfect launcher, aiming the fitted law at
+    the true point misses by this same error to first order."""
+    err = probe_errors(w, law, fit)
+    radius = np.array([hit_radius(x, hit_frac) for x in w.probe_x])
+    within = err <= radius
+    kind = np.array(w.probe_kind)
+    return {"median_all": float(np.median(err)),
+            "within_beyond": float(within[kind == "beyond"].mean()),
+            "within_in_range": float(within[kind == "in_range"].mean())}
+
+
+def mission(w: World, law, fit, seed: int, hit_frac: float = HIT_RADIUS_FRAC) -> list[dict]:
+    """Plan the five shots with (law, fit) and score them against the hidden law.
+    hit_prob uses hit_frac; hit_prob_by_frac scores the same shots at every HIT_FRACS value."""
     rng = np.random.default_rng([seed, 99])
     out = []
     for t in w.targets:
+        radius = hit_radius(t.x_m, hit_frac)
         plan = plan_shot(law, fit, t, "mission_300", RANGES["mission"], n_draws=100, seed=seed)
         x_nom = w.shot_x("mission_300", [plan.speed_mps], [plan.elevation_deg], t.z_m)[0, 0]
         dv = rng.normal(0, NOISE_SD["speed_frac"], (N_HIT_DRAWS, 1))
@@ -117,32 +136,42 @@ def mission(w: World, law, fit, seed: int) -> list[dict]:
         xs = w.shot_x("mission_300", [plan.speed_mps], [plan.elevation_deg], t.z_m, dv, de)[:, 0]
         miss = np.abs(xs - t.x_m)
         miss = np.where(np.isfinite(miss), miss, np.inf)
+        nom_miss = float(abs(x_nom - t.x_m)) if np.isfinite(x_nom) else float("inf")
         sweep = {}
         for sf, ang in ACTUATION_SWEEP:
             z = rng.standard_normal((2, N_HIT_DRAWS, 1))
             xa = w.shot_x("mission_300", [plan.speed_mps], [plan.elevation_deg], t.z_m,
                           sf * z[0], ang * z[1])[:, 0]
             ma = np.abs(xa - t.x_m)
-            sweep[f"{sf}/{ang}"] = float(np.mean(np.where(np.isfinite(ma), ma, np.inf) <= HIT_RADIUS_M))
+            sweep[f"{sf}/{ang}"] = float(np.mean(np.where(np.isfinite(ma), ma, np.inf) <= radius))
         out.append({
             "target_id": t.target_id, "kind": w.target_kind[t.target_id], "x_m": t.x_m, "z_m": t.z_m,
+            "hit_radius_m": radius,
             "speed_mps": plan.speed_mps, "elevation_deg": plan.elevation_deg,
             "reachable_under_law": plan.reachable, "predicted_miss_sd_m": plan.predicted_miss_sd_m,
-            "nominal_miss_m": float(abs(x_nom - t.x_m)) if np.isfinite(x_nom) else None,
-            "nominal_hit": bool(np.isfinite(x_nom) and abs(x_nom - t.x_m) <= HIT_RADIUS_M),
-            "hit_prob": float(np.mean(miss <= HIT_RADIUS_M)),
-            "realized_hit": bool(miss[0] <= HIT_RADIUS_M),
+            "nominal_miss_m": nom_miss if np.isfinite(nom_miss) else None,
+            "nominal_hit": bool(nom_miss <= radius),
+            "hit_prob": float(np.mean(miss <= radius)),
+            "realized_hit": bool(miss[0] <= radius),
             "median_miss_m": float(np.median(miss)),
+            "median_miss_frac": float(np.median(miss) / abs(t.x_m)),
+            "hit_prob_by_frac": {str(f): float(np.mean(miss <= hit_radius(t.x_m, f))) for f in HIT_FRACS},
+            "nominal_hit_by_frac": {str(f): bool(nom_miss <= hit_radius(t.x_m, f)) for f in HIT_FRACS},
             "hit_prob_actuation_sweep": sweep,
         })
     return out
+
+
+FIT_TIMES: list[float] = []  # per-process record of single fit_law durations (seconds)
 
 
 def fit_all(laws, results, warm=None):
     fits = {}
     for fid, law in laws.items():
         x0 = {k: v.value for k, v in warm[fid].params.items()} if warm and fid in warm else None
+        t0 = time.perf_counter()
         fits[fid] = fit_law(law, results, loo=False, x0=x0)
+        FIT_TIMES.append(time.perf_counter() - t0)
     return fits
 
 
@@ -151,6 +180,7 @@ def fit_all(laws, results, warm=None):
 
 def stage_a(seed: int) -> dict:
     t0 = time.perf_counter()
+    FIT_TIMES.clear()
     w = make_world(seed)
     laws = library()
     tf = true_form(w.family, w.p)
@@ -167,6 +197,8 @@ def stage_a(seed: int) -> dict:
     fit_clean = fit_law(laws[tf], clean, loo=False)
     scores = {fid: bic(f, laws[fid], results) for fid, f in fits.items()}
     wrong = min((fid for fid in fits if fid != tf), key=scores.get)
+    # Diagnostic: the best form that does not contain the truth as a special case.
+    wrong_nn = min((fid for fid in fits if not nests_truth(fid, w.family, w.p)), key=scores.get)
 
     from world.generator import fixed_law  # exact truth as a law, for the planning diagnostic
     tl, tfit = fixed_law("truth_form", *_truth_exprs(laws[tf]), _truth_values(w, laws[tf]))
@@ -180,6 +212,9 @@ def stage_a(seed: int) -> dict:
         "mission_true_fit": mission(w, laws[tf], fit_true, seed),
         "mission_exact_truth": mission(w, tl, tfit, seed),
         "mission_best_wrong": mission(w, laws[wrong], fits[wrong], seed),
+        "best_non_nesting_wrong_form": wrong_nn,
+        "mission_best_non_nesting_wrong": mission(w, laws[wrong_nn], fits[wrong_nn], seed),
+        "fit_time_max_s": max(FIT_TIMES), "fit_time_mean_s": float(np.mean(FIT_TIMES)),
         "runtime_s": time.perf_counter() - t0,
     }
 
@@ -196,9 +231,10 @@ def _truth_values(w: World, law) -> dict:
 # --- Stage B ----------------------------------------------------------------------
 
 
-def stage_b(seed: int, policy: str) -> dict:
+def stage_b(seed: int, policy: str, hit_frac: float = HIT_RADIUS_FRAC) -> dict:
     t0 = time.perf_counter()
-    w = make_world(seed)
+    FIT_TIMES.clear()
+    w = make_world(seed, hit_frac=hit_frac)
     laws = library()
     tf = true_form(w.family, w.p)
     pid = {"random": 1, "greedy": 2}[policy]
@@ -206,7 +242,7 @@ def stage_b(seed: int, policy: str) -> dict:
     rng_noise = np.random.default_rng([seed, 20 + pid])
     results = [w.shot_zero_result]
     fits = fit_all(laws, results)
-    steps = [_record(0, None, w, laws, fits, results, tf)]
+    steps = [_record(0, None, w, laws, fits, results, tf, hit_frac)]
     for i in range(1, BUDGET + 1):
         if policy == "random":
             spec = random_spec(rng_policy)
@@ -221,19 +257,21 @@ def stage_b(seed: int, policy: str) -> dict:
             spec = cands[int(np.argmax(gaps))]
         results.append(w.run_experiment(spec, rng_noise, i, BUDGET - i))
         fits = fit_all(laws, results, warm=fits)
-        steps.append(_record(i, spec, w, laws, fits, results, tf))
+        steps.append(_record(i, spec, w, laws, fits, results, tf, hit_frac))
     sel = steps[-1]["selected_form"]
     return {
         "seed": seed, "policy": policy, "truth": w.truth(), "true_form": tf, "steps": steps,
         "final_form": sel, "claims_non_ordinary": not is_ordinary(sel),
         "final_fit": fits[sel].model_dump(),
-        "mission_selected": mission(w, laws[sel], fits[sel], seed),
-        "mission_true_form": mission(w, laws[tf], fits[tf], seed),
+        "hit_frac": hit_frac,
+        "mission_selected": mission(w, laws[sel], fits[sel], seed, hit_frac),
+        "mission_true_form": mission(w, laws[tf], fits[tf], seed, hit_frac),
+        "fit_time_max_s": max(FIT_TIMES), "fit_time_mean_s": float(np.mean(FIT_TIMES)),
         "runtime_s": time.perf_counter() - t0,
     }
 
 
-def _record(i, spec, w, laws, fits, results, tf) -> dict:
+def _record(i, spec, w, laws, fits, results, tf, hit_frac) -> dict:
     scores = {fid: bic(f, laws[fid], results) for fid, f in fits.items()}
     sel = min(scores, key=scores.get)
     probe = {fid: float(np.median(probe_errors(w, laws[fid], f))) for fid, f in fits.items()}
@@ -243,6 +281,8 @@ def _record(i, spec, w, laws, fits, results, tf) -> dict:
         "observables": r.observables, "status": r.status,
         "bic": scores, "probe_median": probe, "selected_form": sel,
         "probe_median_selected": probe[sel], "probe_median_true_form": probe[tf],
+        "probe_selected": probe_scores(w, laws[sel], fits[sel], hit_frac),
+        "probe_true_form": probe_scores(w, laws[tf], fits[tf], hit_frac),
     }
 
 
@@ -261,8 +301,8 @@ def parse_seeds(text: str) -> list[int]:
 
 
 def _run(task):
-    kind, seed, policy = task
-    return task, (stage_a(seed) if kind == "A" else stage_b(seed, policy))
+    kind, seed, policy, hit_frac = task
+    return task, (stage_a(seed) if kind == "A" else stage_b(seed, policy, hit_frac))
 
 
 def main():
@@ -271,6 +311,8 @@ def main():
     ap.add_argument("--out", default="calibration/results/dev5")
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) - 2))
     ap.add_argument("--stages", default="AB")
+    ap.add_argument("--hit-frac", type=float, default=HIT_RADIUS_FRAC,
+                    help="hit radius = max(5 cm, frac * target distance), used in stage B")
     args = ap.parse_args()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -278,20 +320,21 @@ def main():
     tasks = []
     for s in seeds:
         if "A" in args.stages:
-            tasks.append(("A", s, None))
+            tasks.append(("A", s, None, args.hit_frac))
         if "B" in args.stages:
-            tasks += [("B", s, "random"), ("B", s, "greedy")]
+            tasks += [("B", s, "random", args.hit_frac), ("B", s, "greedy", args.hit_frac)]
     t0 = time.perf_counter()
     with ProcessPoolExecutor(args.jobs) as ex:
         futs = [ex.submit(_run, t) for t in tasks]
         for f in as_completed(futs):
-            (kind, seed, policy), res = f.result()
+            (kind, seed, policy, _), res = f.result()
             name = f"stageA_{seed}.json" if kind == "A" else f"stageB_{seed}_{policy}.json"
             (out / name).write_text(json.dumps(res, indent=1, default=float))
             print(f"[{time.perf_counter() - t0:7.1f}s] {name} ({res['runtime_s']:.1f}s)", flush=True)
-    (out / "run.json").write_text(json.dumps({
+    (out / f"run_{args.stages}.json").write_text(json.dumps({
         "seeds": seeds, "stages": args.stages, "wall_s": time.perf_counter() - t0,
-        "budget": BUDGET, "n_candidates": N_CANDIDATES, "noise_sd": NOISE_SD}, indent=1))
+        "budget": BUDGET, "n_candidates": N_CANDIDATES, "noise_sd": NOISE_SD,
+        "hit_frac": args.hit_frac}, indent=1))
 
 
 if __name__ == "__main__":

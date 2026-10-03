@@ -75,10 +75,27 @@ class Sample(Record):
     launchable: bool
 
 
+# A shot hits when it comes down within max(5 cm, 2% of the target's horizontal distance
+# from the launcher). The world server sets hit_radius_m on every target it publishes.
+HIT_RADIUS_MIN_M = 0.05
+HIT_RADIUS_FRAC = 0.02
+
+
+def hit_radius(x_m: float, frac: float = HIT_RADIUS_FRAC, launcher_x_m: float = 0.0) -> float:
+    return max(HIT_RADIUS_MIN_M, frac * abs(x_m - launcher_x_m))
+
+
 class Target(Record):
     target_id: str
     x_m: float
     z_m: float
+    hit_radius_m: float | None = None  # filled from hit_radius(x_m) when omitted
+
+    @model_validator(mode="after")
+    def _radius(self) -> Target:
+        if self.hit_radius_m is None:
+            self.hit_radius_m = hit_radius(self.x_m)
+        return self
 
 
 class Launcher(Record):
