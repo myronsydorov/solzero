@@ -105,7 +105,7 @@ SOLZERO_ADMIN_TOKEN=... .venv/bin/python -m world.server --port 8000
 
 ## Lane B: Omnigent and agents (Codex, branch `omnigent`)
 
-**Current milestone (2026-10-03 22:43 UTC):** main integrated; shared-schema mock, wrappers, ledger and five-role host runner verified. Mock session stopped after six experiments with an exact firing table awaiting human approval. One full evidence/revision cycle passed on the real dev server; a longer real session is running.
+**Current milestone (2026-10-03 22:47 UTC):** main integrated; shared-schema mock, wrappers, ledger and five-role host runner verified. Full model-driven sessions reached the human approval gate on both servers: mock after six experiments, real dev seed 1000 after five. No model-run mission fired. Final suite: 85 passed.
 
 **Done**
 
@@ -135,7 +135,7 @@ SOLZERO_WORLD_URL=http://127.0.0.1:8001 .venv/bin/python -m lab.run --world-id w
 - `uv sync`: 111 resolved, 105 installed packages checked. Full root suite at merge: **84 passed**, one upstream Starlette/httpx deprecation warning, 4.50 s; XML saved above. Final `.venv/bin/python -m pytest -q` after the generated-schema regression test: **85 passed**, 4.19 s (including explicit law/fit-pair tool schemas).
 - Fresh HTTP mock fixture: **12 experiments, budget 0, missing pre-registration 422, thirteenth experiment 409**. Raw responses, ledger and admin-only engineering score saved in `runs/mock-check-final/`.
 - Model mock session `s_mock_0001`: **6 complete evidence/revision cycles, 6 budget left, 62 calls**, PI chose `predictive_only`, no non-ordinary claim, five shots pending approval. Raw tools, policies, public transcript, ledger and summary in `runs/session-mock-1000/`. This process started before the final structured-tool-schema/description-cache fixes; its unmodified trace is retained.
-- Real dev seed 1000, opaque world `w_3c4adce51f85`, session `s_ad8db5fe92`: **1 complete evidence/revision cycle, 11 budget left, 11 calls**, Analyst nominated a fit and recorded insufficient evidence; PI continued. Raw outputs in `runs/full-loop-real-1000/`. A one-cycle check is not a completed mission. Longer session result will be recorded below.
+- Real dev seed 1000, opaque world `w_3c4adce51f85`, session `s_ad8db5fe92`: **1 complete evidence/revision cycle, 11 budget left, 11 calls**, Analyst nominated a fit and recorded insufficient evidence; PI continued. Raw outputs in `runs/full-loop-real-1000/`. A one-cycle check is not a completed mission. Longer real session `s_40ebae9470` completed **5 evidence/revision cycles, 7 budget left, 65 calls**, then PI chose `predictive_only` with no non-ordinary claim. All 5 experiments have verdicts and nominations; 4 decision diffs changed the tentative follow-up (mock: 0 of 6). Raw evidence: `runs/session-real-1000/`, combined audit `runs/merge-integration/model-run-audit.json`. Five shots are pending approval, not fired.
 - Initial SDK message bug failed before any experiment in `runs/full-loop-mock-1000/`; corrected one-cycle mock check in `runs/full-loop-mock-1000-v2/` completed 1 experiment/11 calls. Pre-integration missing-schema collection errors and raw evidence are retained, superseded by the passing full suite.
 
 **Blockers and limits**
@@ -147,8 +147,8 @@ SOLZERO_WORLD_URL=http://127.0.0.1:8001 .venv/bin/python -m lab.run --world-id w
 
 **Next step**
 
-1. Complete the longer real dev session or stop at the time box, recording its actual outcome.
-2. Obtain the human's approval of each exact pending firing table before the host submission command; keep the corresponding in-memory server alive meanwhile. Save the receipt and commit ledger entry.
+1. Both model sessions reached approval within the time box (22:47 UTC); integration commits `81ecf9a`, `e1f2212`, `e17c3a0` are on `omnigent`, not pushed to main.
+2. Obtain the human's approval of each exact pending firing table before the host submission command; keep the corresponding in-memory server alive meanwhile (real port 8001/PID 85971, mock port 8002/PID 85972). Save the receipt and commit ledger entry. Pending mock hash: `b205390c555482254efcf7ced88abe1babbf08f0baa6a4fe71bfb7e02183334f`; pending real hash: `a01863dbb97671e9288d9dfcb91d6e2b4726c3152ef70510390e3052bf8c52b2`. Exact files are `runs/session-mock-1000/pending-commit.json` and `runs/session-real-1000/pending-commit.json`.
 3. Human integrates this tested branch to main. Lane A addresses its server requests; tracing/comparison runners follow in the next milestone.
 
 ## Requests (one lane asking the other, or the human, for something)
