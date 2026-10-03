@@ -117,6 +117,7 @@ SOLZERO_ADMIN_TOKEN=t .venv/bin/python -m world.loadtest --url http://127.0.0.1:
   - `/commit` requires exactly 5 shots.
   - Prediction tables are pinned to law content, so changing a law under the same id invalidates the table, as your mock already does.
   - The `schemas.check_expr` grammar is now enforced at the HTTP boundary.
+- **Integrator merge check (2026-10-04):** test-merging `omnigent` (`f4d72f0`) into `main` (`a254def`) conflicts only in `STATUS.md`. With the conflict resolved, the full suite passes: 110 tests, including lane B's and the leak test with `lab/` present. Lane B can `git merge main`, keep both lane sections and both sets of Requests rows, and merge to main.
 - Resolved: lane B's requests about law-content invalidation, exactly-five-shot commits and safe expression parsing are done (`5f60ab7`, and the server merge after it).
 
 - Lane A to human: should the wrong-form check exclude forms that contain the true law? See the lane A Blockers.
