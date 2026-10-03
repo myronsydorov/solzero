@@ -10,11 +10,11 @@ import random
 from threading import RLock
 from typing import Callable
 
-from fastapi import Body, FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException
 from schemas import (
     CommitRequest, CommitResponse, ExperimentRequest, ExperimentSpec,
     NominateRequest, OkResponse, PredictionsRequest, PredictionsResponse,
-    Result, SessionInfo, SessionRequest, Law, Target, parse_spec,
+    Result, SessionInfo, SessionRequest, Law, LawsRequest, Target, hit_radius, parse_spec,
 )
 
 BUDGET = 12
@@ -24,12 +24,12 @@ MASSES["mission_300"] = 0.3
 RANGES = {"weigh": {"height_m": (0, 1.2)}, "drop": {"height_m": (0.1, 1.2)},
           "launch": {"speed_mps": (1, 4), "elevation_deg": (15, 75)},
           "mission": {"speed_mps": (1, 7), "elevation_deg": (15, 75)}}
-NOISE = {"force_frac": 0.02, "fall_time_s": 0.005, "landing_x_m": 0.01, "flight_time_s": 0.005, "speed_frac": 0.02, "elevation_deg": 0.5}
-TARGETS = [{"target_id": f"t{idx}", "x_m": distance, "z_m": 0.0}
+from tools.defaults import NOISE_SD
+
+NOISE = dict(NOISE_SD)
+TARGETS = [Target(target_id=f"t{idx}", x_m=distance, z_m=0.0).model_dump(mode="json")
            for idx, distance in enumerate((1.0, 1.5, 2.3, 3.2, 4.2), 1)]
-if "hit_radius_m" in Target.model_fields:
-    for target in TARGETS:
-        target["hit_radius_m"] = 0.05
+
 
 
 def flight(speed: float, elevation: float, target_height: float = 0.0) -> tuple[float, float] | None:
@@ -93,8 +93,8 @@ def create_app(*, seed: int = 1000, world_id: str = "mock-dev", admin_token: str
         raise ValueError("Mock server accepts only dev seeds 1000–1999")
     probe_rng = random.Random(seed)
     probe_specs = [parse_spec({"type": "launch", "sample_id": probe_rng.choice(list(MASSES)[:-1]),
-                              "speed_mps": probe_rng.uniform(1, 7), "elevation_deg": probe_rng.uniform(15, 75)})
-                   for _ in range(20)]
+                              "speed_mps": probe_rng.uniform(lower, upper), "elevation_deg": probe_rng.uniform(15, 75)})
+                   for lower, upper in ((1, 4), (4, 7)) for _ in range(20)]
     app = FastAPI(title="Sol Zero development mock", docs_url=None, redoc_url=None)
     sessions: dict[str, Session] = {}
     lock = RLock()
@@ -131,9 +131,10 @@ def create_app(*, seed: int = 1000, world_id: str = "mock-dev", admin_token: str
             return info
 
     @app.post("/laws", response_model=OkResponse)
-    def replace_laws(session_id: str = Body(), live_laws: list[Law] = Body()):
+    def replace_laws(request: LawsRequest):
         with lock:
-            session = session_for(session_id)
+            session = session_for(request.session_id)
+            live_laws = request.live_laws
             active(session)
             identifiers = [law.law_id for law in live_laws]
             if len(identifiers) > 4 or len(identifiers) != len(set(identifiers)):
@@ -214,14 +215,19 @@ def create_app(*, seed: int = 1000, world_id: str = "mock-dev", admin_token: str
             try:
                 from tools import predict
                 import statistics
-                errors = []
+                errors, within = [], []
                 for probe in probe_specs:
                     predicted = predict(request.law, request.fit, probe, n_draws=0, seed=seed)
                     predicted_x = predicted.observables["landing_x_m"].mean
                     if not math.isfinite(predicted_x):
                         raise ArithmeticError("Prediction did not reach the target plane")
-                    errors.append(abs(predicted_x - flight(probe.speed_mps, probe.elevation_deg)[0]))
-                score.update(median_landing_error_m=statistics.median(errors), errors_m=errors)
+                    actual_x = flight(probe.speed_mps, probe.elevation_deg)[0]
+                    error = abs(predicted_x - actual_x)
+                    errors.append(error)
+                    within.append(error <= hit_radius(actual_x))
+                score.update(median_landing_error_m=statistics.median(errors), errors_m=errors,
+                             probe_within_in_range=sum(within[:20]) / 20,
+                             probe_within_beyond=sum(within[20:]) / 20)
             except ImportError:
                 score["unavailable"] = "Shared analysis tools are not installed"
             except (ArithmeticError, ValueError, RuntimeError) as error:
@@ -249,7 +255,7 @@ def create_app(*, seed: int = 1000, world_id: str = "mock-dev", admin_token: str
                 crossing = flight(actual_speed, actual_angle, target["z_m"])
                 miss = abs(crossing[0] - target["x_m"]) if crossing is not None else None
                 session.mission.append({"target_id": shot.target_id, "miss_m": miss,
-                                        "hit": miss is not None and miss <= target.get("hit_radius_m", 0.05)})
+                                        "hit": miss is not None and miss <= target["hit_radius_m"]})
             return CommitResponse()
 
     @app.get("/admin/truth/{requested_world_id}")

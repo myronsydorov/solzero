@@ -72,6 +72,7 @@ RECORDS = [
     (S.DecisionDiff, {"tentative": SPEC_EXAMPLES["drop"], "actual": SPEC_EXAMPLES["weigh"],
                       "changed": True, "reason": "plan changed by evidence"}),
     (S.SessionRequest, {"world_id": "w1000", "condition": "lab"}),
+    (S.LawsRequest, {"session_id": "s1", "live_laws": [LAW]}),
     (S.PredictionsRequest, {"session_id": "s1", "spec": SPEC_EXAMPLES["weigh"],
                             "predictions": [], "tentative_followup": SPEC_EXAMPLES["drop"]}),
     (S.ExperimentRequest, {"session_id": "s1", "spec": SPEC_EXAMPLES["weigh"],
@@ -126,3 +127,14 @@ def test_verdict_and_claim_values():
         S.Verdict(law_id="L", experiment_id="e1", z=0, verdict="maybe")
     with pytest.raises(ValidationError):
         S.Commit(law_id="L", claim="certain", claims_non_ordinary=False, shots=[])
+
+
+def test_laws_request_rejects_duplicate_ids():
+    with pytest.raises(ValidationError, match="unique"):
+        S.LawsRequest(session_id="s1", live_laws=[LAW, LAW])
+
+
+def test_target_hit_radius_default():
+    assert S.Target(target_id="t", x_m=1.0, z_m=0).hit_radius_m == 0.05
+    assert S.Target(target_id="t", x_m=4.0, z_m=0).hit_radius_m == pytest.approx(0.08)
+    assert S.Target(target_id="t", x_m=4.0, z_m=0, hit_radius_m=0.1).hit_radius_m == 0.1

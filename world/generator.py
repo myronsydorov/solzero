@@ -12,7 +12,9 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from schemas import FitResult, LaunchSpec, Law, ParamEstimate, Result, ShotZero, Target
+from schemas import (
+    HIT_RADIUS_FRAC, FitResult, LaunchSpec, Law, ParamEstimate, Result, ShotZero, Target, hit_radius,
+)
 from tools.analysis import compile_law, plan_shot, simulate_specs
 from tools.defaults import NOISE_SD, RANGES, SAMPLES
 
@@ -25,7 +27,7 @@ DEV_SEEDS = range(1000, 2000)
 TEXTBOOK_C = 0.5 * 1.2 * 0.47 * math.pi * 0.02**2
 TEXTBOOK_G = 9.81
 
-N_PROBES = 20
+N_PROBES_PER_KIND = 20  # in-range (launch speed <= 4 m/s) and beyond-range (> 4 m/s)
 MASSES = {s.sample_id: s.mass_kg for s in SAMPLES}
 
 
@@ -67,6 +69,7 @@ class World:
     target_kind: dict[str, str] = field(default_factory=dict)  # "in_range" | "beyond"
     probes: list[LaunchSpec] = field(default_factory=list)
     probe_x: np.ndarray | None = field(default=None, repr=False)
+    probe_kind: list[str] = field(default_factory=list)  # "in_range" | "beyond"
     shot_zero: ShotZero | None = None
     shot_zero_result: Result | None = None
 
@@ -118,7 +121,7 @@ class World:
                               dv, de, z_stop=z_stop)[..., 0]
 
 
-def make_world(seed: int, *, final_eval: bool = False) -> World:
+def make_world(seed: int, *, final_eval: bool = False, hit_frac: float = HIT_RADIUS_FRAC) -> World:
     if seed in TEST_SEEDS and not final_eval:
         raise PermissionError(f"seed {seed} is a test seed; only --final-eval may use it")
     rng = np.random.default_rng(seed)
@@ -135,7 +138,7 @@ def make_world(seed: int, *, final_eval: bool = False) -> World:
     law, fit = fixed_law("truth", ax, az, {"g0": g0, "c": c, "alpha": alpha, "kappa": kappa})
     w = World(seed=seed, world_id=f"w{seed}", family=family, p=p, g0=float(g0), rho=float(rho),
               alpha=float(alpha), kappa=float(kappa), c=float(c), law=law, fit=fit)
-    _make_targets(w, rng)
+    _make_targets(w, rng, hit_frac)
     _make_probes(w, rng)
     _make_shot_zero(w, rng)
     return w
@@ -147,7 +150,7 @@ def _max_range(w: World, speed: float, z_t: float) -> float:
     return float(np.nanmax(x)) if np.isfinite(x).any() else float("nan")
 
 
-def _make_targets(w: World, rng) -> None:
+def _make_targets(w: World, rng, hit_frac: float) -> None:
     """Two targets reachable at <= 4 m/s, three needing more (up to 7 m/s), under the truth."""
     v_test = RANGES["launch"]["speed_mps"][1]
     v_mission = RANGES["mission"]["speed_mps"][1]
@@ -161,27 +164,36 @@ def _make_targets(w: World, rng) -> None:
         else:
             x_t = rng.uniform(1.08 * r_test, max(1.1 * r_test, 0.95 * r_max))
             kind = "beyond"
-        t = Target(target_id=f"t{k + 1}", x_m=round(float(x_t), 3), z_m=round(z_t, 3))
+        x_t = round(float(x_t), 3)
+        t = Target(target_id=f"t{k + 1}", x_m=x_t, z_m=round(z_t, 3),
+                   hit_radius_m=round(hit_radius(x_t, hit_frac), 4))
         w.targets.append(t)
         w.target_kind[t.target_id] = kind
 
 
 def _make_probes(w: World, rng) -> None:
-    """Hidden probe launches: mixed samples, speeds up to the mission limit, landing on z = 0."""
+    """Hidden probe launches landing on z = 0, mixed samples: N_PROBES_PER_KIND in the tested
+    speed range and N_PROBES_PER_KIND above it, up to the mission limit."""
     ids = [s.sample_id for s in SAMPLES]
+    v_test = RANGES["launch"]["speed_mps"][1]
     v_lo, v_hi = RANGES["mission"]["speed_mps"]
     e_lo, e_hi = RANGES["mission"]["elevation_deg"]
-    probes, xs = [], []
-    while len(probes) < N_PROBES:
-        cand = [LaunchSpec(sample_id=str(rng.choice(ids)), speed_mps=float(rng.uniform(v_lo, v_hi)),
-                           elevation_deg=float(rng.uniform(e_lo, e_hi))) for _ in range(40)]
-        x = simulate_specs(compile_law(w.law), w.theta, cand, MASSES)[0, :, 0]
-        for s, xi in zip(cand, x):
-            if np.isfinite(xi) and len(probes) < N_PROBES:
-                probes.append(s)
-                xs.append(xi)
+    probes, xs, kinds = [], [], []
+    for kind, (a, b) in (("in_range", (v_lo, v_test)), ("beyond", (v_test, v_hi))):
+        n = 0
+        while n < N_PROBES_PER_KIND:
+            cand = [LaunchSpec(sample_id=str(rng.choice(ids)), speed_mps=float(rng.uniform(a, b)),
+                               elevation_deg=float(rng.uniform(e_lo, e_hi))) for _ in range(40)]
+            x = simulate_specs(compile_law(w.law), w.theta, cand, MASSES)[0, :, 0]
+            for s, xi in zip(cand, x):
+                if np.isfinite(xi) and n < N_PROBES_PER_KIND:
+                    probes.append(s)
+                    xs.append(xi)
+                    kinds.append(kind)
+                    n += 1
     w.probes = probes
     w.probe_x = np.array(xs)
+    w.probe_kind = kinds
 
 
 def _make_shot_zero(w: World, rng) -> None:

@@ -1,6 +1,6 @@
 """Summarise a calibration run: criteria table, failure diagnosis, error-versus-experiment plot.
 
-    python -m calibration.report calibration/results/dev5
+    python -m calibration.report calibration/results/dev20_v2
 """
 
 from __future__ import annotations
@@ -37,85 +37,121 @@ def _sweep(targets):
                 for kind in (None, "in_range", "beyond")} for k in keys}
 
 
-def first_below(curve):
+HEADLINE = 0.8  # share of beyond-range probes within the hit radius (decision 2)
+
+
+def first_reaching(curve, level=HEADLINE):
     for i, v in enumerate(curve):
-        if v < THRESH:
+        if v >= level:
             return i
     return None
+
+
+def _by_frac(targets, frac, key="hit_prob_by_frac", kind=None):
+    vals = [float(t[key][frac]) for t in targets if kind is None or t["kind"] == kind]
+    return round(float(np.mean(vals)), 3) if vals else None
+
+
+def _mission_block(targets, fracs=("0.03", "0.02")) -> dict:
+    out = {}
+    for f in fracs:
+        out[f"radius_{f}"] = {k or "all": _by_frac(targets, f, kind=k) for k in (None, "in_range", "beyond")}
+        out[f"radius_{f}_nominal"] = {k or "all": _by_frac(targets, f, "nominal_hit_by_frac", k)
+                                      for k in (None, "in_range", "beyond")}
+    out["median_miss_frac"] = {k: round(float(np.median([t["median_miss_frac"] for t in targets if t["kind"] == k])), 4)
+                               for k in ("in_range", "beyond")}
+    return out
+
+
+def _bootstrap(delta, seed=0):
+    rng = np.random.default_rng(seed)
+    boots = [rng.choice(delta, delta.size).mean() for _ in range(4000)]
+    return [round(float(np.percentile(boots, 2.5)), 3), round(float(np.percentile(boots, 97.5)), 3)]
 
 
 def summarise(run: Path) -> dict:
     A, B = load(run)
     s = {"run": str(run), "n_worlds_A": len(A), "n_worlds_B": len({b["seed"] for b in B})}
     if A:
-        s["stageA"] = {
-            "hit_prob_true_fit": hits(sum((x["mission_true_fit"] for x in A), [])),
-            "hit_prob_true_fit_in_range": hits(sum((x["mission_true_fit"] for x in A), []), "in_range"),
-            "hit_prob_true_fit_beyond": hits(sum((x["mission_true_fit"] for x in A), []), "beyond"),
-            "nominal_hit_true_fit": hits(sum((x["mission_true_fit"] for x in A), []), key="nominal_hit"),
-            "hit_prob_exact_truth": hits(sum((x["mission_exact_truth"] for x in A), [])),
-            "nominal_hit_exact_truth": hits(sum((x["mission_exact_truth"] for x in A), []), key="nominal_hit"),
+        ctrl = lambda x: x["truth"]["family"] == "F0"  # noqa: E731
+        sa = {
+            "exact_truth": _mission_block([t for x in A for t in x["mission_exact_truth"]]),
+            "true_fit": _mission_block([t for x in A for t in x["mission_true_fit"]]),
+            "best_wrong_all_worlds": _mission_block([t for x in A for t in x["mission_best_wrong"]]),
+            "best_wrong_non_control": _mission_block([t for x in A if not ctrl(x) for t in x["mission_best_wrong"]]),
+            "best_non_nesting_wrong_all_worlds": _mission_block(
+                [t for x in A for t in x["mission_best_non_nesting_wrong"]]),
+            "best_wrong_beyond_by_family_0.02": {
+                fam: _by_frac([t for x in A if x["truth"]["family"] == fam for t in x["mission_best_wrong"]],
+                              "0.02", kind="beyond") for fam in ("F0", "F1", "F2", "F3")},
+            "best_non_nesting_wrong_beyond_by_family_0.02": {
+                fam: _by_frac([t for x in A if x["truth"]["family"] == fam for t in x["mission_best_non_nesting_wrong"]],
+                              "0.02", kind="beyond") for fam in ("F0", "F1", "F2", "F3")},
+            "exact_truth_hit_prob_by_actuation_radius_0.02": _sweep([t for x in A for t in x["mission_exact_truth"]]),
             "unreachable_under_truth": int(sum(not t["reachable_under_law"] for x in A for t in x["mission_exact_truth"])),
             "true_form_selected_by_bic": float(np.mean([x["selected_form"] == x["true_form"] for x in A])),
-            "probe_median_true_fit_m": [round(x["probe_median_true_fit"], 4) for x in A],
-            "noiseless_true_fit_chi2": [round(x["fit_true_noiseless"]["chi2_dof"], 4) for x in A],
-            "probe_median_true_fit_noiseless_m": [round(x["probe_median_true_fit_noiseless"], 5) for x in A],
-            "hit_prob_exact_truth_by_actuation": _sweep([t for x in A for t in x["mission_exact_truth"]]),
-            "hit_prob_true_fit_by_actuation": _sweep([t for x in A for t in x["mission_true_fit"]]),
+            "probe_median_true_fit_noiseless_m_max": round(max(x["probe_median_true_fit_noiseless"] for x in A), 5),
+            "fit_time_max_s": round(max(x["fit_time_max_s"] for x in A), 2),
             "mean_runtime_s": float(np.mean([x["runtime_s"] for x in A])),
         }
-        non_ctrl = [x for x in A if x["truth"]["family"] != "F0"]
         sep = []
-        for x in non_ctrl:
-            tb = [t for t in x["mission_true_fit"] if t["kind"] == "beyond"]
-            wb = [t for t in x["mission_best_wrong"] if t["kind"] == "beyond"]
-            sep.append(hits(tb, key="nominal_hit") > hits(wb, key="nominal_hit"))
-        s["stageA"]["separability_nominal"] = float(np.mean(sep)) if sep else None
-        s["stageA"]["beyond_hit_prob_best_wrong"] = hits(
-            [t for x in non_ctrl for t in x["mission_best_wrong"]], "beyond") if non_ctrl else None
+        for x in A:
+            if ctrl(x):
+                continue
+            tb = _by_frac(x["mission_true_fit"], "0.02", "nominal_hit_by_frac", "beyond")
+            wb = _by_frac(x["mission_best_wrong"], "0.02", "nominal_hit_by_frac", "beyond")
+            sep.append(tb > wb)
+        sa["separability_nominal_0.02_non_control"] = float(np.mean(sep)) if sep else None
+        s["stageA"] = sa
     if B:
-        out = {}
+        out = {"hit_frac": B[0].get("hit_frac")}
         for pol in ("random", "greedy"):
             runs = [b for b in B if b["policy"] == pol]
             if not runs:
                 continue
-            curves = np.array([[st["probe_median_selected"] for st in b["steps"]] for b in runs])
-            curves_true = np.array([[st["probe_median_true_form"] for st in b["steps"]] for b in runs])
-            reach = [first_below(c) for c in curves]
-            ctrl = [b for b in runs if b["truth"]["family"] == "F0"]
+            within = np.array([[st["probe_selected"]["within_beyond"] for st in b["steps"]] for b in runs])
+            within_true = np.array([[st["probe_true_form"]["within_beyond"] for st in b["steps"]] for b in runs])
+            med_all = np.array([[st["probe_selected"]["median_all"] for st in b["steps"]] for b in runs])
+            reach = [first_reaching(c) for c in within]
+            ctrl_runs = [b for b in runs if b["truth"]["family"] == "F0"]
+            mission_t = sum((b["mission_selected"] for b in runs), [])
             out[pol] = {
                 "n": len(runs),
-                "reach_5cm_within_12": float(np.mean([r is not None for r in reach])),
-                "experiments_to_5cm": reach,
-                "final_probe_median_m": [round(float(c[-1]), 4) for c in curves],
-                "median_curve_m": [round(float(v), 4) for v in np.median(curves, 0)],
-                "median_curve_true_form_m": [round(float(v), 4) for v in np.median(curves_true, 0)],
-                "final_form_correct": float(np.mean([b["final_form"] == b["true_form"] for b in runs])),
-                "false_discovery_control": (float(np.mean([b["claims_non_ordinary"] for b in ctrl]))
-                                            if ctrl else None),
-                "hit_prob_selected": hits(sum((b["mission_selected"] for b in runs), [])),
-                "hit_prob_selected_in_range": hits(sum((b["mission_selected"] for b in runs), []), "in_range"),
-                "hit_prob_selected_beyond": hits(sum((b["mission_selected"] for b in runs), []), "beyond"),
-                "nominal_hit_selected": hits(sum((b["mission_selected"] for b in runs), []), key="nominal_hit"),
-                "hit_prob_selected_by_actuation": _sweep(sum((b["mission_selected"] for b in runs), [])),
+                "headline_experiments_to_80pct_beyond": reach,
+                "headline_reached_within_12": float(np.mean([r is not None for r in reach])),
+                "mean_within_beyond_curve": [round(float(v), 3) for v in within.mean(0)],
+                "mean_within_beyond_curve_true_form": [round(float(v), 3) for v in within_true.mean(0)],
+                "law_form_recovery": float(np.mean([b["final_form"] == b["true_form"] for b in runs])),
+                "law_form_recovery_by_family": {
+                    fam: f"{sum(b['final_form'] == b['true_form'] for b in runs if b['truth']['family'] == fam)}"
+                         f"/{sum(b['truth']['family'] == fam for b in runs)}" for fam in ("F0", "F1", "F2", "F3")},
+                "false_discovery_control": (f"{sum(b['claims_non_ordinary'] for b in ctrl_runs)}/{len(ctrl_runs)}"
+                                            if ctrl_runs else None),
+                "secondary_median_all_probe_error_curve_m": [round(float(v), 4) for v in np.median(med_all, 0)],
+                "mission_hit_prob": {k or "all": round(hits(mission_t, k), 3) for k in (None, "in_range", "beyond")},
+                "mission_nominal_hit": {k or "all": round(hits(mission_t, k, "nominal_hit"), 3)
+                                        for k in (None, "in_range", "beyond")},
+                "mission_median_miss_frac": {k: round(float(np.median([t["median_miss_frac"] for t in mission_t
+                                                                       if t["kind"] == k])), 4)
+                                             for k in ("in_range", "beyond")},
+                "fit_time_max_s": round(max(b["fit_time_max_s"] for b in runs), 2),
                 "mean_runtime_s": float(np.mean([b["runtime_s"] for b in runs])),
             }
-        # Paired difference in experiments-to-5cm (13 = not reached within budget).
-        seeds = sorted({b["seed"] for b in B})
         by = {(b["seed"], b["policy"]): b for b in B}
-        diffs = []
-        for sd in seeds:
-            if (sd, "random") in by and (sd, "greedy") in by:
-                r = [first_below([st["probe_median_selected"] for st in by[(sd, p)]["steps"]]) for p in ("random", "greedy")]
-                diffs.append([13 if v is None else v for v in r])
-        if diffs:
-            d = np.array(diffs)
-            delta = d[:, 0] - d[:, 1]
-            rng = np.random.default_rng(0)
-            boots = [rng.choice(delta, delta.size).mean() for _ in range(2000)]
-            out["paired_random_minus_greedy_experiments"] = {
-                "mean": float(delta.mean()), "ci95": [float(np.percentile(boots, 2.5)), float(np.percentile(boots, 97.5))],
-                "note": "13 means the 5 cm threshold was not reached within 12 experiments"}
+        pairs = [sd for sd in sorted({b["seed"] for b in B}) if (sd, "random") in by and (sd, "greedy") in by]
+        if pairs:
+            exp = np.array([[13 if (v := first_reaching([st["probe_selected"]["within_beyond"]
+                                                          for st in by[(sd, p)]["steps"]])) is None else v
+                             for p in ("random", "greedy")] for sd in pairs])
+            d = exp[:, 0] - exp[:, 1]
+            hit = np.array([[hits(by[(sd, p)]["mission_selected"]) for p in ("random", "greedy")] for sd in pairs])
+            dh = hit[:, 1] - hit[:, 0]
+            out["paired"] = {
+                "random_minus_greedy_experiments_to_headline": {
+                    "mean": round(float(d.mean()), 3), "ci95": _bootstrap(d),
+                    "note": "13 means not reached within 12 experiments"},
+                "greedy_minus_random_mission_hit_prob": {"mean": round(float(dh.mean()), 3), "ci95": _bootstrap(dh)},
+            }
         s["stageB"] = out
     return s
 
@@ -124,27 +160,32 @@ def plot(run: Path) -> Path | None:
     _, B = load(run)
     if not B:
         return None
-    fig, axes = plt.subplots(1, 2, figsize=(11, 4.2), sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4.2))
     colors = {"random": "#d95f02", "greedy": "#1b9e77"}
-    for ax, key, title in [(axes[0], "probe_median_selected", "BIC-selected form"),
-                           (axes[1], "probe_median_true_form", "true form (oracle model choice)")]:
-        for pol in ("random", "greedy"):
-            runs = [b for b in B if b["policy"] == pol]
-            if not runs:
-                continue
-            C = np.array([[st[key] for st in b["steps"]] for b in runs])
-            C = np.clip(C, 1e-4, 1e2)
-            steps = np.arange(C.shape[1])
-            for c in C:
-                ax.plot(steps, c, color=colors[pol], alpha=0.15, lw=0.8)
-            ax.plot(steps, np.median(C, 0), color=colors[pol], lw=2.5, label=f"{pol} (median, n={len(runs)})")
-        ax.axhline(THRESH, color="k", ls="--", lw=1, label="5 cm threshold")
-        ax.set_yscale("log")
+    for pol in ("random", "greedy"):
+        runs = [b for b in B if b["policy"] == pol]
+        if not runs:
+            continue
+        W = np.array([[st["probe_selected"]["within_beyond"] for st in b["steps"]] for b in runs])
+        M = np.clip(np.array([[st["probe_selected"]["median_all"] for st in b["steps"]] for b in runs]), 1e-4, 1e2)
+        steps = np.arange(W.shape[1])
+        for c in M:
+            axes[1].plot(steps, c, color=colors[pol], alpha=0.12, lw=0.8)
+        axes[0].plot(steps, W.mean(0), color=colors[pol], lw=2.5, label=f"{pol} (mean, n={len(runs)})")
+        axes[0].fill_between(steps, np.percentile(W, 25, 0), np.percentile(W, 75, 0), color=colors[pol], alpha=0.15)
+        axes[1].plot(steps, np.median(M, 0), color=colors[pol], lw=2.5, label=f"{pol} (median)")
+    axes[0].axhline(HEADLINE, color="k", ls="--", lw=1, label="80% headline level")
+    axes[0].set_ylim(0, 1.02)
+    axes[0].set_ylabel("share of 20 beyond-range probes within hit radius")
+    axes[0].set_title("headline: BIC-selected form, beyond-range probes (band: IQR)", fontsize=10)
+    axes[1].axhline(0.05, color="k", ls=":", lw=1, label="5 cm")
+    axes[1].set_yscale("log")
+    axes[1].set_ylabel("median landing error, all 40 probes (m)")
+    axes[1].set_title("secondary: all probes", fontsize=10)
+    for ax in axes:
         ax.set_xlabel("experiments (after shot zero)")
-        ax.set_title(title, fontsize=10)
         ax.grid(alpha=0.3, which="both")
-    axes[0].set_ylabel("median landing error on 20 hidden probes (m)")
-    axes[0].legend(fontsize=8)
+        ax.legend(fontsize=8)
     fig.suptitle(f"Calibration stage B: {run.name}", fontsize=11)
     fig.tight_layout()
     path = run / "error_vs_experiment.png"

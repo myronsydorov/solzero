@@ -107,9 +107,10 @@ class LabSession:
     def nominate(self, law: Law, fit: FitResult):
         with self._lock:
             self._active()
-            if law.law_id not in self.live_laws or self.live_laws[law.law_id] != law:
+            registered = self.live_laws.get(law.law_id)
+            if registered is None or registered.model_dump(exclude={"description"}) != law.model_dump(exclude={"description"}):
                 raise ValueError("Nominate a current live law")
-            request = NominateRequest(session_id=self.info.session_id, law=law, fit=fit)
+            request = NominateRequest(session_id=self.info.session_id, law=registered, fit=fit)
             response = self.client.nominate(request)
             self.ledger.append(len(self.results), "analyst", "nomination", request)
             return response

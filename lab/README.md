@@ -1,9 +1,8 @@
 # Lane B: transport and tool scaffolding
 
-Python 3.12. Run from the repository root after the shared schema package is merged.
-Dependencies belong in the root `pyproject.toml`, owned by lane A. The temporary
-lane requirements file has been removed. See STATUS.md if the available main
-commit has not yet received its dependency follow-up.
+Python 3.12. Run from the repository root. Shared models and dependencies are
+integrated from main; dependencies belong in the root `pyproject.toml`, owned
+by lane A. The temporary lane requirements file has been removed.
 
 ```sh
 uv sync
@@ -105,3 +104,18 @@ Only session metadata, public observations, agent-authored laws and this session
 ledger are passed to the roles. The model service does not expose a sampling-seed
 setting through this harness; the explicit seed controls numerical tool draws,
 and raw model decisions are retained rather than claiming bitwise model replay.
+
+After the human approves the exact contents of `pending-commit.json`, the host
+can submit that file with the SHA256 digest of the reviewed bytes:
+
+```sh
+.venv/bin/python -m lab.approve runs/dev-loop-new/pending-commit.json \
+  --approved-sha256 REVIEWED_FILE_SHA256
+```
+
+Keep the server running until submission because development sessions live in
+memory. This command is never an agent tool. It writes an attempt marker before
+sending the request and refuses every replay, including after a lost response.
+An unknown outcome needs host reconciliation with the server. A successful
+response appends the commit to the same session ledger and saves a receipt;
+it exposes no mission hit or miss feedback to agents.

@@ -353,6 +353,11 @@ def plan_shot(law: Law, fit: FitResult, target: Target, sample_id: str, limits: 
     For each elevation on a grid, the lowest speed that hits is found; among those, the
     setting with the smallest predicted miss spread (parameter draws plus actuation error)
     is returned. limits: {"speed_mps": (lo, hi), "elevation_deg": (lo, hi)}.
+
+    reachable is False only when no setting inside the limits brings the nominal trajectory
+    through the target; then the returned setting is the nominal closest approach and
+    predicted_miss_sd_m is that nominal shortfall. Settings where more than 10% of draws
+    fail to come down are used only when no other setting exists.
     """
     cl = compile_law(law)
     masses = _masses(samples)
@@ -383,11 +388,12 @@ def plan_shot(law: Law, fit: FitResult, target: Target, sample_id: str, limits: 
             cand_v.append(vs[j] + f * (vs[j + 1] - vs[j]))
     if not cand_e:
         i, j = np.unravel_index(np.argmax(Xf), Xf.shape)
+        gap = abs(target.x_m - X[i, j]) if np.isfinite(X[i, j]) else abs(target.x_m)
         return ShotPlan(law_id=law.law_id, target_id=target.target_id, sample_id=sample_id,
                         speed_mps=float(vs[j]), elevation_deg=float(els[i]),
-                        predicted_miss_sd_m=float("inf"), reachable=False)
+                        predicted_miss_sd_m=float(gap), reachable=False)
     ce, cv = np.array(cand_e), np.array(cand_v)
-    for _ in range(3):  # secant refinement of the speed at each elevation
+    for _ in range(5):  # secant refinement of the speed at each elevation
         dv = 1e-3
         xa = landing(cv, ce)[0]
         xb = landing(cv + dv, ce)[0]
@@ -395,10 +401,11 @@ def plan_shot(law: Law, fit: FitResult, target: Target, sample_id: str, limits: 
         ok = np.isfinite(xa) & np.isfinite(slope) & (slope > 0)
         cv = np.where(ok, np.clip(cv + (target.x_m - xa) / np.where(ok, slope, 1), v_lo, v_hi), cv)
     x_hit = landing(cv, ce)[0]
-    good = np.isfinite(x_hit) & (np.abs(x_hit - target.x_m) < 0.2 * 0.05)
-    if not good.any():
-        good = np.isfinite(x_hit)
-    ce, cv, x_hit = ce[good], cv[good], x_hit[good]
+    err = np.where(np.isfinite(x_hit), np.abs(x_hit - target.x_m), np.inf)
+    good = err < 0.005
+    if not good.any():  # the grid brackets a solution; keep the closest refined settings
+        good = err <= np.min(err) + 1e-9
+    ce, cv = ce[good], cv[good]
 
     rng = np.random.default_rng(seed)
     nd = max(n_draws, 1)
@@ -407,9 +414,12 @@ def plan_shot(law: Law, fit: FitResult, target: Target, sample_id: str, limits: 
     dvf = rng.normal(0, noise.get("speed_frac", 0), (nd, n_c))
     dth = rng.normal(0, noise.get("elevation_deg", 0), (nd, n_c))
     xs = landing(cv, ce, th, dvf, dth)
-    miss = np.sqrt(np.nanmean((xs - target.x_m) ** 2, 0))
-    miss = np.where(np.isnan(xs).mean(0) > 0.1, np.inf, miss)
-    k = int(np.argmin(miss))
+    landed = np.isfinite(xs)
+    with np.errstate(all="ignore"):
+        miss = np.sqrt(np.nanmean((xs - target.x_m) ** 2, 0))
+    miss = np.where(landed.any(0), miss, 1e3)
+    risky = (~landed).mean(0) > 0.1
+    k = int(np.lexsort((miss, risky))[0])
     return ShotPlan(law_id=law.law_id, target_id=target.target_id, sample_id=sample_id,
                     speed_mps=float(cv[k]), elevation_deg=float(ce[k]),
-                    predicted_miss_sd_m=float(miss[k]), reachable=bool(np.isfinite(miss[k])))
+                    predicted_miss_sd_m=float(miss[k]), reachable=True)

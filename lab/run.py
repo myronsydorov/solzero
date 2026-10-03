@@ -12,6 +12,7 @@ from typing import get_type_hints
 from omnigent import ClaudeSDKExecutor, ExecutorConfig, ExecutorError, TextChunk
 from pydantic import create_model
 import yaml
+from schemas import Commit, ExperimentSpec, FitResult, Law, Prediction, Verdict
 
 from lab.client import WorldClient
 from lab.policies import ROLE_TOOLS, role_policy
@@ -30,6 +31,20 @@ TASKS = {
 def tool_schema(name):
     function = getattr(tool_functions, name)
     hints = get_type_hints(function)
+    shared_inputs = {
+        "set_laws": {"laws": list[Law]},
+        "preregister": {"spec": ExperimentSpec, "predictions": list[Prediction],
+                        "tentative_followup": ExperimentSpec | None},
+        "fit_law": {"law": Law},
+        "predict": {"law": Law, "fit": FitResult, "spec": ExperimentSpec},
+        "disagreement": {"spec": ExperimentSpec},
+        "plan_shot": {"law": Law, "fit": FitResult},
+        "nominate": {"law": Law, "fit": FitResult},
+        "record_candidates": {"candidates": list[ExperimentSpec], "chosen": ExperimentSpec},
+        "record_verdicts": {"verdicts": list[Verdict]},
+        "commit_mission": {"commit": Commit},
+    }
+    hints.update(shared_inputs.get(name, {}))
     fields = {key: (hints.get(key, str), ... if value.default is inspect.Parameter.empty else value.default)
               for key, value in inspect.signature(function).parameters.items()}
     parameters = create_model(f"{name}_input", **fields).model_json_schema()
@@ -40,6 +55,7 @@ class Runner:
     def __init__(self, session, output: Path, workspace: str, model: str):
         self.session, self.output, self.workspace, self.model = session, output, workspace, model
         self.fits = {}
+        self.fit_laws = {}
         self.pending_commit = None
         self.dispatch_count = 0
 
@@ -86,9 +102,12 @@ class Runner:
                     json.dumps(result, allow_nan=False)
                     if name == "set_laws":
                         self.fits = {identifier: fit for identifier, fit in self.fits.items()
-                                     if identifier in self.session.live_laws}
+                                     if identifier in self.session.live_laws and
+                                     self.fit_laws[identifier].model_dump(exclude={"description"}) ==
+                                     self.session.live_laws[identifier].model_dump(exclude={"description"})}
                     if name == "fit_law":
                         self.fits[result["law_id"]] = result
+                        self.fit_laws[result["law_id"]] = tool_functions.validated_law(arguments["law"])
                 except Exception as error:
                     result = {"error": f"{type(error).__name__}: {error}"}
             self.trace({"cycle": len(self.session.results), "agent": role, "tool": name,
@@ -134,8 +153,9 @@ class Runner:
                 await self.turn("theorist")
             await self.turn("analyst")
             latest = [json.loads(line) for line in self.session.ledger.path.read_text().splitlines()]
-            if not any(entry["kind"] == "nomination" and entry["cycle"] == len(self.session.results) for entry in latest):
-                raise RuntimeError("Analyst did not nominate after this result")
+            for required in ("verdicts", "nomination"):
+                if not any(entry["kind"] == required and entry["cycle"] == len(self.session.results) for entry in latest):
+                    raise RuntimeError(f"Analyst did not record {required} after this result")
             await self.turn("theorist", revision_only=True)
             await self.turn("pi")
             if self.pending_commit is not None or self.session.budget_left == 0:
@@ -163,6 +183,7 @@ def main():
         session = LabSession(client, args.world_id, runs_root=output)
         tool_functions.configure(session, seed=args.seed)
         runner = Runner(session, output, workspace, args.model)
+        summary = {"status": "interrupted", "session_id": session.info.session_id}
         try:
             summary = asyncio.run(runner.run(args.cycles))
         except Exception as error:

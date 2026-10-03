@@ -224,3 +224,13 @@ def test_live_set_replacement_requires_exact_prediction_coverage(client):
     assert register(client, session, spec()).status_code == 200
     assert client.post("/laws", json={"session_id": session, "live_laws": [fixture_law()] * 2}).status_code == 422
     assert client.post("/laws", json={"session_id": session, "live_laws": [fixture_law(str(index)) for index in range(5)]}).status_code == 422
+
+
+def test_shared_hit_radius_and_launcher_error_are_advertised(client):
+    session = start(client, "random")
+    assert session.targets[-1].hit_radius_m == pytest.approx(0.084)
+    assert session.noise_sd["speed_frac"] == 0.005
+    assert session.noise_sd["elevation_deg"] == 0.1
+    result = execute(client, session.session_id, spec("launch")).json()
+    assert result["noise_sd"]["speed_frac"] == session.noise_sd["speed_frac"]
+    assert result["noise_sd"]["elevation_deg"] == session.noise_sd["elevation_deg"]

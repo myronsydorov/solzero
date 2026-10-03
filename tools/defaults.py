@@ -22,8 +22,8 @@ NOISE_SD = {
     "fall_time_s": 0.005,
     "landing_x_m": 0.01,
     "flight_time_s": 0.005,
-    "speed_frac": 0.02,
-    "elevation_deg": 0.5,
+    "speed_frac": 0.005,
+    "elevation_deg": 0.1,
 }
 
-HIT_RADIUS_M = 0.05
+HIT_RADIUS_MIN_M = 0.05  # hit radius is max(5 cm, HIT_RADIUS_FRAC * target distance)

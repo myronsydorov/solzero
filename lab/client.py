@@ -5,7 +5,7 @@ import os
 import httpx
 from schemas import (CommitRequest, CommitResponse, ExperimentRequest, NominateRequest,
                      OkResponse, PredictionsRequest, PredictionsResponse, Result,
-                     SessionInfo, SessionRequest, Law)
+                     SessionInfo, SessionRequest, Law, LawsRequest)
 
 
 class WorldClient:
@@ -29,7 +29,7 @@ class WorldClient:
         self.close()
 
     def _post(self, path, request, response_type):
-        response = self._http.post(path, json=request if isinstance(request, dict) else request.model_dump(mode="json"))
+        response = self._http.post(path, json=request.model_dump(mode="json"))
         response.raise_for_status()
         return response_type.model_validate(response.json())
 
@@ -37,8 +37,7 @@ class WorldClient:
         return self._post("/session", request, SessionInfo)
 
     def replace_laws(self, session_id: str, live_laws: list[Law]) -> OkResponse:
-        return self._post("/laws", {"session_id": session_id,
-                                   "live_laws": [law.model_dump(mode="json") for law in live_laws]}, OkResponse)
+        return self._post("/laws", LawsRequest(session_id=session_id, live_laws=live_laws), OkResponse)
 
     def preregister(self, request: PredictionsRequest) -> PredictionsResponse:
         return self._post("/predictions", request, PredictionsResponse)

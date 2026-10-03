@@ -27,16 +27,16 @@ exactly five distinct known targets and safe launcher settings, and is final.
 `SOLZERO_ADMIN_TOKEN` enables bearer-token-protected admin routes. Without a token,
 both are disabled. Admin responses identify themselves as mock data. Mission
 outcomes are computed once on commit, retained on the server, and never returned
-to agents. Nominations are scored on twenty deterministic dev probe launches
+to agents. Nominations are scored on forty deterministic dev probe launches (twenty within and twenty beyond the tested speed interval)
 using the shared `tools.predict` function when installed. Missing analysis tools
 or a numerical failure are explicitly recorded as an unavailable score; no score
 is fabricated. Installing schemas alone is sufficient for the HTTP fixture.
 
 `POST /laws` replaces up to four live laws and invalidates existing tables.
 Prediction IDs must cover exactly that set. Duplicate, missing and extra IDs are
-rejected. The shared `Target.hit_radius_m` field is emitted as soon as that field
-is available in schemas; the existing schema still uses the specified default
-radius internally. No parallel target model is defined in this lane.
+rejected. Targets use the shared `Target.hit_radius_m` calculation and launcher error
+comes from shared instrument defaults. No parallel record models are defined
+in this lane.
 
 ```sh
 .venv/bin/python -m pytest mock/tests tests/test_no_leak.py -q

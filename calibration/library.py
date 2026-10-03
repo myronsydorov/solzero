@@ -43,6 +43,13 @@ def true_form(family: str, p: float) -> str:
     return form_id(gravity, f"p{int(p)}")
 
 
+def nests_truth(fid: str, family: str, p: float) -> bool:
+    """True when the form contains the hidden law as a special case (extra parameter at 0)."""
+    g, d = fid.split("_")
+    true_g, true_d = true_form(family, p).split("_")
+    return d == true_d and (g == true_g or true_g == "const")
+
+
 def is_ordinary(fid: str) -> bool:
     g, d = fid.split("_")
     return (g, d) in ORDINARY

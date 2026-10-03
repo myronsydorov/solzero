@@ -235,3 +235,59 @@ def test_stub_yamls_limit_robot_tools_to_operator():
         config = yaml.safe_load((Path(__file__).resolve().parents[2] / "lab/agents" / f"{role}.yaml").read_text())
         assert "stub" in config["prompt"] and config["skills"] == "none" and "os_env" not in config
         assert bool({"weigh", "drop", "launch"} & set(config["tools"])) == (role == "operator")
+
+
+def test_nomination_description_changes_do_not_change_the_registered_expression(environment):
+    session, _, _ = environment
+    session.preregister(experiment(), [], None)
+    session.execute(experiment())
+    session.set_laws([law()])
+    narrated = law().model_copy(update={"description": "Tentative interpretation"})
+    assert session.nominate(narrated, fit()).ok
+    assert entries(session)[-1].payload["law"]["description"] == law().description
+
+
+def test_runner_tool_schemas_preserve_structured_inputs():
+    from lab.run import tool_schema
+    schema = tool_schema("preregister")["parameters"]
+    assert schema["properties"]["spec"]["discriminator"]["propertyName"] == "type"
+    assert schema["properties"]["predictions"]["type"] == "array"
+    assert schema["properties"]["predictions"]["items"]["$ref"] == "#/$defs/Prediction"
+    assert set(schema["$defs"]["Prediction"]["required"]) == {"law_id", "observables"}
+
+
+def test_reviewed_commit_hash_and_success_prevent_replay(environment, tmp_path, monkeypatch):
+    import hashlib
+    from lab.approve import submit
+    session, calls, _ = environment
+    pending = tmp_path / "pending-commit.json"
+    pending.write_text(json.dumps({"session_id": session.info.session_id, "base_url": "http://fixture",
+                                   "commit": mission().model_dump(mode="json")}))
+    digest = hashlib.sha256(pending.read_bytes()).hexdigest()
+    with pytest.raises(ValueError, match="hash"):
+        submit(pending, "wrong")
+    assert calls == [("POST", "/session")]
+    monkeypatch.setattr("lab.approve.WorldClient", lambda _: session.client)
+    assert submit(pending, digest)["status"] == "committed"
+    with pytest.raises(FileExistsError):
+        submit(pending, digest)
+    assert calls.count(("POST", "/commit")) == 1
+
+
+def test_reviewed_commit_lost_response_prevents_replay(environment, tmp_path, monkeypatch):
+    import hashlib
+    from lab.approve import submit
+    session, _, _ = environment
+    pending = tmp_path / "pending-commit.json"
+    pending.write_text(json.dumps({"session_id": session.info.session_id, "base_url": "http://fixture",
+                                   "commit": mission().model_dump(mode="json")}))
+    digest = hashlib.sha256(pending.read_bytes()).hexdigest()
+    def lost_response(_):
+        raise httpx.ReadTimeout("response lost")
+    monkeypatch.setattr(session.client, "commit", lost_response)
+    monkeypatch.setattr("lab.approve.WorldClient", lambda _: session.client)
+    with pytest.raises(httpx.ReadTimeout):
+        submit(pending, digest)
+    assert json.loads(pending.with_suffix(".attempt.json").read_text())["status"] == "outcome_unknown"
+    with pytest.raises(FileExistsError):
+        submit(pending, digest)
