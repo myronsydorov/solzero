@@ -193,11 +193,60 @@ def plot(run: Path) -> Path | None:
     return path
 
 
+def primary_table(run: Path) -> str:
+    """SPEC 7 primary metrics for the scripted policies, with 95% bootstrap CIs and paired
+    differences. Law recovery uses the eval/grade.py rule on the final fit."""
+    from calibration.library import library
+    from eval.grade import law_dependence, law_recovered
+    from schemas import FitResult
+
+    _, B = load(run)
+    laws = library()
+    rows = {}
+    for b in B:
+        dep = law_dependence(laws[b["final_form"]], FitResult.model_validate(b["final_fit"]))
+        rows[(b["policy"], b["seed"])] = {
+            "probe_hit_beyond": b["steps"][-1]["probe_selected"]["within_beyond"],
+            "mission_hit_rate": hits(b["mission_selected"]),
+            "mission_hit_in_range": hits(b["mission_selected"], "in_range"),
+            "mission_hit_beyond": hits(b["mission_selected"], "beyond"),
+            "law_form_recovered": float(law_recovered(dep, b["truth"])["recovered"]),
+            "false_discovery": float(b["claims_non_ordinary"]) if b["truth"]["family"] == "F0" else None,
+        }
+    keys = [("probe_hit_beyond", "Beyond-range probe hit rate (after 12)"), ("mission_hit_rate", "Mission hit rate"),
+            ("mission_hit_in_range", "  in-range targets"), ("mission_hit_beyond", "  beyond-range targets"),
+            ("law_form_recovered", "Law-form recovery (SPEC 7 rule)"), ("false_discovery", "Control false discovery")]
+    seeds = sorted({sd for (_, sd) in rows})
+    paired_seeds = [sd for sd in seeds if ("random", sd) in rows and ("greedy", sd) in rows]
+
+    def ci(x, seed=0):
+        x = np.asarray(x, float)
+        rng = np.random.default_rng(seed)
+        m = rng.choice(x, (4000, x.size)).mean(1)
+        return f"{x.mean():.3f} [{np.percentile(m, 2.5):.3f}, {np.percentile(m, 97.5):.3f}]"
+
+    lines = [f"Scripted policies on {len(seeds)} dev worlds (hit radius 2%, launcher 0.5% / 0.1 deg). "
+             "Means with 95% bootstrap CIs over worlds; paired = greedy minus random on the same world.", "",
+             "| Metric | Random | Greedy | Paired difference (greedy - random) | n |", "| --- | --- | --- | --- | --- |"]
+    for k, name in keys:
+        cols = []
+        for pol in ("random", "greedy"):
+            v = [rows[(pol, sd)][k] for sd in seeds if (pol, sd) in rows and rows[(pol, sd)][k] is not None]
+            cols.append(ci(v))
+        d = [rows[("greedy", sd)][k] - rows[("random", sd)][k] for sd in paired_seeds if rows[("random", sd)][k] is not None]
+        lines.append(f"| {name} | {cols[0]} | {cols[1]} | {ci(d, 1)} | {len(d)} |")
+    return "\n".join(lines) + "\n"
+
+
 def main():
     run = Path(sys.argv[1] if len(sys.argv) > 1 else "calibration/results/dev5")
     s = summarise(run)
     (run / "summary.json").write_text(json.dumps(s, indent=1))
     p = plot(run)
+    if any(run.glob("stageB_*.json")):
+        table = primary_table(run)
+        (run / "primary_table.md").write_text(table)
+        print(table)
     print(json.dumps(s, indent=1))
     if p:
         print("plot:", p)

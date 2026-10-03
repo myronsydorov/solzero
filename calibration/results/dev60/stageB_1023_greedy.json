@@ -1,0 +1,1071 @@
+{
+ "seed": 1023,
+ "policy": "greedy",
+ "truth": {
+  "world_id": "w1023",
+  "family": "F3",
+  "p": 2.0,
+  "g0": 6.727559880093788,
+  "rho": 0.7341291145578738,
+  "alpha": 0.0,
+  "kappa": 0.5115281837732785,
+  "c": 0.05487663975453698
+ },
+ "true_form": "height_p2",
+ "steps": [
+  {
+   "step": 0,
+   "spec": null,
+   "observables": {
+    "landing_x_m": 1.047549109379785,
+    "flight_time_s": 0.41734110834622185
+   },
+   "status": "ok",
+   "bic": {
+    "const_none": 334.83786904751213,
+    "const_p1": 1.3862943611198906,
+    "const_p2": 1.3862943611198906,
+    "const_p3": 1.3862943611198906,
+    "mass_none": 335.530502566335,
+    "mass_p1": 2.0794415416798357,
+    "mass_p2": 2.079441541679838,
+    "mass_p3": 2.0794415416798357,
+    "height_none": 335.56395551375107,
+    "height_p1": 2.0794415416798615,
+    "height_p2": 2.0794415416798953,
+    "height_p3": 2.0794415416798384
+   },
+   "probe_median": {
+    "const_none": 0.30531446182310856,
+    "const_p1": 0.10384823247749783,
+    "const_p2": 0.01355368532917317,
+    "const_p3": 0.0885708299390125,
+    "mass_none": 0.3053208135543876,
+    "mass_p1": 0.1038434572992856,
+    "mass_p2": 0.013286863108089297,
+    "mass_p3": 0.08857082995679139,
+    "height_none": 0.3040154421944679,
+    "height_p1": 0.11915195715503288,
+    "height_p2": 0.02416478464341737,
+    "height_p3": 0.11480685233131205
+   },
+   "selected_form": "const_p1",
+   "probe_median_selected": 0.10384823247749783,
+   "probe_median_true_form": 0.02416478464341737,
+   "probe_selected": {
+    "median_all": 0.10384823247749783,
+    "within_beyond": 0.15,
+    "within_in_range": 0.5
+   },
+   "probe_true_form": {
+    "median_all": 0.02416478464341737,
+    "within_beyond": 0.5,
+    "within_in_range": 0.9
+   }
+  },
+  {
+   "step": 1,
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_100",
+    "height_m": 0.6
+   },
+   "observables": {
+    "force_n": 0.897633933450575
+   },
+   "status": "ok",
+   "bic": {
+    "const_none": 348.49718662543387,
+    "const_p1": 40.99772251329389,
+    "const_p2": 47.470748297485706,
+    "const_p3": 53.1784090981594,
+    "mass_none": 349.59544342715265,
+    "mass_p1": 42.09633444128071,
+    "mass_p2": 48.56935931974953,
+    "mass_p3": 54.27702164489368,
+    "height_none": 333.946295710202,
+    "height_p1": 3.295836866004329,
+    "height_p2": 3.295836866004329,
+    "height_p3": 3.295836866004329
+   },
+   "probe_median": {
+    "const_none": 0.3476868547954483,
+    "const_p1": 0.08315968248387323,
+    "const_p2": 0.0384314374906721,
+    "const_p3": 0.09592525808848251,
+    "mass_none": 0.34768838841702615,
+    "mass_p1": 0.23395753513284706,
+    "mass_p2": 0.2311651157564495,
+    "mass_p3": 0.09592528203669848,
+    "height_none": 0.408053582441513,
+    "height_p1": 0.0710666609268466,
+    "height_p2": 0.018704131300633364,
+    "height_p3": 0.05896051189194082
+   },
+   "selected_form": "height_p1",
+   "probe_median_selected": 0.0710666609268466,
+   "probe_median_true_form": 0.018704131300633364,
+   "probe_selected": {
+    "median_all": 0.0710666609268466,
+    "within_beyond": 0.3,
+    "within_in_range": 0.4
+   },
+   "probe_true_form": {
+    "median_all": 0.018704131300633364,
+    "within_beyond": 0.8,
+    "within_in_range": 1.0
+   }
+  },
+  {
+   "step": 2,
+   "spec": {
+    "type": "drop",
+    "sample_id": "ref_100",
+    "height_m": 1.0
+   },
+   "observables": {
+    "fall_time_s": 0.5031298305791896
+   },
+   "status": "ok",
+   "bic": {
+    "const_none": 411.92265600143116,
+    "const_p1": 93.40306897810026,
+    "const_p2": 69.89106183662092,
+    "const_p3": 65.7564847940475,
+    "mass_none": 413.3069135761621,
+    "mass_p1": 94.78934235360339,
+    "mass_p2": 71.277364297953,
+    "mass_p3": 67.14278103818042,
+    "height_none": 336.47843450832437,
+    "height_p1": 7.7390545673706725,
+    "height_p2": 4.553997183868304,
+    "height_p3": 7.682062800157557
+   },
+   "probe_median": {
+    "const_none": 0.4021322220835056,
+    "const_p1": 0.08282636854423728,
+    "const_p2": 0.08819957029540532,
+    "const_p3": 0.11513876201640735,
+    "mass_none": 0.4020633192614979,
+    "mass_p1": 0.21392865211212894,
+    "mass_p2": 0.16629790139444484,
+    "mass_p3": 0.5428681822612804,
+    "height_none": 0.4599002172281076,
+    "height_p1": 0.07418750396356538,
+    "height_p2": 0.01901631493107861,
+    "height_p3": 0.05349030638964397
+   },
+   "selected_form": "height_p2",
+   "probe_median_selected": 0.01901631493107861,
+   "probe_median_true_form": 0.01901631493107861,
+   "probe_selected": {
+    "median_all": 0.01901631493107861,
+    "within_beyond": 0.85,
+    "within_in_range": 1.0
+   },
+   "probe_true_form": {
+    "median_all": 0.01901631493107861,
+    "within_beyond": 0.85,
+    "within_in_range": 1.0
+   }
+  },
+  {
+   "step": 3,
+   "spec": {
+    "type": "launch",
+    "sample_id": "ref_100",
+    "speed_mps": 3.0,
+    "elevation_deg": 45.0
+   },
+   "observables": {
+    "landing_x_m": 0.8986117571772275,
+    "flight_time_s": 0.5732107510945199
+   },
+   "status": "ok",
+   "bic": {
+    "const_none": 746.2874030811934,
+    "const_p1": 112.66257176681688,
+    "const_p2": 85.37210913737141,
+    "const_p3": 116.78891857670706,
+    "mass_none": 748.0811665048725,
+    "mass_p1": 114.45436574436624,
+    "mass_p2": 87.16387394798697,
+    "mass_p3": 118.58032648169316,
+    "height_none": 641.1458454582737,
+    "height_p1": 47.22893381908609,
+    "height_p2": 7.111479828648017,
+    "height_p3": 26.430829065804716
+   },
+   "probe_median": {
+    "const_none": 0.3580630458067479,
+    "const_p1": 0.08046381243383266,
+    "const_p2": 0.061098605088477254,
+    "const_p3": 0.08446119774555205,
+    "mass_none": 0.3580620208101651,
+    "mass_p1": 0.21039711067957997,
+    "mass_p2": 0.18195326863663597,
+    "mass_p3": 0.48459950463581075,
+    "height_none": 0.4318977200544938,
+    "height_p1": 0.057134698511775744,
+    "height_p2": 0.009075793198812798,
+    "height_p3": 0.04243614816960403
+   },
+   "selected_form": "height_p2",
+   "probe_median_selected": 0.009075793198812798,
+   "probe_median_true_form": 0.009075793198812798,
+   "probe_selected": {
+    "median_all": 0.009075793198812798,
+    "within_beyond": 1.0,
+    "within_in_range": 1.0
+   },
+   "probe_true_form": {
+    "median_all": 0.009075793198812798,
+    "within_beyond": 1.0,
+    "within_in_range": 1.0
+   }
+  },
+  {
+   "step": 4,
+   "spec": {
+    "type": "drop",
+    "sample_id": "ref_020",
+    "height_m": 0.8982602489142881
+   },
+   "observables": {
+    "fall_time_s": 0.6368613450412384
+   },
+   "status": "ok",
+   "bic": {
+    "const_none": 2224.1463190472555,
+    "const_p1": 152.77270402313368,
+    "const_p2": 88.17439371019294,
+    "const_p3": 193.40403450480724,
+    "mass_none": 749.130206315064,
+    "mass_p1": 114.91032025632101,
+    "mass_p2": 87.62881729305909,
+    "mass_p3": 119.0733972169863,
+    "height_none": 1441.150133878141,
+    "height_p1": 127.58733492481778,
+    "height_p2": 7.861098028441836,
+    "height_p3": 83.77465059214805
+   },
+   "probe_median": {
+    "const_none": 0.464661345700408,
+    "const_p1": 0.10224747975801646,
+    "const_p2": 0.048307542367952955,
+    "const_p3": 0.06190673885126044,
+    "mass_none": 0.5711402406943046,
+    "mass_p1": 0.09896045167770477,
+    "mass_p2": 0.07128674286833148,
+    "mass_p3": 0.1351425248248021,
+    "height_none": 0.7590610340960791,
+    "height_p1": 0.06747008285786439,
+    "height_p2": 0.0061782739099843775,
+    "height_p3": 0.059080750424358175
+   },
+   "selected_form": "height_p2",
+   "probe_median_selected": 0.0061782739099843775,
+   "probe_median_true_form": 0.0061782739099843775,
+   "probe_selected": {
+    "median_all": 0.0061782739099843775,
+    "within_beyond": 1.0,
+    "within_in_range": 1.0
+   },
+   "probe_true_form": {
+    "median_all": 0.0061782739099843775,
+    "within_beyond": 1.0,
+    "within_in_range": 1.0
+   }
+  },
+  {
+   "step": 5,
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_800",
+    "height_m": 0.021773772580367234
+   },
+   "observables": {
+    "force_n": 5.391349896374894
+   },
+   "status": "ok",
+   "bic": {
+    "const_none": 2408.379355150255,
+    "const_p1": 339.9251408981888,
+    "const_p2": 200.23416462260815,
+    "const_p3": 262.6235278958687,
+    "mass_none": 2376.620299897393,
+    "mass_p1": 115.20080365376388,
+    "mass_p2": 120.7077997047901,
+    "mass_p3": 247.8751120820261,
+    "height_none": 2169.106694319073,
+    "height_p1": 161.60300423851302,
+    "height_p2": 8.37425997355396,
+    "height_p3": 92.53067996217457
+   },
+   "probe_median": {
+    "const_none": 0.5417802250301669,
+    "const_p1": 0.12144552218653709,
+    "const_p2": 0.05134701668514352,
+    "const_p3": 0.062413957886531146,
+    "mass_none": 0.4920106547197422,
+    "mass_p1": 0.09681863839363142,
+    "mass_p2": 0.01918115153202954,
+    "mass_p3": 0.05124974320047368,
+    "height_none": 0.7247194780453721,
+    "height_p1": 0.0632065043403865,
+    "height_p2": 0.006073643641273607,
+    "height_p3": 0.05702584652158704
+   },
+   "selected_form": "height_p2",
+   "probe_median_selected": 0.006073643641273607,
+   "probe_median_true_form": 0.006073643641273607,
+   "probe_selected": {
+    "median_all": 0.006073643641273607,
+    "within_beyond": 1.0,
+    "within_in_range": 1.0
+   },
+   "probe_true_form": {
+    "median_all": 0.006073643641273607,
+    "within_beyond": 1.0,
+    "within_in_range": 1.0
+   }
+  },
+  {
+   "step": 6,
+   "spec": {
+    "type": "launch",
+    "sample_id": "ref_800",
+    "speed_mps": 3.8088813930526504,
+    "elevation_deg": 49.53370900366829
+   },
+   "observables": {
+    "landing_x_m": 1.7099143627761468,
+    "flight_time_s": 0.7259177320881521
+   },
+   "status": "ok",
+   "bic": {
+    "const_none": 2446.335518328718,
+    "const_p1": 349.87476832063214,
+    "const_p2": 237.65065460358798,
+    "const_p3": 331.55820403458046,
+    "mass_none": 2382.8735464505785,
+    "mass_p1": 314.65498416818406,
+    "mass_p2": 239.87325731132447,
+    "mass_p3": 316.2328482669085,
+    "height_none": 2302.0995858815895,
+    "height_p1": 176.08933713056476,
+    "height_p2": 14.395902153745062,
+    "height_p3": 111.0282731117362
+   },
+   "probe_median": {
+    "const_none": 0.5055711089529742,
+    "const_p1": 0.11126071884051941,
+    "const_p2": 0.045755112936532616,
+    "const_p3": 0.05814740887187278,
+    "mass_none": 0.5058198342657962,
+    "mass_p1": 0.08356709758532604,
+    "mass_p2": 0.045097775182307565,
+    "mass_p3": 0.068638581906874,
+    "height_none": 0.6331031743570454,
+    "height_p1": 0.06586638668210404,
+    "height_p2": 0.0006284445674821226,
+    "height_p3": 0.05499647572871355
+   },
+   "selected_form": "height_p2",
+   "probe_median_selected": 0.0006284445674821226,
+   "probe_median_true_form": 0.0006284445674821226,
+   "probe_selected": {
+    "median_all": 0.0006284445674821226,
+    "within_beyond": 1.0,
+    "within_in_range": 1.0
+   },
+   "probe_true_form": {
+    "median_all": 0.0006284445674821226,
+    "within_beyond": 1.0,
+    "within_in_range": 1.0
+   }
+  },
+  {
+   "step": 7,
+   "spec": {
+    "type": "launch",
+    "sample_id": "ref_100",
+    "speed_mps": 3.640208422342291,
+    "elevation_deg": 37.77324412056023
+   },
+   "observables": {
+    "landing_x_m": 1.1501451533768485,
+    "flight_time_s": 0.5910699864188883
+   },
+   "status": "ok",
+   "bic": {
+    "const_none": 3338.7987028988628,
+    "const_p1": 492.0077973071225,
+    "const_p2": 254.87217053740864,
+    "const_p3": 346.59439914114057,
+    "mass_none": 3337.5210588378472,
+    "mass_p1": 415.2580077430869,
+    "mass_p2": 257.29133379912975,
+    "mass_p3": 321.8452121920198,
+    "height_none": 3097.4714536015695,
+    "height_p1": 282.22352858949506,
+    "height_p2": 15.883660104035037,
+    "height_p3": 127.05236321625975
+   },
+   "probe_median": {
+    "const_none": 0.43369996378824277,
+    "const_p1": 0.09100855955649645,
+    "const_p2": 0.0411531089123085,
+    "const_p3": 0.06346929047097322,
+    "mass_none": 0.4338031523959723,
+    "mass_p1": 0.07766870968718306,
+    "mass_p2": 0.0410237511701263,
+    "mass_p3": 0.0685835808301638,
+    "height_none": 0.5602389532419108,
+    "height_p1": 0.06536960281518828,
+    "height_p2": 0.00047322966202623107,
+    "height_p3": 0.042165637056619076
+   },
+   "selected_form": "height_p2",
+   "probe_median_selected": 0.00047322966202623107,
+   "probe_median_true_form": 0.00047322966202623107,
+   "probe_selected": {
+    "median_all": 0.00047322966202623107,
+    "within_beyond": 1.0,
+    "within_in_range": 1.0
+   },
+   "probe_true_form": {
+    "median_all": 0.00047322966202623107,
+    "within_beyond": 1.0,
+    "within_in_range": 1.0
+   }
+  },
+  {
+   "step": 8,
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_100",
+    "height_m": 1.1523088674664606
+   },
+   "observables": {
+    "force_n": 1.051974959890323
+   },
+   "status": "ok",
+   "bic": {
+    "const_none": 3392.3937998742554,
+    "const_p1": 564.2113643306745,
+    "const_p2": 362.54794745196955,
+    "const_p3": 478.15217491144625,
+    "mass_none": 3398.7779912403644,
+    "mass_p1": 474.5050281759924,
+    "mass_p2": 363.6896523027939,
+    "mass_p3": 465.09975079835544,
+    "height_none": 3330.8962277070095,
+    "height_p1": 286.3494836044443,
+    "height_p2": 16.844926680641574,
+    "height_p3": 127.4487285221413
+   },
+   "probe_median": {
+    "const_none": 0.4261360629688818,
+    "const_p1": 0.09017482717968356,
+    "const_p2": 0.044155702064611724,
+    "const_p3": 0.06543576099844714,
+    "mass_none": 0.4255895066204121,
+    "mass_p1": 0.07607143991492052,
+    "mass_p2": 0.044109785714045,
+    "mass_p3": 0.06923090511223473,
+    "height_none": 0.4530771881602794,
+    "height_p1": 0.06656514342163122,
+    "height_p2": 0.0007170317614755561,
+    "height_p3": 0.043292040313064606
+   },
+   "selected_form": "height_p2",
+   "probe_median_selected": 0.0007170317614755561,
+   "probe_median_true_form": 0.0007170317614755561,
+   "probe_selected": {
+    "median_all": 0.0007170317614755561,
+    "within_beyond": 1.0,
+    "within_in_range": 1.0
+   },
+   "probe_true_form": {
+    "median_all": 0.0007170317614755561,
+    "within_beyond": 1.0,
+    "within_in_range": 1.0
+   }
+  },
+  {
+   "step": 9,
+   "spec": {
+    "type": "launch",
+    "sample_id": "ref_050",
+    "speed_mps": 3.9693070907614016,
+    "elevation_deg": 16.18113880415671
+   },
+   "observables": {
+    "landing_x_m": 0.8990351884402589,
+    "flight_time_s": 0.4107832607294193
+   },
+   "status": "ok",
+   "bic": {
+    "const_none": 4569.89694703672,
+    "const_p1": 757.2457354162646,
+    "const_p2": 390.1676230183841,
+    "const_p3": 539.9044004810416,
+    "mass_none": 4536.39411912869,
+    "mass_p1": 621.866060456193,
+    "mass_p2": 392.87480139699625,
+    "mass_p3": 504.83018135086394,
+    "height_none": 4411.049901384718,
+    "height_p1": 454.8763647871245,
+    "height_p2": 17.327925021898686,
+    "height_p3": 156.7461199898196
+   },
+   "probe_median": {
+    "const_none": 0.387098965177413,
+    "const_p1": 0.07748493169765085,
+    "const_p2": 0.0415171525788986,
+    "const_p3": 0.06714012622000598,
+    "mass_none": 0.3955233121071647,
+    "mass_p1": 0.07658358173419025,
+    "mass_p2": 0.041513030000552675,
+    "mass_p3": 0.07033741221997825,
+    "height_none": 0.43638317432835405,
+    "height_p1": 0.06892915059317044,
+    "height_p2": 0.0007802287620393145,
+    "height_p3": 0.04225611941024099
+   },
+   "selected_form": "height_p2",
+   "probe_median_selected": 0.0007802287620393145,
+   "probe_median_true_form": 0.0007802287620393145,
+   "probe_selected": {
+    "median_all": 0.0007802287620393145,
+    "within_beyond": 1.0,
+    "within_in_range": 1.0
+   },
+   "probe_true_form": {
+    "median_all": 0.0007802287620393145,
+    "within_beyond": 1.0,
+    "within_in_range": 1.0
+   }
+  },
+  {
+   "step": 10,
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_050",
+    "height_m": 1.1989596430655447
+   },
+   "observables": {
+    "force_n": 0.554917147503809
+   },
+   "status": "ok",
+   "bic": {
+    "const_none": 4679.308057802946,
+    "const_p1": 896.6192655787684,
+    "const_p2": 575.6421926641899,
+    "const_p3": 750.8461425253026,
+    "mass_none": 4618.87559858003,
+    "mass_p1": 712.3643246882343,
+    "mass_p2": 572.3346897366704,
+    "mass_p3": 743.8207847079145,
+    "height_none": 4657.944337115137,
+    "height_p1": 458.0361023053231,
+    "height_p2": 18.80011176262041,
+    "height_p3": 160.87041163172887
+   },
+   "probe_median": {
+    "const_none": 0.3815884565509781,
+    "const_p1": 0.07639985413577338,
+    "const_p2": 0.046358042374427755,
+    "const_p3": 0.069956659124767,
+    "mass_none": 0.38933556302081945,
+    "mass_p1": 0.07393920005021792,
+    "mass_p2": 0.044037928788475844,
+    "mass_p3": 0.0713102836621613,
+    "height_none": 0.39746961671890724,
+    "height_p1": 0.06885578140659641,
+    "height_p2": 0.00024082897189642294,
+    "height_p3": 0.041527670305769177
+   },
+   "selected_form": "height_p2",
+   "probe_median_selected": 0.00024082897189642294,
+   "probe_median_true_form": 0.00024082897189642294,
+   "probe_selected": {
+    "median_all": 0.00024082897189642294,
+    "within_beyond": 1.0,
+    "within_in_range": 1.0
+   },
+   "probe_true_form": {
+    "median_all": 0.00024082897189642294,
+    "within_beyond": 1.0,
+    "within_in_range": 1.0
+   }
+  },
+  {
+   "step": 11,
+   "spec": {
+    "type": "drop",
+    "sample_id": "ref_020",
+    "height_m": 0.9877940047405088
+   },
+   "observables": {
+    "fall_time_s": 0.684511849774618
+   },
+   "status": "ok",
+   "bic": {
+    "const_none": 6586.983854156531,
+    "const_p1": 931.5700979391353,
+    "const_p2": 575.7907286682815,
+    "const_p3": 818.9350347577305,
+    "mass_none": 6571.357233367058,
+    "mass_p1": 722.9155444850692,
+    "mass_p2": 573.4612119056745,
+    "mass_p3": 785.8482901319505,
+    "height_none": 6236.719671114834,
+    "height_p1": 488.6421603583451,
+    "height_p2": 19.04928213771187,
+    "height_p3": 234.31442711624513
+   },
+   "probe_median": {
+    "const_none": 0.42344032908249546,
+    "const_p1": 0.08046168433837142,
+    "const_p2": 0.04625144610134829,
+    "const_p3": 0.06459694207592126,
+    "mass_none": 0.4203746520944501,
+    "mass_p1": 0.07534967091915161,
+    "mass_p2": 0.04200251328369475,
+    "mass_p3": 0.06985479512214932,
+    "height_none": 0.511665930496278,
+    "height_p1": 0.06738459871078935,
+    "height_p2": 0.0006437228951629015,
+    "height_p3": 0.05077733329185963
+   },
+   "selected_form": "height_p2",
+   "probe_median_selected": 0.0006437228951629015,
+   "probe_median_true_form": 0.0006437228951629015,
+   "probe_selected": {
+    "median_all": 0.0006437228951629015,
+    "within_beyond": 1.0,
+    "within_in_range": 1.0
+   },
+   "probe_true_form": {
+    "median_all": 0.0006437228951629015,
+    "within_beyond": 1.0,
+    "within_in_range": 1.0
+   }
+  },
+  {
+   "step": 12,
+   "spec": {
+    "type": "launch",
+    "sample_id": "ref_050",
+    "speed_mps": 3.978039136416796,
+    "elevation_deg": 29.45219016930485
+   },
+   "observables": {
+    "landing_x_m": 0.9536294448005125,
+    "flight_time_s": 0.5158040923050771
+   },
+   "status": "ok",
+   "bic": {
+    "const_none": 8648.593245358947,
+    "const_p1": 1169.8201165931825,
+    "const_p2": 594.068971355654,
+    "const_p3": 841.9743253817658,
+    "mass_none": 8646.493365964083,
+    "mass_p1": 855.3904871854049,
+    "mass_p2": 592.5091206310085,
+    "mass_p3": 794.6388692085,
+    "height_none": 8055.480957148944,
+    "height_p1": 670.6107801958167,
+    "height_p2": 20.67963518527747,
+    "height_p3": 248.58724877564399
+   },
+   "probe_median": {
+    "const_none": 0.35882288342749086,
+    "const_p1": 0.08059464857480304,
+    "const_p2": 0.0426195990780025,
+    "const_p3": 0.06605619469237262,
+    "mass_none": 0.37357209670329733,
+    "mass_p1": 0.07572231453043723,
+    "mass_p2": 0.03927705878391874,
+    "mass_p3": 0.07068538092692772,
+    "height_none": 0.43980916535142356,
+    "height_p1": 0.06696338954458336,
+    "height_p2": 0.0019994233615053814,
+    "height_p3": 0.04307842270558421
+   },
+   "selected_form": "height_p2",
+   "probe_median_selected": 0.0019994233615053814,
+   "probe_median_true_form": 0.0019994233615053814,
+   "probe_selected": {
+    "median_all": 0.0019994233615053814,
+    "within_beyond": 1.0,
+    "within_in_range": 1.0
+   },
+   "probe_true_form": {
+    "median_all": 0.0019994233615053814,
+    "within_beyond": 1.0,
+    "within_in_range": 1.0
+   }
+  }
+ ],
+ "final_form": "height_p2",
+ "claims_non_ordinary": true,
+ "final_fit": {
+  "law_id": "height_p2",
+  "params": {
+   "g0": {
+    "value": 6.73172395612132,
+    "sd": 0.07117436733913554
+   },
+   "kappa": {
+    "value": 0.5161894746561222,
+    "sd": 0.02651341567708985
+   },
+   "c": {
+    "value": 0.05508841423355732,
+    "sd": 0.0006488374538673478
+   }
+  },
+  "chi2_dof": 0.7403948904861344,
+  "loo_error": null,
+  "n_experiments": 13,
+  "converged": true,
+  "cov": [
+   [
+    0.005065790566126205,
+    -0.0017661596123423157,
+    -1.8565504934368503e-05
+   ],
+   [
+    -0.0017661596123423097,
+    0.0007029612108661539,
+    6.713234293625378e-06
+   ],
+   [
+    -1.856550493436849e-05,
+    6.71323429362537e-06,
+    4.209900415410627e-07
+   ]
+  ]
+ },
+ "hit_frac": 0.02,
+ "mission_selected": [
+  {
+   "target_id": "t1",
+   "kind": "in_range",
+   "x_m": 0.696,
+   "z_m": 0.412,
+   "hit_radius_m": 0.05,
+   "speed_mps": 3.0457827761161083,
+   "elevation_deg": 60.0,
+   "reachable_under_law": true,
+   "predicted_miss_sd_m": 0.006188100220126032,
+   "nominal_miss_m": 0.0020009068262395457,
+   "nominal_hit": true,
+   "hit_prob": 1.0,
+   "realized_hit": true,
+   "median_miss_m": 0.004740764644760587,
+   "median_miss_frac": 0.006811443455115786,
+   "hit_prob_by_frac": {
+    "0.03": 1.0,
+    "0.02": 1.0
+   },
+   "nominal_hit_by_frac": {
+    "0.03": true,
+    "0.02": true
+   },
+   "hit_prob_actuation_sweep": {
+    "0.02/0.5": 0.9375,
+    "0.01/0.25": 1.0,
+    "0.005/0.1": 1.0,
+    "0.0/0.0": 1.0
+   }
+  },
+  {
+   "target_id": "t2",
+   "kind": "in_range",
+   "x_m": 0.891,
+   "z_m": 0.044,
+   "hit_radius_m": 0.05,
+   "speed_mps": 2.613562855395799,
+   "elevation_deg": 45.0,
+   "reachable_under_law": true,
+   "predicted_miss_sd_m": 0.006213174309164797,
+   "nominal_miss_m": 0.0016357683063368267,
+   "nominal_hit": true,
+   "hit_prob": 1.0,
+   "realized_hit": true,
+   "median_miss_m": 0.004310637197293632,
+   "median_miss_frac": 0.004837976652405872,
+   "hit_prob_by_frac": {
+    "0.03": 1.0,
+    "0.02": 1.0
+   },
+   "nominal_hit_by_frac": {
+    "0.03": true,
+    "0.02": true
+   },
+   "hit_prob_actuation_sweep": {
+    "0.02/0.5": 0.945,
+    "0.01/0.25": 1.0,
+    "0.005/0.1": 1.0,
+    "0.0/0.0": 1.0
+   }
+  },
+  {
+   "target_id": "t3",
+   "kind": "beyond",
+   "x_m": 2.475,
+   "z_m": 0.351,
+   "hit_radius_m": 0.05,
+   "speed_mps": 6.400935206400513,
+   "elevation_deg": 27.5,
+   "reachable_under_law": true,
+   "predicted_miss_sd_m": 0.019242600036947693,
+   "nominal_miss_m": 0.007232155450415778,
+   "nominal_hit": true,
+   "hit_prob": 0.9875,
+   "realized_hit": true,
+   "median_miss_m": 0.011094267425733273,
+   "median_miss_frac": 0.0044825322932255645,
+   "hit_prob_by_frac": {
+    "0.03": 1.0,
+    "0.02": 0.9875
+   },
+   "nominal_hit_by_frac": {
+    "0.03": true,
+    "0.02": true
+   },
+   "hit_prob_actuation_sweep": {
+    "0.02/0.5": 0.49,
+    "0.01/0.25": 0.8,
+    "0.005/0.1": 0.9925,
+    "0.0/0.0": 1.0
+   }
+  },
+  {
+   "target_id": "t4",
+   "kind": "beyond",
+   "x_m": 1.863,
+   "z_m": 0.187,
+   "hit_radius_m": 0.05,
+   "speed_mps": 4.645510309518332,
+   "elevation_deg": 45.0,
+   "reachable_under_law": true,
+   "predicted_miss_sd_m": 0.013269206981313151,
+   "nominal_miss_m": 0.005004390475153109,
+   "nominal_hit": true,
+   "hit_prob": 1.0,
+   "realized_hit": true,
+   "median_miss_m": 0.008977860014383165,
+   "median_miss_frac": 0.004819033824145553,
+   "hit_prob_by_frac": {
+    "0.03": 1.0,
+    "0.02": 1.0
+   },
+   "nominal_hit_by_frac": {
+    "0.03": true,
+    "0.02": true
+   },
+   "hit_prob_actuation_sweep": {
+    "0.02/0.5": 0.6475,
+    "0.01/0.25": 0.9475,
+    "0.005/0.1": 1.0,
+    "0.0/0.0": 1.0
+   }
+  },
+  {
+   "target_id": "t5",
+   "kind": "beyond",
+   "x_m": 2.068,
+   "z_m": 0.153,
+   "hit_radius_m": 0.05,
+   "speed_mps": 5.06347253601837,
+   "elevation_deg": 47.5,
+   "reachable_under_law": true,
+   "predicted_miss_sd_m": 0.013648278560338784,
+   "nominal_miss_m": 0.005802213071435247,
+   "nominal_hit": true,
+   "hit_prob": 1.0,
+   "realized_hit": true,
+   "median_miss_m": 0.009750101495568986,
+   "median_miss_frac": 0.004714749272518852,
+   "hit_prob_by_frac": {
+    "0.03": 1.0,
+    "0.02": 1.0
+   },
+   "nominal_hit_by_frac": {
+    "0.03": true,
+    "0.02": true
+   },
+   "hit_prob_actuation_sweep": {
+    "0.02/0.5": 0.6325,
+    "0.01/0.25": 0.9475,
+    "0.005/0.1": 1.0,
+    "0.0/0.0": 1.0
+   }
+  }
+ ],
+ "mission_true_form": [
+  {
+   "target_id": "t1",
+   "kind": "in_range",
+   "x_m": 0.696,
+   "z_m": 0.412,
+   "hit_radius_m": 0.05,
+   "speed_mps": 3.0457827761161083,
+   "elevation_deg": 60.0,
+   "reachable_under_law": true,
+   "predicted_miss_sd_m": 0.006188100220126032,
+   "nominal_miss_m": 0.0020009068262395457,
+   "nominal_hit": true,
+   "hit_prob": 1.0,
+   "realized_hit": true,
+   "median_miss_m": 0.004740764644760587,
+   "median_miss_frac": 0.006811443455115786,
+   "hit_prob_by_frac": {
+    "0.03": 1.0,
+    "0.02": 1.0
+   },
+   "nominal_hit_by_frac": {
+    "0.03": true,
+    "0.02": true
+   },
+   "hit_prob_actuation_sweep": {
+    "0.02/0.5": 0.9375,
+    "0.01/0.25": 1.0,
+    "0.005/0.1": 1.0,
+    "0.0/0.0": 1.0
+   }
+  },
+  {
+   "target_id": "t2",
+   "kind": "in_range",
+   "x_m": 0.891,
+   "z_m": 0.044,
+   "hit_radius_m": 0.05,
+   "speed_mps": 2.613562855395799,
+   "elevation_deg": 45.0,
+   "reachable_under_law": true,
+   "predicted_miss_sd_m": 0.006213174309164797,
+   "nominal_miss_m": 0.0016357683063368267,
+   "nominal_hit": true,
+   "hit_prob": 1.0,
+   "realized_hit": true,
+   "median_miss_m": 0.004310637197293632,
+   "median_miss_frac": 0.004837976652405872,
+   "hit_prob_by_frac": {
+    "0.03": 1.0,
+    "0.02": 1.0
+   },
+   "nominal_hit_by_frac": {
+    "0.03": true,
+    "0.02": true
+   },
+   "hit_prob_actuation_sweep": {
+    "0.02/0.5": 0.945,
+    "0.01/0.25": 1.0,
+    "0.005/0.1": 1.0,
+    "0.0/0.0": 1.0
+   }
+  },
+  {
+   "target_id": "t3",
+   "kind": "beyond",
+   "x_m": 2.475,
+   "z_m": 0.351,
+   "hit_radius_m": 0.05,
+   "speed_mps": 6.400935206400513,
+   "elevation_deg": 27.5,
+   "reachable_under_law": true,
+   "predicted_miss_sd_m": 0.019242600036947693,
+   "nominal_miss_m": 0.007232155450415778,
+   "nominal_hit": true,
+   "hit_prob": 0.9875,
+   "realized_hit": true,
+   "median_miss_m": 0.011094267425733273,
+   "median_miss_frac": 0.0044825322932255645,
+   "hit_prob_by_frac": {
+    "0.03": 1.0,
+    "0.02": 0.9875
+   },
+   "nominal_hit_by_frac": {
+    "0.03": true,
+    "0.02": true
+   },
+   "hit_prob_actuation_sweep": {
+    "0.02/0.5": 0.49,
+    "0.01/0.25": 0.8,
+    "0.005/0.1": 0.9925,
+    "0.0/0.0": 1.0
+   }
+  },
+  {
+   "target_id": "t4",
+   "kind": "beyond",
+   "x_m": 1.863,
+   "z_m": 0.187,
+   "hit_radius_m": 0.05,
+   "speed_mps": 4.645510309518332,
+   "elevation_deg": 45.0,
+   "reachable_under_law": true,
+   "predicted_miss_sd_m": 0.013269206981313151,
+   "nominal_miss_m": 0.005004390475153109,
+   "nominal_hit": true,
+   "hit_prob": 1.0,
+   "realized_hit": true,
+   "median_miss_m": 0.008977860014383165,
+   "median_miss_frac": 0.004819033824145553,
+   "hit_prob_by_frac": {
+    "0.03": 1.0,
+    "0.02": 1.0
+   },
+   "nominal_hit_by_frac": {
+    "0.03": true,
+    "0.02": true
+   },
+   "hit_prob_actuation_sweep": {
+    "0.02/0.5": 0.6475,
+    "0.01/0.25": 0.9475,
+    "0.005/0.1": 1.0,
+    "0.0/0.0": 1.0
+   }
+  },
+  {
+   "target_id": "t5",
+   "kind": "beyond",
+   "x_m": 2.068,
+   "z_m": 0.153,
+   "hit_radius_m": 0.05,
+   "speed_mps": 5.06347253601837,
+   "elevation_deg": 47.5,
+   "reachable_under_law": true,
+   "predicted_miss_sd_m": 0.013648278560338784,
+   "nominal_miss_m": 0.005802213071435247,
+   "nominal_hit": true,
+   "hit_prob": 1.0,
+   "realized_hit": true,
+   "median_miss_m": 0.009750101495568986,
+   "median_miss_frac": 0.004714749272518852,
+   "hit_prob_by_frac": {
+    "0.03": 1.0,
+    "0.02": 1.0
+   },
+   "nominal_hit_by_frac": {
+    "0.03": true,
+    "0.02": true
+   },
+   "hit_prob_actuation_sweep": {
+    "0.02/0.5": 0.6325,
+    "0.01/0.25": 0.9475,
+    "0.005/0.1": 1.0,
+    "0.0/0.0": 1.0
+   }
+  }
+ ],
+ "fit_time_max_s": 0.18542383302701637,
+ "fit_time_mean_s": 0.06861440356834254,
+ "runtime_s": 17.18121012498159
+}
