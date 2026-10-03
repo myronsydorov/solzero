@@ -5,6 +5,11 @@
 Agent-facing endpoints never reveal the family, parameters, probe scores or mission hits.
 Admin endpoints need the X-Admin-Token header to equal SOLZERO_ADMIN_TOKEN; they are
 disabled when that variable is unset. Test seeds are only served with --final-eval.
+
+Concurrency: a registry lock guards only the session dict and the per-(seed, condition)
+counters; each session has its own lock for its state (budget, tables, commit, record
+file). World generation is cached with one lock per seed. Simulation for /nominate runs
+outside every lock.
 """
 
 from __future__ import annotations
@@ -17,7 +22,6 @@ import os
 import threading
 import uuid
 from dataclasses import dataclass, field
-from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
@@ -25,7 +29,7 @@ from fastapi import FastAPI, Header, HTTPException
 
 from schemas import (
     CommitRequest, CommitResponse, ExperimentRequest, LawsRequest, NominateRequest, OkResponse,
-    PredictionsRequest, PredictionsResponse, Result, SessionInfo, SessionRequest,
+    PredictionsRequest, PredictionsResponse, Result, SessionInfo, SessionRequest, hit_radius,
 )
 from tools.analysis import compile_law, simulate_specs
 from tools.defaults import LAUNCHER, NOISE_SD, RANGES, SAMPLES
@@ -44,9 +48,46 @@ def world_id_for(seed: int) -> str:
     return "w_" + hashlib.sha256(f"solzero-world-{seed}".encode()).hexdigest()[:12]
 
 
-@lru_cache(maxsize=64)
-def _world(seed: int, final_eval: bool) -> World:
-    return make_world(seed, final_eval=final_eval)
+def read_seed_lock(path: Path) -> list[int]:
+    """Seeds from a lock file: one per line, '#' lines are comments."""
+    lines = (ln.strip() for ln in path.read_text().splitlines())
+    return [int(ln) for ln in lines if ln and not ln.startswith("#")]
+
+
+class WorldCache:
+    """make_world is deterministic but costs ~2 s; generate each seed once, even under races."""
+
+    def __init__(self, final_eval: bool):
+        self.final_eval = final_eval
+        self.worlds: dict[int, World] = {}
+        self.locks: dict[int, threading.Lock] = {}
+        self.guard = threading.Lock()
+
+    def get(self, seed: int) -> World:
+        with self.guard:
+            lock = self.locks.setdefault(seed, threading.Lock())
+        with lock:
+            if seed not in self.worlds:
+                self.worlds[seed] = make_world(seed, final_eval=self.final_eval)
+            return self.worlds[seed]
+
+
+def _jsonable(obj):
+    """Strict JSON for admin output: non-finite floats (a shot that never comes down, a law
+    that never lands on probes) become null."""
+    if isinstance(obj, float):
+        return obj if math.isfinite(obj) else None
+    if isinstance(obj, dict):
+        return {k: _jsonable(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_jsonable(v) for v in obj]
+    return obj
+
+
+def _snapshot(live_laws: dict) -> dict[str, str]:
+    """Full content of the live set, so a re-registered law_id with a changed expression or
+    bounds no longer matches."""
+    return {lid: law.model_dump_json() for lid, law in live_laws.items()}
 
 
 @dataclass
@@ -57,9 +98,10 @@ class Session:
     rng: np.random.Generator
     results: list[Result] = field(default_factory=list)
     live_laws: dict = field(default_factory=dict)  # law_id -> Law
-    tables: dict = field(default_factory=dict)  # table_id -> {spec, law_ids, used, tentative}
+    tables: dict = field(default_factory=dict)  # table_id -> {spec, snapshot, used, ...}
     nominations: list[dict] = field(default_factory=list)
     commit: dict | None = None
+    lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
     @property
     def used(self) -> int:
@@ -72,25 +114,31 @@ class WorldServer:
         self.seed_of = {world_id_for(s): s for s in seeds}
         self.sessions: dict[str, Session] = {}
         self.counts: dict[tuple[int, str], int] = {}
-        self.runs_dir = runs_dir
-        self.lock = threading.Lock()
+        self.runs_dir = Path(runs_dir)
+        self.registry = threading.Lock()
+        self.worlds = WorldCache(final_eval)
 
     # --- helpers --------------------------------------------------------------
 
     def session(self, session_id: str) -> Session:
-        s = self.sessions.get(session_id)
+        with self.registry:
+            s = self.sessions.get(session_id)
         if s is None:
             raise HTTPException(404, f"unknown session {session_id}")
         return s
 
     def save(self, s: Session) -> None:
-        """Server-side raw record of the session, for evaluation (never served to agents)."""
+        """Server-side raw record of the session, for evaluation (never served to agents).
+        Caller holds s.lock; the temp file plus os.replace keeps readers from seeing a
+        half-written record."""
         d = self.runs_dir / s.session_id
         d.mkdir(parents=True, exist_ok=True)
-        (d / "world_session.json").write_text(json.dumps(self.score(s), indent=1, default=float))
+        tmp = d / f".world_session.{threading.get_ident()}.tmp"
+        tmp.write_text(json.dumps(_jsonable(self._score(s)), indent=1, default=float, allow_nan=False))
+        os.replace(tmp, d / "world_session.json")
 
     @staticmethod
-    def check_spec(spec, kind: str = "experiment") -> None:
+    def check_spec(spec) -> None:
         sample = next((x for x in SAMPLES if x.sample_id == spec.sample_id), None)
         if sample is None:
             raise HTTPException(422, f"unknown sample {spec.sample_id}")
@@ -107,15 +155,16 @@ class WorldServer:
         seed = self.seed_of.get(req.world_id)
         if seed is None:
             raise HTTPException(404, f"unknown world {req.world_id}")
-        w = _world(seed, self.final_eval)
-        with self.lock:
+        w = self.worlds.get(seed)
+        with self.registry:
             k = self.counts.get((seed, req.condition), 0)
             self.counts[(seed, req.condition)] = k + 1
             sid = f"s_{uuid.uuid4().hex[:10]}"
             rng = np.random.default_rng([seed, CONDITIONS.index(req.condition), k])
             s = Session(session_id=sid, world=w, condition=req.condition, rng=rng)
             self.sessions[sid] = s
-        self.save(s)
+        with s.lock:
+            self.save(s)
         return SessionInfo(
             session_id=sid, budget=BUDGET, samples=SAMPLES,
             ranges={k: dict(v) for k, v in RANGES.items()},
@@ -124,9 +173,9 @@ class WorldServer:
 
     def set_laws(self, req: LawsRequest) -> OkResponse:
         s = self.session(req.session_id)
-        if s.commit:
-            raise HTTPException(409, "already committed")
-        with self.lock:
+        with s.lock:
+            if s.commit:
+                raise HTTPException(409, "already committed")
             s.live_laws = {law.law_id: law for law in req.live_laws}
         return OkResponse()
 
@@ -134,24 +183,26 @@ class WorldServer:
         s = self.session(req.session_id)
         self.check_spec(req.spec)
         ids = [p.law_id for p in req.predictions]
-        if len(ids) != len(set(ids)) or set(ids) != set(s.live_laws):
-            raise HTTPException(422, f"predictions must cover exactly the live laws {sorted(s.live_laws)}, "
-                                     f"got {sorted(ids)}")
         tid = f"p_{uuid.uuid4().hex[:10]}"
-        with self.lock:
-            s.tables[tid] = {"spec": req.spec, "law_ids": frozenset(ids), "used": False,
-                             "predictions": [p.model_dump() for p in req.predictions],
-                             "tentative_followup": req.tentative_followup.model_dump() if req.tentative_followup else None}
+        with s.lock:
+            if len(ids) != len(set(ids)) or set(ids) != set(s.live_laws):
+                raise HTTPException(422, f"predictions must cover exactly the live laws "
+                                         f"{sorted(s.live_laws)}, got {sorted(ids)}")
+            s.tables[tid] = {
+                "spec": req.spec, "snapshot": _snapshot(s.live_laws), "used": False,
+                "predictions": [p.model_dump() for p in req.predictions],
+                "tentative_followup": req.tentative_followup.model_dump() if req.tentative_followup else None,
+            }
         return PredictionsResponse(prediction_table_id=tid)
 
     def experiment(self, req: ExperimentRequest) -> Result:
         s = self.session(req.session_id)
-        if s.commit:
-            raise HTTPException(409, "already committed")
-        if s.used >= BUDGET:
-            raise HTTPException(409, "budget exhausted")
         self.check_spec(req.spec)
-        with self.lock:
+        with s.lock:
+            if s.commit:
+                raise HTTPException(409, "already committed")
+            if s.used >= BUDGET:
+                raise HTTPException(409, "budget exhausted")
             if s.condition in PREREGISTERED or req.prediction_table_id is not None:
                 t = s.tables.get(req.prediction_table_id or "")
                 if t is None:
@@ -160,16 +211,14 @@ class WorldServer:
                     raise HTTPException(422, "prediction table already used")
                 if t["spec"] != req.spec:
                     raise HTTPException(422, "spec does not match the prediction table")
-                if t["law_ids"] != frozenset(s.live_laws):
+                if t["snapshot"] != _snapshot(s.live_laws):
                     raise HTTPException(422, "live law set changed since the prediction table")
                 t["used"] = True
                 t["experiment_index"] = s.used + 1
-            if s.used >= BUDGET:
-                raise HTTPException(409, "budget exhausted")
             i = s.used + 1
             r = s.world.run_experiment(req.spec, s.rng, index=i, budget_left=BUDGET - i)
             s.results.append(r)
-        self.save(s)
+            self.save(s)
         return r
 
     def nominate(self, req: NominateRequest) -> OkResponse:
@@ -177,30 +226,30 @@ class WorldServer:
         if req.fit.law_id != req.law.law_id or set(req.fit.params) != set(req.law.params):
             raise HTTPException(422, "fit does not match law (law_id or parameter names)")
         try:
-            scores = probe_scores(s.world, req.law, req.fit)
-        except Exception as exc:  # unparsable or numerically broken law
+            scores = probe_scores(s.world, req.law, req.fit)  # outside the lock: simulation
+        except Exception as exc:  # numerically broken law
             raise HTTPException(422, f"law could not be evaluated: {exc}") from exc
-        with self.lock:
+        with s.lock:
             s.nominations.append({"n_experiments": s.used, "law": req.law.model_dump(),
                                   "fit": req.fit.model_dump(), **scores})
-        self.save(s)
+            self.save(s)
         return OkResponse()
 
     def commit(self, req: CommitRequest) -> CommitResponse:
         s = self.session(req.session_id)
         targets = {t.target_id: t for t in s.world.targets}
-        seen = set()
+        ids = [shot.target_id for shot in req.shots]
+        unknown = [i for i in ids if i not in targets]
+        if unknown:
+            raise HTTPException(422, f"unknown targets {unknown}")
+        if len(ids) != len(set(ids)) or set(ids) != set(targets):
+            raise HTTPException(422, f"exactly one shot per target required: {sorted(targets)}")
         lo_v, hi_v = RANGES["mission"]["speed_mps"]
         lo_e, hi_e = RANGES["mission"]["elevation_deg"]
         for shot in req.shots:
-            if shot.target_id not in targets:
-                raise HTTPException(422, f"unknown target {shot.target_id}")
-            if shot.target_id in seen:
-                raise HTTPException(422, f"more than one shot at {shot.target_id}")
-            seen.add(shot.target_id)
             if not (lo_v <= shot.speed_mps <= hi_v and lo_e <= shot.elevation_deg <= hi_e):
                 raise HTTPException(422, f"shot at {shot.target_id} outside the safe launcher envelope")
-        with self.lock:
+        with s.lock:
             if s.commit:
                 raise HTTPException(409, "already committed")
             shots = []
@@ -216,23 +265,27 @@ class WorldServer:
                               "hit": bool(miss <= t.hit_radius_m)})
             s.commit = {**req.model_dump(exclude={"shots", "session_id"}), "after_experiments": s.used,
                         "shots": shots}
-        self.save(s)
+            self.save(s)
         return CommitResponse()
 
     # --- admin ------------------------------------------------------------------
 
     def score(self, s: Session) -> dict:
+        with s.lock:
+            return _jsonable(self._score(s))
+
+    def _score(self, s: Session) -> dict:
         w = s.world
         return {
             "session_id": s.session_id, "world_id": world_id_for(w.seed), "condition": s.condition,
             "budget": BUDGET, "used": s.used,
             "results": [r.model_dump() for r in s.results],
             "live_laws": sorted(s.live_laws),
-            "prediction_tables": [{"id": k, "spec": v["spec"].model_dump(), "law_ids": sorted(v["law_ids"]),
+            "prediction_tables": [{"id": k, "spec": v["spec"].model_dump(), "law_ids": sorted(v["snapshot"]),
                                    "used": v["used"], "experiment_index": v.get("experiment_index"),
                                    "tentative_followup": v["tentative_followup"]}
                                   for k, v in s.tables.items()],
-            "nominations": s.nominations,
+            "nominations": list(s.nominations),
             "commit": s.commit,
             "targets": [t.model_dump() | {"kind": w.target_kind[t.target_id]} for t in w.targets],
         }
@@ -241,8 +294,6 @@ class WorldServer:
 def probe_scores(w: World, law, fit) -> dict:
     """Hidden probe score of a nominated law (SPEC 7): share of beyond-range and in-range
     probes whose predicted landing point is within the hit radius, plus median error."""
-    from schemas import hit_radius
-
     theta = np.array([[fit.params[k].value for k in law.params]])
     x = simulate_specs(compile_law(law), theta, w.probes, MASSES)[0, :, 0]
     err = np.abs(x - w.probe_x)
@@ -285,7 +336,7 @@ def create_app(seeds=DEV_SEEDS, final_eval: bool = False, runs_dir: Path = RUNS_
         seed = ws.seed_of.get(world_id)
         if seed is None:
             raise HTTPException(404, f"unknown world {world_id}")
-        w = _world(seed, ws.final_eval)
+        w = ws.worlds.get(seed)
         return {**w.truth(), "world_id": world_id, "seed": seed,
                 "targets": [t.model_dump() | {"kind": w.target_kind[t.target_id]} for t in w.targets]}
 
@@ -306,10 +357,7 @@ def main():
     ap.add_argument("--final-eval", action="store_true",
                     help="serve the frozen test seeds from world/test_seeds.lock instead of dev seeds")
     args = ap.parse_args()
-    if args.final_eval:
-        seeds = [int(x) for x in TEST_SEEDS_LOCK.read_text().split()]
-    else:
-        seeds = list(DEV_SEEDS)
+    seeds = read_seed_lock(TEST_SEEDS_LOCK) if args.final_eval else list(DEV_SEEDS)
     uvicorn.run(create_app(seeds, args.final_eval), host=args.host, port=args.port)
 
 
