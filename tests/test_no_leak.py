@@ -49,3 +49,13 @@ def test_lab_has_no_forbidden_imports_or_admin_routes():
             elif isinstance(node, ast.ImportFrom):
                 assert (node.module or "").split(".")[0] not in forbidden, path
         assert "/admin/" not in source, path
+
+
+def test_generated_tool_schemas_contain_no_hidden_vocabulary():
+    import json
+    from lab.policies import ROLE_TOOLS
+    from lab.run import tool_schema
+    for name in sorted(set().union(*ROLE_TOOLS.values())):
+        content = json.dumps(tool_schema(name))
+        for term in forbidden_terms():
+            assert not re.search(r"(?<![\w])" + re.escape(term) + r"(?![\w])", content, re.I), (name, term)

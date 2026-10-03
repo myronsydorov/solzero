@@ -117,7 +117,7 @@ SOLZERO_ADMIN_TOKEN=... .venv/bin/python -m world.server --port 8000
 - Typed HTTP adapters, fail-closed ambiguous mutation handling, role/budget/envelope policies, and fsynced JSONL ledger implemented. Repaired bugs found during integration: nonfinite ledger values becoming null, direct SDK message shape, and nomination descriptions unnecessarily invalidating an otherwise identical registered law.
 - Five YAML role prompts remain stubs. `lab.run` supplies generic role/record instructions and sequences Omnigent SDK executors with Python tools in one process; it supplies no scientific laws, bounds or experiment sequence. Only the Operator measures. Empty temporary cwd, no OS tools, no skills, public HTTP metadata/observations and own-session ledger isolate model context. All six YAML files load through Omnigent.
 - Safe five-shot requests pause with `pending-commit.json`; `lab.approve` accepts the hash of a human-reviewed file and blocks replays after both successful and ambiguous submission. No model can call this host command. No mission has fired in the model-driven runs.
-- No test seeds generated, run or inspected. No lane B calibration tuning. The leak test uses SPEC section 2 terms and checks forbidden imports/admin routes; it passes.
+- No test seeds generated, run or inspected. No lane B calibration tuning. The leak test uses SPEC section 2 terms and checks forbidden imports/admin routes; it passes. An additional check caught a generated schema display title derived from `claims_non_ordinary` matching a forbidden family term. Generated display titles are now omitted without changing fields; all 13 tool schemas pass the new regression test. The longer real run began before this display-title fix; raw evidence is retained and it is not a frozen evaluation.
 
 **Commands and measured results**
 
@@ -132,7 +132,7 @@ SOLZERO_WORLD_URL=http://127.0.0.1:8001 .venv/bin/python -m lab.run --world-id w
 SOLZERO_WORLD_URL=http://127.0.0.1:8001 .venv/bin/python -m lab.run --world-id w_3c4adce51f85 --seed 1000 --cycles 12 --output runs/session-real-1000
 ```
 
-- `uv sync`: 111 resolved, 105 installed packages checked. Full root suite: **84 passed**, one upstream Starlette/httpx deprecation warning, 4.50 s. XML saved at the path above.
+- `uv sync`: 111 resolved, 105 installed packages checked. Full root suite at merge: **84 passed**, one upstream Starlette/httpx deprecation warning, 4.50 s; XML saved above. Final `.venv/bin/python -m pytest -q` after the generated-schema regression test: **85 passed**, 4.14 s.
 - Fresh HTTP mock fixture: **12 experiments, budget 0, missing pre-registration 422, thirteenth experiment 409**. Raw responses, ledger and admin-only engineering score saved in `runs/mock-check-final/`.
 - Model mock session `s_mock_0001`: **6 complete evidence/revision cycles, 6 budget left, 62 calls**, PI chose `predictive_only`, no non-ordinary claim, five shots pending approval. Raw tools, policies, public transcript, ledger and summary in `runs/session-mock-1000/`. This process started before the final structured-tool-schema/description-cache fixes; its unmodified trace is retained.
 - Real dev seed 1000, opaque world `w_3c4adce51f85`, session `s_ad8db5fe92`: **1 complete evidence/revision cycle, 11 budget left, 11 calls**, Analyst nominated a fit and recorded insufficient evidence; PI continued. Raw outputs in `runs/full-loop-real-1000/`. A one-cycle check is not a completed mission. Longer session result will be recorded below.

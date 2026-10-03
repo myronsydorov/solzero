@@ -48,6 +48,13 @@ def tool_schema(name):
     fields = {key: (hints.get(key, str), ... if value.default is inspect.Parameter.empty else value.default)
               for key, value in inspect.signature(function).parameters.items()}
     parameters = create_model(f"{name}_input", **fields).model_json_schema()
+    def omit_titles(value):
+        if isinstance(value, dict):
+            return {key: omit_titles(item) for key, item in value.items() if key != "title"}
+        if isinstance(value, list):
+            return [omit_titles(item) for item in value]
+        return value
+    parameters = omit_titles(parameters)
     return {"name": name, "description": inspect.getdoc(function) or name, "parameters": parameters}
 
 
