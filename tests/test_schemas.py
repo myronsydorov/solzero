@@ -30,6 +30,7 @@ FIT = {
     "loo_error": 0.031,
     "n_experiments": 7,
     "converged": True,
+    "cov": [[0.04]],
 }
 
 RECORDS = [

@@ -165,9 +165,12 @@ class FitResult(Record):
     law_id: str
     params: dict[str, ParamEstimate]
     chi2_dof: float
-    loo_error: float | None = None
+    loo_error: float | None = None  # RMS leave-one-experiment-out error, in noise sd units
     n_experiments: int
     converged: bool
+    # Parameter covariance, rows and columns in `params` order. Optional; predict uses it
+    # to draw correlated parameters and falls back to independent sds without it.
+    cov: list[list[float]] | None = None
 
 
 class ObservableEstimate(Record):
