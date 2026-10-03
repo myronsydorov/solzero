@@ -235,7 +235,23 @@ One JSON object per line in `runs/<session_id>/ledger.jsonl`:
 A `decision_diff` payload is `{"tentative": ExperimentSpec, "actual": ExperimentSpec, "changed": true, "reason": "..."}`.
 A `candidates` payload is `{"candidates": [ExperimentSpec], "chosen": ExperimentSpec, "disagreements": [Disagreement]}`. `disagreements` is optional, one per candidate in the same order; the viewer shows it as the disagreement table and otherwise derives gaps for the chosen spec from the prediction table.
 
-### 5.6 Viewer inputs
+### 5.6 Agent run CLI (lane B exposes, `eval/` calls)
+
+The eval runner opens the session itself and hands it to the agent process:
+
+```
+python -m lab.run --world-url URL --session-info FILE --condition {lab,single,random} --out DIR
+                  [--specs FILE] [--max-tokens N] [--max-wall-s S] [--approval {human,auto}]
+```
+
+- `--session-info` is the `SessionInfo` JSON returned by `POST /session`. The agent process never calls `/session`.
+- `--specs` (random condition only) is a JSON list of exactly `budget` ExperimentSpecs from the shared sampler (`eval.sampler`). The Operator runs them in order. The other agents still propose, fit, judge, nominate and commit.
+- `--max-tokens` and `--max-wall-s` are hard caps. The agent stops cleanly, and commits if it can, when a cap is reached. The runner also kills the process at `max-wall-s + 60`.
+- `--approval auto` approves the five-shot table automatically, for evaluation runs only. It is recorded in the ledger as `{"kind": "commit", "payload": {..., "approval": "auto"}}`. `human` keeps the section 6 gate.
+- On exit it writes `DIR/summary.json`: `{"session_id", "status": "committed" | "cap_reached" | "error" | "pending_approval", "tokens_used", "wall_s", "n_experiments", "error": str | null}`, plus `DIR/ledger.jsonl` (section 5.5).
+- Exit code 0 means `summary.json` was written. Any other code is a crash, and the runner retries the run once.
+
+### 5.7 Viewer inputs
 
 The replay site (`viewer/`) is static. It reads files only; it never calls the world server.
 
@@ -260,26 +276,11 @@ viewer/public/eval/aggregate.json        // see below
            "within_beyond": [0.0, ...],   // after 0..budget experiments; null where not nominated
            "median_error_m": [0.31, ...], // same indexing
            "law_recovered": true, "claim": "law_identified", "claims_non_ordinary": true,
-           "mission_hits": 4, "mission_hits_beyond": 2}]}
+           "mission_hits": 4, "mission_hits_in_range": 2, "mission_hits_beyond": 2,
+           "median_miss_frac_in_range": 0.006, "median_miss_frac_beyond": 0.007}]}
 ```
 
-`condition` in aggregate rows is one of `lab`, `random`, `single`, `textbook`, `oracle`. The viewer computes experiments to accuracy (first index with `within_beyond >= 0.8`), the metric table and the control-world false-discovery rate (F0 rows) from the rows.
-
-### 5.6 Agent run CLI (lane B exposes, `eval/` calls)
-
-The eval runner opens the session itself and hands it to the agent process:
-
-```
-python -m lab.run --world-url URL --session-info FILE --condition {lab,single,random} --out DIR
-                  [--specs FILE] [--max-tokens N] [--max-wall-s S] [--approval {human,auto}]
-```
-
-- `--session-info` is the `SessionInfo` JSON returned by `POST /session`. The agent process never calls `/session`.
-- `--specs` (random condition only) is a JSON list of exactly `budget` ExperimentSpecs from the shared sampler (`eval.sampler`). The Operator runs them in order. The other agents still propose, fit, judge, nominate and commit.
-- `--max-tokens` and `--max-wall-s` are hard caps. The agent stops cleanly, and commits if it can, when a cap is reached. The runner also kills the process at `max-wall-s + 60`.
-- `--approval auto` approves the five-shot table automatically, for evaluation runs only. It is recorded in the ledger as `{"kind": "commit", "payload": {..., "approval": "auto"}}`. `human` keeps the section 6 gate.
-- On exit it writes `DIR/summary.json`: `{"session_id", "status": "committed" | "cap_reached" | "error" | "pending_approval", "tokens_used", "wall_s", "n_experiments", "error": str | null}`, plus `DIR/ledger.jsonl` (section 5.5).
-- Exit code 0 means `summary.json` was written. Any other code is a crash, and the runner retries the run once.
+`condition` in aggregate rows is one of `lab`, `random`, `single`, `textbook`, `oracle`. The viewer computes the section 7 primary metrics (final `within_beyond`, mission hit rate, law-form recovery, control false discovery from F0 rows), experiments to threshold (first index with `within_beyond >= 0.8`, budget + 1 if never) and the paired differences from the rows. `law_recovered` is graded by `eval/grade.py`. The `median_miss_frac_*` fields are optional.
 
 ## 6. Agents and Omnigent
 
