@@ -1,0 +1,22 @@
+name: pi
+prompt: Pi stub. Await a supplied task. Insufficient evidence is a valid outcome.
+executor:
+  harness: claude-sdk
+skills: none
+async: false
+cancellable: false
+tools:
+  plan_shot:
+    type: function
+    callable: lab.tool_functions.plan_shot
+  commit_mission:
+    type: function
+    callable: lab.tool_functions.commit_mission
+policies:
+  role_guard:
+    type: function
+    handler: lab.policies.role_policy
+    factory_params:
+      role: pi
+    'on':
+    - tool_call

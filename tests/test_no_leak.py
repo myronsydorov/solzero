@@ -18,8 +18,10 @@ def forbidden_terms():
             terms.add(cell)
         if cell.startswith("Drag strength "):
             terms.add(cell.removeprefix("Drag strength "))
-    # Symbols explicitly named in the section's governing equation.
-    terms.update({"c", "p"})
+    # The equation names these force-law parameters in addition to table rows.
+    equation = section.split("```", 2)[1]
+    equation_symbols = set(re.findall(r"\b[A-Za-z_]\w*\b", equation))
+    terms.update(equation_symbols - {"m", "dv", "dt", "g", "z", "z_hat", "v"})
     return terms
 
 

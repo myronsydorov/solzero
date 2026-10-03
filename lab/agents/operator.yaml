@@ -1,0 +1,25 @@
+name: operator
+prompt: Operator stub. Await a supplied task. Insufficient evidence is a valid outcome.
+executor:
+  harness: claude-sdk
+skills: none
+async: false
+cancellable: false
+tools:
+  weigh:
+    type: function
+    callable: lab.tool_functions.weigh
+  drop:
+    type: function
+    callable: lab.tool_functions.drop
+  launch:
+    type: function
+    callable: lab.tool_functions.launch
+policies:
+  role_guard:
+    type: function
+    handler: lab.policies.role_policy
+    factory_params:
+      role: operator
+    'on':
+    - tool_call

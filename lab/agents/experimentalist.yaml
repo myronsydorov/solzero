@@ -1,0 +1,29 @@
+name: experimentalist
+prompt: Experimentalist stub. Await a supplied task. Insufficient evidence is a valid
+  outcome.
+executor:
+  harness: claude-sdk
+skills: none
+async: false
+cancellable: false
+tools:
+  predict:
+    type: function
+    callable: lab.tool_functions.predict
+  disagreement:
+    type: function
+    callable: lab.tool_functions.disagreement
+  preregister:
+    type: function
+    callable: lab.tool_functions.preregister
+  record_candidates:
+    type: function
+    callable: lab.tool_functions.record_candidates
+policies:
+  role_guard:
+    type: function
+    handler: lab.policies.role_policy
+    factory_params:
+      role: experimentalist
+    'on':
+    - tool_call

@@ -1,0 +1,28 @@
+name: analyst
+prompt: Analyst stub. Await a supplied task. Insufficient evidence is a valid outcome.
+executor:
+  harness: claude-sdk
+skills: none
+async: false
+cancellable: false
+tools:
+  fit_law:
+    type: function
+    callable: lab.tool_functions.fit_law
+  predict:
+    type: function
+    callable: lab.tool_functions.predict
+  nominate:
+    type: function
+    callable: lab.tool_functions.nominate
+  record_verdicts:
+    type: function
+    callable: lab.tool_functions.record_verdicts
+policies:
+  role_guard:
+    type: function
+    handler: lab.policies.role_policy
+    factory_params:
+      role: analyst
+    'on':
+    - tool_call

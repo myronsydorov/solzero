@@ -1,0 +1,22 @@
+name: theorist
+prompt: Theorist stub. Await a supplied task. Insufficient evidence is a valid outcome.
+executor:
+  harness: claude-sdk
+skills: none
+async: false
+cancellable: false
+tools:
+  fit_law:
+    type: function
+    callable: lab.tool_functions.fit_law
+  set_laws:
+    type: function
+    callable: lab.tool_functions.set_laws
+policies:
+  role_guard:
+    type: function
+    handler: lab.policies.role_policy
+    factory_params:
+      role: theorist
+    'on':
+    - tool_call
