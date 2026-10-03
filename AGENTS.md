@@ -55,11 +55,11 @@ Fill these in as they come into existence, and keep them current.
 
 | Purpose | Command |
 | --- | --- |
-| Set up the environment | to be added |
-| Run tests | to be added |
+| Set up the environment | `uv venv --python 3.12 && uv sync` |
+| Run tests | `.venv/bin/python -m pytest -q` |
 | Start the world server | to be added |
 | Start the mock server | to be added |
-| Run calibration | to be added |
+| Run calibration | `.venv/bin/python -m calibration.study --seeds 1000-1019 --out calibration/results/dev20 --jobs 12`, then `.venv/bin/python -m calibration.report calibration/results/dev20` |
 | Run one lab session on a dev world | to be added |
 
 ## Working protocol

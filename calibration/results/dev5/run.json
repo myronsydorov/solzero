@@ -1,0 +1,21 @@
+{
+ "seeds": [
+  1000,
+  1001,
+  1002,
+  1003,
+  1004
+ ],
+ "stages": "AB",
+ "wall_s": 324.32857175002573,
+ "budget": 12,
+ "n_candidates": 60,
+ "noise_sd": {
+  "force_frac": 0.02,
+  "fall_time_s": 0.005,
+  "landing_x_m": 0.01,
+  "flight_time_s": 0.005,
+  "speed_frac": 0.02,
+  "elevation_deg": 0.5
+ }
+}
