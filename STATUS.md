@@ -127,10 +127,114 @@ SOLZERO_ADMIN_TOKEN=... .venv/bin/python -m world.server --port 8000
 
 - Install Omnigent, run one of its bundled examples, then build `mock/` against `SPEC.md` section 5.2.
 
+## Viewer: replay site (Claude Code, branch `viewer`)
+
+**Current milestone (2026-10-04):** V1 to V3 done. The site runs on fixture data and is deployed at **https://viewer-delta-ten.vercel.app** (results page: `/results.html`). Every page is labelled "Replay of recorded runs".
+
+**Done**
+
+- V1, session replay (`viewer/public/index.html`). It shows:
+  - a cycle timeline (play, step, arrow keys, deep links `?run=&step=`);
+  - law cards with KaTeX equations rendered from the law strings, fitted parameters, and live, rejected or retired status with the last verdict;
+  - the disagreement table, with the chosen candidate highlighted;
+  - pre-registered predictions against each result, with z-scores;
+  - the decision diff, with a "plan changed by evidence" badge and timeline marker;
+  - a budget bar;
+  - the mission panel: a side view with hit zones, shot zero, and fired shots with hit or miss;
+  - the hidden law beside the discovered law, plus a chart of the nominated law's hidden probe score per experiment;
+  - the video, when the run directory has one.
+- V2, aggregate results (`viewer/public/results.html`) from `eval/aggregate.json`:
+  - learning curves: beyond-range probe hit rate, and median probe error on a log scale;
+  - the SPEC section 7 primary-metric table for lab, random and single agent (rows read "not run" when there are no rows), plus any reference conditions present;
+  - secondary metrics, including experiments to threshold;
+  - paired per-world differences with a seeded bootstrap 95% interval (lab − random, lab − single, references − random);
+  - control-world false discovery, and law recovery by family.
+- V3, fixtures and deployment:
+  - `viewer.fixtures.oracle_session` runs the scripted greedy-disagreement oracle (12-form library, no language model) against the real `world.server.WorldServer` in-process, on dev seeds 1000 to 1003. Pre-registration and budget are enforced by the server code. It writes SPEC 5.5 ledgers and 5.7 `metrics.json`.
+  - `viewer.fixtures.calibration_aggregate` turns calibration stage B (`dev20_v2`) into `aggregate.json`.
+  - Real runs load by dropping a directory into `viewer/public/runs/` and running `node viewer/scripts/build-index.mjs` (Vercel runs it on every build). See `viewer/README.md`.
+- `tests/test_viewer_fixtures.py` validates every fixture ledger entry against `schemas`, checks that prediction tables cover exactly the live set, and checks the `metrics.json` and `aggregate.json` shapes.
+- The interface is SPEC 5.5 (`candidates` payload) and 5.7 (viewer inputs). Both were committed separately, before the code.
+
+**Results** (fixture data; dev seeds only)
+
+| Seed | Family | Final form | Hits | Plan changed by evidence |
+| --- | --- | --- | --- | --- |
+| 1000 | F0 | const_p2 | 5/5 | 6 of 12 cycles |
+| 1001 | F1 (p = 3) | const_p3 | 5/5 | 3 |
+| 1002 | F2 | mass_p2 | 5/5 | 5 |
+| 1003 | F3 | height_p2 | 4/5 | 5 |
+
+- Runtime is 14 to 28 s per world (29 s wall with 4 jobs).
+- The aggregate page reproduces the calibration report:
+
+  | | Random | Greedy |
+  | --- | --- | --- |
+  | Final beyond-range probe hit rate | 87.8% | 99.5% |
+  | Law recovery | 16/20 | 19/20 |
+  | Control false discovery | 2/5 | 0/5 |
+  | Median experiments to threshold | 2 | 3 |
+
+  The page also shows a paired difference of oracle − random on the beyond-range probe hit rate: 11.8 points, 95% CI 3.75 to 22.2.
+
+**Commands**
+
+```
+.venv/bin/python -m viewer.fixtures.oracle_session --seeds 1000,1001,1002,1003 --out viewer/public/runs --jobs 4
+.venv/bin/python -m viewer.fixtures.calibration_aggregate calibration/results/dev20_v2 --out viewer/public/eval/aggregate.json
+node viewer/scripts/build-index.mjs
+cd viewer/public && python3 -m http.server 8000          # local preview
+cd viewer && npx vercel deploy --temporary --prod --yes  # redeploy (no login)
+.venv/bin/python -m pytest -q                            # 49 passed, 1 skipped
+```
+
+**Blockers**
+
+- Deployment ownership. The Vercel CLI is not logged in, so the site was deployed with `vercel deploy --temporary`, under a temporary team (`brisa6`).
+  - The production URL above is live now.
+  - The CLI does not say how long a temporary deployment lasts.
+  - For a durable URL, the human runs `! npx vercel login`, then `cd viewer && npx vercel deploy --prod`, and puts the new URL here.
+
+**Decisions made autonomously**
+
+- **Stack:** a static site with no build step (plain HTML, CSS and ES modules). KaTeX renders the equations and math.js parses the law strings, both from cdnjs. The only build step is the Node run-index script, because a static host cannot list directories.
+- **SPEC 5.7 input format:**
+  - `metrics.json` = SessionInfo + `GET /admin/score` + `GET /admin/truth`, unchanged. The ledger alone lacks targets, shot zero and the truth.
+  - `aggregate.json` is a flat list of per-world rows, and the viewer computes the metrics from them. That keeps `eval/` output simple.
+- **Disagreement table:** taken from an optional `disagreements` field in the `candidates` payload. When it is absent (lane B ledgers today), gaps for the chosen spec are derived from the prediction table, using the same formula as `tools.disagreement`, and the page says so.
+- **Fixture condition:** the fixture uses the `lab` server condition, because `world/server.py` does not yet accept `oracle`. `metrics.json` labels it `condition: "oracle"`.
+- **Fixture verdicts:**
+  - The z-score is the signed z of the worst observable.
+  - A law is rejected above |z| 3, supported at |z| 2 or below, and insufficient evidence in between.
+  - A failed run gives "insufficient evidence", z = 0. The first version wrongly rejected laws on failed runs with a placeholder z.
+- **Tentative follow-up in the fixture:** the next cycle's candidate pool is drawn before the result and ranked with the current fits. After the result it is re-ranked with the new fits. "Changed" means the argmax moved.
+- **Aggregate fixture, two caveats** (stated in its notes):
+  - Mission hits count one realised shot per target, not the calibration report's hit probabilities.
+  - Law recovery uses calibration's definition (the selected form equals the true form), not `eval/grade.py`.
+- **Results page after the merge with main:** reorganised around the section 7 primary metrics; experiments to threshold moved to secondary. Two numbering changes:
+  - main added its own SPEC 5.6 (agent run CLI), so viewer inputs became 5.7;
+  - aggregate rows gained `mission_hits_in_range` and the median-miss fields.
+- **Law-card status:** a law is "live" while it is in the current law set, even if its last verdict was "rejected". The oracle keeps the best three by BIC, so this happens, and both badges are shown. It is "rejected" if it left the set after a rejection, and "retired" otherwise.
+- **Hidden law:** revealed only at the last step, or with a "Reveal now" button, matching the demo order.
+
+**Next step**
+
+- Load the first real lab, random and single-agent runs as soon as `eval/` produces `metrics.json` and `aggregate.json` (requests below).
+- Add the demo video when the sim lane renders it.
+
 ## Requests (one lane asking the other, or the human, for something)
 
 - Lane A to human: should the wrong-form check exclude forms that contain the true law? See the lane A Blockers.
 - Lane A to lane B: the real server is in `world/server.py`, with the same contract as `mock/` plus `POST /laws` and `Target.hit_radius_m`. The mock needs `/laws` and the live-set check to stay faithful to 5.2.
+- Viewer to lane B: please add `disagreements` (one `Disagreement` per candidate, from the `disagreement` tool) to the `candidates` ledger payload (SPEC 5.5). The replay shows it as the disagreement table; without it the viewer can only derive gaps for the chosen spec.
+- Viewer to physics/eval: after each session, write `metrics.json` (SPEC 5.7: SessionInfo + admin score + admin truth) beside the ledger, and write `aggregate.json` rows in the 5.7 format, so runs can be dropped into `viewer/public/runs/` unchanged.
+- Viewer to physics, a design observation from the fixtures (dev seed 1003, F3, kappa = -0.481):
+  - Gravity g0 * (1 + kappa * z) reaches zero at z = 1/|kappa| = 2.08 m.
+  - Steep launches of heavy samples at about 3.2 to 3.6 m/s and 62 to 69 degrees climb past that height and never land. `World.shot_x` returns NaN, and the run is reported `failed`.
+  - With kappa down to -0.6 the zero-gravity height is 1.67 m, inside the reach of a 4 m/s launch.
+  - The greedy oracle picked 4 such launches in 12, because a law that predicts no landing scores a 1000-sigma gap.
+  - This is a design problem (the family range), not an integrator bug. Diagnosed by an energy check: the vertical speed needed to reach 2.08 m is about 2.93 m/s, against about 3.0 m/s launched.
+
 
 ## Interface changes (every change to `SPEC.md` section 5)
 
