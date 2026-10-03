@@ -44,7 +44,9 @@ from .records import (
     Verdict,
     WeighSpec,
     hit_radius,
+    check_expr,
     law_expr_symbols,
+    parse_law_expr,
     parse_spec,
 )
 

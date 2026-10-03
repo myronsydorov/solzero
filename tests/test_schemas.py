@@ -138,3 +138,25 @@ def test_target_hit_radius_default():
     assert S.Target(target_id="t", x_m=1.0, z_m=0).hit_radius_m == 0.05
     assert S.Target(target_id="t", x_m=4.0, z_m=0).hit_radius_m == pytest.approx(0.08)
     assert S.Target(target_id="t", x_m=4.0, z_m=0, hit_radius_m=0.1).hit_radius_m == 0.1
+
+
+@pytest.mark.parametrize("expr", [
+    "__import__('os').system('true')",
+    "g0.__class__",
+    "(lambda: 1)()",
+    "[g0]",
+    "g0 if m else z",
+    "g0 ^ 2",
+    "eval('1')",
+    "'abc'",
+    "g0" + "+g0" * 300,
+])
+def test_law_rejects_non_arithmetic(expr):
+    with pytest.raises(ValidationError):
+        S.Law(law_id="L", ax="0", az=expr, params={"g0": {"init": 1, "lo": 0, "hi": 2}})
+
+
+def test_law_allows_whitelisted_functions():
+    law = S.Law(law_id="L", ax="-c*sqrt(vx**2 + vz**2)*vx/m", az="-g0*exp(-z) - c*abs(vz)*vz/m + 1.5e-3",
+                params={"g0": {"init": 1, "lo": 0, "hi": 2}, "c": {"init": 0, "lo": 0, "hi": 1}})
+    assert law.az.startswith("-g0")
