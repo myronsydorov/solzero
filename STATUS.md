@@ -242,6 +242,7 @@ cd viewer && npx vercel deploy --temporary --prod --yes  # redeploy (no login)
 | 2026-10-04 | Claude Code | Admin `GET /admin/worlds` (dev seed to opaque world id) | Eval runners need world ids; ids are hashes so agents cannot read the seed |
 | 2026-10-04 | Claude Code (viewer) | SPEC 5.5: `candidates` payload documented, with optional `disagreements` (one Disagreement per candidate). New SPEC 5.7 (numbered 5.6 before the merge with main): viewer inputs (`runs/index.json`, per-run `ledger.jsonl` + `metrics.json` + optional `video.mp4`, `eval/aggregate.json`) | The replay site needs SessionInfo, admin score and truth beside the ledger, and a flat per-world eval format |
 | 2026-10-04 | Claude Code (viewer) | SPEC 5.7 aggregate rows gain `mission_hits_in_range` and optional `median_miss_frac_in_range` / `median_miss_frac_beyond`; the viewer reports the section 7 primary metrics | Section 7 primary metrics (merged from main) split mission hits into in-range and beyond-range with median miss fraction |
+| 2026-10-04 | Claude Code (viewer) | SPEC 5.7: aggregate `condition` is the eval label, adding `random-scripted`; `viewer.import_eval` converts `eval/run.py` output | eval writes the scripted-random reference under its own label beside the agent random condition |
 | 2026-10-03 | Claude Code | SPEC 5.4: analysis tools take keyword-only extras (`samples`, `noise_sd`, `seed`, `n_draws`); added `predict_many` and `disagreement_many` | Explicit seeds; batched candidate scoring |
 
 ## Design changes from calibration (dev worlds only)
