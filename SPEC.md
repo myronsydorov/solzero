@@ -115,12 +115,14 @@ Agent-facing endpoints:
 | Method and path | Request | Response | Errors |
 | --- | --- | --- | --- |
 | `POST /session` | `{world_id, condition}` | `SessionInfo` | 404 unknown world |
-| `POST /predictions` | `{session_id, spec, predictions[], tentative_followup}` | `{prediction_table_id}` | 422 spec out of range |
+| `POST /laws` | `{session_id, live_laws: [Law]}` | `{ok: true}` | 422 invalid or duplicate live laws |
+| `POST /predictions` | `{session_id, spec, predictions[], tentative_followup}` | `{prediction_table_id}` | 422 spec out of range or predictions not covering exactly the registered live set |
 | `POST /experiment` | `{session_id, spec, prediction_table_id}` | `Result` | 409 budget exhausted; 422 missing or mismatched prediction table, out-of-range spec, forbidden sample |
 | `POST /nominate` | `{session_id, law, fit}` | `{ok: true}` | |
 | `POST /commit` | `{session_id, law_id, shots[], claim, claims_non_ordinary}` | `{status: "committed"}` | 409 already committed |
 
 - `world_id` is opaque to agents. `condition` is one of `lab`, `random`, `single`.
+- `/laws` replaces the current live-law set (up to four distinct IDs); the Theorist calls it whenever the set changes. Replacing the set invalidates pending prediction tables, including when an expression changes under the same ID.
 - `/predictions` is required before every `/experiment` in the `lab` and `single` conditions. `predictions` may be an empty list only when no law has been proposed yet (cycle 0).
 - `/nominate` is called after every experiment with the current best law. The server scores it on hidden probes and returns nothing about the score.
 - `/commit` returns no hit or miss information to agents.
@@ -143,9 +145,11 @@ Admin endpoints (never exposed to agent tools; protected by `SOLZERO_ADMIN_TOKEN
 // Result
 {"experiment_id": "e07", "index": 7, "spec": {...},
  "observables": {"landing_x_m": 1.92, "flight_time_s": 0.63},
- "noise_sd": {"landing_x_m": 0.01, "flight_time_s": 0.005},
+ "noise_sd": {"landing_x_m": 0.01, "flight_time_s": 0.005, "speed_frac": 0.02, "elevation_deg": 0.5},
  "status": "ok", "budget_left": 5}
 // weigh observables: {"force_n": ...}; drop observables: {"fall_time_s": ...}
+// launch noise_sd also carries the launcher actuation error (speed_frac, elevation_deg),
+// which fit_law propagates into the effective measurement sd
 // status is "ok" or "failed"; a failed run still consumes budget
 
 // SessionInfo
@@ -154,9 +158,10 @@ Admin endpoints (never exposed to agent tools; protected by `SOLZERO_ADMIN_TOKEN
  "ranges": {"weigh": {"height_m": [0, 1.2]}, "drop": {"height_m": [0.1, 1.2]},
             "launch": {"speed_mps": [1, 4], "elevation_deg": [15, 75]},
             "mission": {"speed_mps": [1, 7], "elevation_deg": [15, 75]}},
- "noise_sd": {"force_frac": 0.02, "fall_time_s": 0.005, "landing_x_m": 0.01, "flight_time_s": 0.005},
+ "noise_sd": {"force_frac": 0.02, "fall_time_s": 0.005, "landing_x_m": 0.01, "flight_time_s": 0.005,
+              "speed_frac": 0.02, "elevation_deg": 0.5},
  "launcher": {"x_m": 0.0, "z_m": 0.2},
- "targets": [{"target_id": "t1", "x_m": 1.4, "z_m": 0.0}, ...],
+ "targets": [{"target_id": "t1", "x_m": 1.4, "z_m": 0.0, "hit_radius_m": 0.05}, ...],
  "shot_zero": {"spec": {...}, "target_id": "t0", "landing_x_m": 1.1, "miss_m": 0.52}}
 
 // Law
@@ -169,7 +174,10 @@ Admin endpoints (never exposed to agent tools; protected by `SOLZERO_ADMIN_TOKEN
 
 // FitResult
 {"law_id": "L3", "params": {"g0": {"value": 6.1, "sd": 0.2}, ...},
- "chi2_dof": 1.1, "loo_error": 0.031, "n_experiments": 7, "converged": true}
+ "chi2_dof": 1.1, "loo_error": 1.3, "n_experiments": 7, "converged": true,
+ "cov": [[0.04, ...], ...]}
+// loo_error: RMS leave-one-experiment-out prediction error, in units of measurement noise sd
+// cov: optional parameter covariance, rows and columns in params order
 
 // Prediction (one per live law, inside a prediction table)
 {"law_id": "L3", "observables": {"landing_x_m": {"mean": 1.90, "sd": 0.04},
@@ -196,12 +204,19 @@ Admin endpoints (never exposed to agent tools; protected by `SOLZERO_ADMIN_TOKEN
 ### 5.4 Analysis tool signatures (Python, in `tools/`)
 
 ```python
-fit_law(law: Law, results: list[Result], samples: list[Sample]) -> FitResult
+fit_law(law: Law, results: list[Result], samples: list[Sample] | None = None) -> FitResult
 predict(law: Law, fit: FitResult, spec: ExperimentSpec, n_draws: int = 200) -> Prediction
-disagreement(spec: ExperimentSpec, laws: list[tuple[Law, FitResult]], noise_sd: dict) -> Disagreement
+disagreement(spec: ExperimentSpec, laws: list[tuple[Law, FitResult]], noise_sd: dict | None = None) -> Disagreement
 plan_shot(law: Law, fit: FitResult, target: Target, sample_id: str, limits: dict) -> ShotPlan
 simulate(law_fn, params, spec, sample) -> observables   # shared integrator, also used by the world server
 ```
+
+All of them also take keyword-only extras with safe defaults: `samples` (defaults to the section 3
+samples), `noise_sd` (defaults to the SessionInfo values), `seed` (default 0) for any random draws,
+and `fit_law(..., loo=True, x0=None, n_starts=1)`. `predict_many` and `disagreement_many` take a
+list of specs and run one batched integration. `predict` sd combines parameter spread with
+measurement noise (sensor plus actuation); `disagreement` gaps are in units of that sd, with
+`n_draws=0` meaning measurement noise only. `samples=None` means the standard set.
 
 These functions are pure and do not call the world server. The Omnigent tool wrappers in `lab/` call them.
 

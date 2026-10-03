@@ -23,7 +23,9 @@ class Ledger:
         if cycle < 0:
             raise ValueError("Cycle must be nonnegative")
         if isinstance(payload, BaseModel):
-            payload = payload.model_dump(mode="json")
+            payload = payload.model_dump(mode="python")
+        # Reject nonfinite values before JSON-mode model dumping can turn them into null.
+        json.dumps(payload, allow_nan=False)
         entry = LedgerEntry(ts=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
                             cycle=cycle, agent=agent, kind=kind, payload=payload)
         encoded = json.dumps(entry.model_dump(mode="json"), allow_nan=False, separators=(",", ":")) + "\n"

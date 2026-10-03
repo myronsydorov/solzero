@@ -1,7 +1,0 @@
-# Lane A: merge these into the root pyproject.toml at integration.
-omnigent==0.16.0
-fastapi>=0.100,<1
-uvicorn>=0.30,<1
-httpx>=0.27,<1
-pydantic>=2,<3
-pytest>=8,<10

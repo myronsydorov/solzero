@@ -1,12 +1,12 @@
 # Lane B: transport and tool scaffolding
 
 Python 3.12. Run from the repository root after the shared schema package is merged.
-The root dependency configuration belongs to lane A; the additional dependencies
-for this lane are in `lab/requirements.txt`.
+Dependencies belong in the root `pyproject.toml`, owned by lane A. The temporary
+lane requirements file has been removed. See STATUS.md if the available main
+commit has not yet received its dependency follow-up.
 
 ```sh
-uv venv --python 3.12 .venv
-uv pip install --python .venv/bin/python -r lab/requirements.txt
+uv sync
 .venv/bin/python -m pytest tests/test_no_leak.py mock/tests -q
 .venv/bin/python -m mock.server --seed 1000 --port 8000
 ```
@@ -51,11 +51,14 @@ it with `lab.tool_functions.configure(session, seed=...)` **inside the same
 runner process that executes Python tools**. Do not expose `configure` as a tool.
 Use one session per process. Separate subprocesses do not share this binding.
 
-The five role YAMLs under `lab/agents/` deliberately contain only prompt stubs.
-They declare narrow tool sets and Python role policies. They are not a discovery
-loop or a standalone CLI session launcher; the host binding and orchestrator
-lifecycle must be supplied in the next milestone. Running a role without a host
-binding fails closed.
+The five role YAMLs under `lab/agents/` retain brief role stubs. `lab.run` supplies
+record-format and role-task instructions, then executes each role through
+Omnigent's Claude SDK executor with narrow Python function tools and the role
+policy. The host sequences roles; scientific choices come from the models. The
+first cycle may begin with no laws, in which case the Theorist proposes the first
+set after the first observation and before the Analyst nominates it. No law,
+parameter bounds or experiment sequence is supplied by the runner. A role run
+without a host binding fails closed.
 
 - Only the Operator has measurement tools.
 - Pre-registration requires one prediction for each current live law. Changing
@@ -72,9 +75,9 @@ binding fails closed.
   to an existing populated ledger. Use a fresh run directory after restarting
   the development server.
 
-The public API does not register the full live-law set with the server. Complete
-prediction coverage is consequently enforceable locally but is not independently
-verifiable by the server. The interface question is recorded in `STATUS.md`.
+The Theorist's `set_laws` calls `POST /laws` to replace the server's complete live
+set. The mock requires exact prediction coverage and invalidates older tables
+on any replacement, including a changed expression under an unchanged ID.
 
 ## Verification
 
@@ -85,5 +88,20 @@ verifiable by the server. The interface question is recorded in `STATUS.md`.
 The check starts and stops its own loopback mock process, exercises the HTTP
 wrappers, and saves raw responses, the ledger, server output, and a summary.
 Test fixtures live under `mock/tests/`; the leak and import-isolation checks live
-in the shared test directory. No scientific prompts or hypotheses are provided
-by this scaffold. Tracing integration remains a subsequent milestone.
+in the shared test directory. The transport fixture does not provide scientific hypotheses. `lab.run` saves
+public model text, tool inputs/outputs and policy decisions alongside the ledger.
+MLflow integration remains a subsequent milestone.
+
+```sh
+SOLZERO_WORLD_URL=http://127.0.0.1:8000 .venv/bin/python -m lab.run \
+  --world-id mock-dev --seed 1000 --cycles 12 --output runs/dev-loop-new
+```
+
+Use `--cycles 1` for a single complete evidence/revision cycle. This cap does not
+change the server budget. A mission request produces `pending-commit.json` for
+human review and stops before firing. Empty temporary working directories, no
+native OS tools, and disabled host skills prevent project context discovery.
+Only session metadata, public observations, agent-authored laws and this session's
+ledger are passed to the roles. The model service does not expose a sampling-seed
+setting through this harness; the explicit seed controls numerical tool draws,
+and raw model decisions are retained rather than claiming bitwise model replay.

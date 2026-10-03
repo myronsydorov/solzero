@@ -14,10 +14,18 @@ def client():
         yield client
 
 
-def start(client, condition="lab"):
+def start(client, condition="lab", *, with_law=True):
     response = client.post("/session", json={"world_id": "mock-dev", "condition": condition})
     assert response.status_code == 200
-    return SessionInfo.model_validate(response.json())
+    session = SessionInfo.model_validate(response.json())
+    if with_law:
+        assert client.post("/laws", json={"session_id": session.session_id, "live_laws": [fixture_law()]}).status_code == 200
+    return session
+
+
+def fixture_law(identifier="L1"):
+    return {"law_id": identifier, "ax": "0", "az": "-accel",
+            "params": {"accel": {"init": 9.81, "lo": 1, "hi": 20}}}
 
 
 def spec(kind="weigh", sample="ref_100"):
@@ -57,7 +65,7 @@ def test_session_metadata_and_unknown_world(client):
 
 @pytest.mark.parametrize("condition", ["lab", "single"])
 def test_preregistration_required_and_budget_not_spent_on_rejection(client, condition):
-    session = start(client, condition).session_id
+    session = start(client, condition, with_law=False).session_id
     experiment = spec()
     assert execute(client, session, experiment).status_code == 422
     table = register(client, session, experiment, empty=True).json()["prediction_table_id"]
@@ -193,8 +201,26 @@ def test_nomination_checks_fit_and_never_returns_hidden_scores(client):
 
 
 def test_proposing_law_invalidates_an_older_empty_table(client):
-    session = start(client).session_id
+    session = start(client, with_law=False).session_id
     old = register(client, session, spec(), empty=True).json()["prediction_table_id"]
+    client.post("/laws", json={"session_id": session, "live_laws": [fixture_law()]})
     new = register(client, session, spec()).json()["prediction_table_id"]
     assert execute(client, session, spec(), old).status_code == 422
     assert execute(client, session, spec(), new).status_code == 200
+
+
+def test_live_set_replacement_requires_exact_prediction_coverage(client):
+    session = start(client).session_id
+    assert client.post("/laws", json={"session_id": session, "live_laws": [fixture_law(), fixture_law("L2")]}).json() == {"ok": True}
+    assert register(client, session, spec()).status_code == 422
+    body = {"session_id": session, "spec": spec(),
+            "predictions": [prediction(spec()), {**prediction(spec()), "law_id": "L2"}]}
+    table = client.post("/predictions", json=body).json()["prediction_table_id"]
+    replacement = fixture_law()
+    replacement["az"] = "-accel*2"
+    assert client.post("/laws", json={"session_id": session, "live_laws": [replacement]}).status_code == 200
+    assert execute(client, session, spec(), table).status_code == 422
+    assert client.post("/predictions", json=body).status_code == 422
+    assert register(client, session, spec()).status_code == 200
+    assert client.post("/laws", json={"session_id": session, "live_laws": [fixture_law()] * 2}).status_code == 422
+    assert client.post("/laws", json={"session_id": session, "live_laws": [fixture_law(str(index)) for index in range(5)]}).status_code == 422

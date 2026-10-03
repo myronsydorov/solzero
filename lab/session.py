@@ -42,6 +42,15 @@ class LabSession:
             self._active()
             if len(laws) > 4 or len({law.law_id for law in laws}) != len(laws):
                 raise ValueError("Expected up to four distinct live laws")
+            try:
+                self.client.replace_laws(self.info.session_id, laws)
+            except (httpx.TransportError, ValueError):
+                self.uncertain = True
+                raise
+            except httpx.HTTPStatusError as error:
+                if error.response.status_code >= 500:
+                    self.uncertain = True
+                raise
             self.live_laws = {law.law_id: law for law in laws}
             self.pending = None
             self.ledger.append(len(self.results), "theorist", "law_set",

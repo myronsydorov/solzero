@@ -11,7 +11,7 @@ per server process; all conditions receive identical starting metadata and seede
 noise. Restarting loses server state. Use a new runs directory on each restart.
 This is a software-development fixture, not calibration or evaluation evidence.
 
-The mock implements the five agent-facing routes from SPEC section 5.2 and imports
+The mock implements the six agent-facing routes from SPEC section 5.2 and imports
 all record/request/response models from `schemas`. It uses closed-form Earth
 ballistics without air resistance, instrument noise and launcher actuation noise.
 A target crossing is the descending crossing of the target's horizontal plane.
@@ -32,10 +32,11 @@ using the shared `tools.predict` function when installed. Missing analysis tools
 or a numerical failure are explicitly recorded as an unavailable score; no score
 is fabricated. Installing schemas alone is sufficient for the HTTP fixture.
 
-There is an interface limitation: the server cannot independently check coverage
-of every live law because no public request registers the full current set. The
-lab wrappers enforce it locally. See the request in STATUS.md before treating
-this server as independent enforcement of that stronger requirement.
+`POST /laws` replaces up to four live laws and invalidates existing tables.
+Prediction IDs must cover exactly that set. Duplicate, missing and extra IDs are
+rejected. The shared `Target.hit_radius_m` field is emitted as soon as that field
+is available in schemas; the existing schema still uses the specified default
+radius internally. No parallel target model is defined in this lane.
 
 ```sh
 .venv/bin/python -m pytest mock/tests tests/test_no_leak.py -q

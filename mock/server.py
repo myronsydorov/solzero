@@ -10,11 +10,11 @@ import random
 from threading import RLock
 from typing import Callable
 
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import Body, FastAPI, Header, HTTPException
 from schemas import (
     CommitRequest, CommitResponse, ExperimentRequest, ExperimentSpec,
     NominateRequest, OkResponse, PredictionsRequest, PredictionsResponse,
-    Result, SessionInfo, SessionRequest, parse_spec,
+    Result, SessionInfo, SessionRequest, Law, Target, parse_spec,
 )
 
 BUDGET = 12
@@ -24,9 +24,12 @@ MASSES["mission_300"] = 0.3
 RANGES = {"weigh": {"height_m": (0, 1.2)}, "drop": {"height_m": (0.1, 1.2)},
           "launch": {"speed_mps": (1, 4), "elevation_deg": (15, 75)},
           "mission": {"speed_mps": (1, 7), "elevation_deg": (15, 75)}}
-NOISE = {"force_frac": 0.02, "fall_time_s": 0.005, "landing_x_m": 0.01, "flight_time_s": 0.005}
+NOISE = {"force_frac": 0.02, "fall_time_s": 0.005, "landing_x_m": 0.01, "flight_time_s": 0.005, "speed_frac": 0.02, "elevation_deg": 0.5}
 TARGETS = [{"target_id": f"t{idx}", "x_m": distance, "z_m": 0.0}
            for idx, distance in enumerate((1.0, 1.5, 2.3, 3.2, 4.2), 1)]
+if "hit_radius_m" in Target.model_fields:
+    for target in TARGETS:
+        target["hit_radius_m"] = 0.05
 
 
 def flight(speed: float, elevation: float, target_height: float = 0.0) -> tuple[float, float] | None:
@@ -47,12 +50,13 @@ def measure(spec: ExperimentSpec, rng: random.Random) -> tuple[dict, dict]:
     if spec.type == "drop":
         sd = NOISE["fall_time_s"]
         return {"fall_time_s": rng.gauss(math.sqrt(2 * spec.height_m / GRAVITY), sd)}, {"fall_time_s": sd}
-    actual_speed = rng.gauss(spec.speed_mps, 0.02 * spec.speed_mps)
-    actual_angle = rng.gauss(spec.elevation_deg, 0.5)
+    actual_speed = rng.gauss(spec.speed_mps, NOISE["speed_frac"] * spec.speed_mps)
+    actual_angle = rng.gauss(spec.elevation_deg, NOISE["elevation_deg"])
     distance, duration = flight(actual_speed, actual_angle)
     return {"landing_x_m": rng.gauss(distance, NOISE["landing_x_m"]),
             "flight_time_s": rng.gauss(duration, NOISE["flight_time_s"])}, {
-                "landing_x_m": NOISE["landing_x_m"], "flight_time_s": NOISE["flight_time_s"]}
+                "landing_x_m": NOISE["landing_x_m"], "flight_time_s": NOISE["flight_time_s"],
+                "speed_frac": NOISE["speed_frac"], "elevation_deg": NOISE["elevation_deg"]}
 
 
 def validate_spec(spec: ExperimentSpec) -> None:
@@ -71,7 +75,9 @@ class Session:
     info: SessionInfo
     condition: str
     rng: random.Random
-    tables: dict[str, tuple[PredictionsRequest, int]] = field(default_factory=dict)
+    tables: dict[str, tuple[PredictionsRequest, int, int]] = field(default_factory=dict)
+    live_laws: dict[str, Law] = field(default_factory=dict)
+    law_revision: int = 0
     used_tables: set[str] = field(default_factory=set)
     results: list[Result] = field(default_factory=list)
     nominations: list[dict] = field(default_factory=list)
@@ -124,6 +130,19 @@ def create_app(*, seed: int = 1000, world_id: str = "mock-dev", admin_token: str
             sessions[identifier] = Session(info, request.condition, random.Random(seed))
             return info
 
+    @app.post("/laws", response_model=OkResponse)
+    def replace_laws(session_id: str = Body(), live_laws: list[Law] = Body()):
+        with lock:
+            session = session_for(session_id)
+            active(session)
+            identifiers = [law.law_id for law in live_laws]
+            if len(identifiers) > 4 or len(identifiers) != len(set(identifiers)):
+                raise HTTPException(422, "Expected up to four distinct live laws")
+            session.live_laws = {law.law_id: law for law in live_laws}
+            session.law_revision += 1
+            session.proposed |= bool(live_laws)
+            return OkResponse()
+
     @app.post("/predictions", response_model=PredictionsResponse)
     def predictions(request: PredictionsRequest):
         with lock:
@@ -133,8 +152,8 @@ def create_app(*, seed: int = 1000, world_id: str = "mock-dev", admin_token: str
             if request.tentative_followup is not None:
                 validate_spec(request.tentative_followup)
             identifiers = [prediction.law_id for prediction in request.predictions]
-            if len(identifiers) != len(set(identifiers)):
-                raise HTTPException(422, "Duplicate law predictions")
+            if len(identifiers) != len(set(identifiers)) or set(identifiers) != set(session.live_laws):
+                raise HTTPException(422, "Predictions must cover exactly the registered live laws")
             if not identifiers and (session.results or session.proposed):
                 raise HTTPException(422, "Empty predictions are only allowed before any law in cycle zero")
             expected = {"weigh": {"force_n"}, "drop": {"fall_time_s"},
@@ -146,7 +165,7 @@ def create_app(*, seed: int = 1000, world_id: str = "mock-dev", admin_token: str
                        for value in prediction.observables.values()):
                     raise HTTPException(422, "Invalid prediction uncertainty")
             identifier = f"pt_{request.session_id}_{len(session.tables) + 1:04d}"
-            session.tables[identifier] = (request, len(session.results))
+            session.tables[identifier] = (request, len(session.results), session.law_revision)
             session.proposed |= bool(identifiers)
             return PredictionsResponse(prediction_table_id=identifier)
 
@@ -162,7 +181,7 @@ def create_app(*, seed: int = 1000, world_id: str = "mock-dev", admin_token: str
             if session.condition != "random" or identifier is not None:
                 table = session.tables.get(identifier)
                 if (table is None or identifier in session.used_tables or table[0].spec != request.spec
-                        or table[1] != len(session.results)
+                        or table[1] != len(session.results) or table[2] != session.law_revision
                         or (session.proposed and not table[0].predictions)):
                     raise HTTPException(422, "Missing, mismatched, stale or used prediction table")
                 session.used_tables.add(identifier)
@@ -185,6 +204,8 @@ def create_app(*, seed: int = 1000, world_id: str = "mock-dev", admin_token: str
         with lock:
             session = session_for(request.session_id)
             active(session)
+            if session.live_laws.get(request.law.law_id) != request.law:
+                raise HTTPException(422, "Nominate a registered live law")
             if request.law.law_id != request.fit.law_id or request.fit.n_experiments != len(session.results):
                 raise HTTPException(422, "Nomination law/fit or experiment count mismatch")
             session.nominations.append({"index": len(session.results), **request.model_dump(mode="json")})
@@ -223,12 +244,12 @@ def create_app(*, seed: int = 1000, world_id: str = "mock-dev", admin_token: str
             session.committed = request
             for shot in request.shots:
                 target = next(item for item in TARGETS if item["target_id"] == shot.target_id)
-                actual_speed = session.rng.gauss(shot.speed_mps, 0.02 * shot.speed_mps)
-                actual_angle = session.rng.gauss(shot.elevation_deg, 0.5)
+                actual_speed = session.rng.gauss(shot.speed_mps, NOISE["speed_frac"] * shot.speed_mps)
+                actual_angle = session.rng.gauss(shot.elevation_deg, NOISE["elevation_deg"])
                 crossing = flight(actual_speed, actual_angle, target["z_m"])
                 miss = abs(crossing[0] - target["x_m"]) if crossing is not None else None
                 session.mission.append({"target_id": shot.target_id, "miss_m": miss,
-                                        "hit": miss is not None and miss <= 0.05})
+                                        "hit": miss is not None and miss <= target.get("hit_radius_m", 0.05)})
             return CommitResponse()
 
     @app.get("/admin/truth/{requested_world_id}")

@@ -73,7 +73,7 @@ def test_session_flow_logs_predictions_result_nomination_and_decision_diff(envir
     assert diffs[1]["tentative"] == tentative.model_dump() and diffs[1]["actual"] == actual.model_dump()
     assert [record.kind for record in records].count("result") == 2
     assert calls == [("POST", endpoint) for endpoint in
-                     ("/session", "/predictions", "/experiment", "/nominate", "/predictions", "/experiment")]
+                     ("/session", "/predictions", "/experiment", "/laws", "/nominate", "/predictions", "/experiment")]
 
 
 def test_full_live_set_coverage_and_revision_invalidates_pending(environment):
@@ -82,7 +82,7 @@ def test_full_live_set_coverage_and_revision_invalidates_pending(environment):
     for predictions in ([], [forecast()], [forecast(), forecast()]):
         with pytest.raises(ValueError):
             session.preregister(experiment(), predictions, None)
-    assert calls == [("POST", "/session")]
+    assert calls == [("POST", "/session"), ("POST", "/laws")]
     session.preregister(experiment(), [forecast(), forecast("L2")], None)
     session.set_laws([law()])
     with pytest.raises(ValueError):
