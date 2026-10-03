@@ -33,7 +33,7 @@ from tools.defaults import LAUNCHER, NOISE_SD, RANGES, SAMPLES
 from .generator import DEV_SEEDS, MASSES, World, make_world
 
 BUDGET = 12
-CONDITIONS = ("lab", "random", "single")
+CONDITIONS = ("lab", "random", "single", "textbook", "oracle")
 PREREGISTERED = ("lab", "single")
 TEST_SEEDS_LOCK = Path(__file__).with_name("test_seeds.lock")
 RUNS_DIR = Path(os.environ.get("SOLZERO_RUNS_DIR", "runs"))

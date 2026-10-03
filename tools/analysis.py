@@ -147,7 +147,7 @@ class _Problem:
         obs = np.full((len(self.specs), 2), np.nan)
         for i, r in enumerate(self.results):
             for k, name in enumerate(OBSERVABLES[r.spec.type]):
-                obs[i, k] = r.observables[name]
+                obs[i, k] = r.observables.get(name, np.nan)  # a missing observable is not fitted
         self.obs = obs
         self.mask = np.isfinite(obs)
         noise = dict(NOISE_SD)
