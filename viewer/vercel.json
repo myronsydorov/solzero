@@ -1,0 +1,9 @@
+{
+  "buildCommand": "node scripts/build-index.mjs",
+  "outputDirectory": "public",
+  "cleanUrls": false,
+  "headers": [
+    { "source": "/runs/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+    { "source": "/eval/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+  ]
+}

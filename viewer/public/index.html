@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sol Zero Replay</title>
+  <meta name="description" content="Replay of recorded Sol Zero sessions: a robot lab discovering an unfamiliar force law in 12 experiments.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6' fill='%232a78d6'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
+  <link rel="stylesheet" href="css/style.css">
+  <script type="module" src="js/replay.js"></script>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand"><h1>Sol Zero</h1><span class="muted">robot lab, unknown physics, 12 experiments</span></div>
+    <nav aria-label="Pages"><a href="./" aria-current="page">Session replay</a><a href="results.html">Aggregate results</a></nav>
+    <span class="spacer"></span>
+    <span class="replay-flag" title="Nothing on this site is live">Replay of recorded runs</span>
+    <button id="theme" type="button">Dark</button>
+  </div>
+  <main id="app">
+    <div class="runbar">
+      <label for="run" class="secondary">Run</label>
+      <select id="run"></select>
+      <span class="meta" id="runmeta"></span>
+    </div>
+    <p class="muted" id="policy" style="margin:-8px 0 12px;font-size:12px"></p>
+
+    <section class="panel" style="margin-bottom:16px" aria-labelledby="tl-h">
+      <header><h2 id="tl-h">Timeline</h2><span class="hint">each cycle: Theorist → Experimentalist → Operator → Analyst · ← → to step, space to play</span></header>
+      <div class="timeline" id="timeline" role="list"></div>
+      <div class="controls">
+        <button id="first" type="button" aria-label="First step">⏮</button>
+        <button id="prev" type="button" aria-label="Previous step">◀</button>
+        <button id="play" type="button">Play</button>
+        <button id="next" type="button" aria-label="Next step">▶</button>
+        <button id="last" type="button" aria-label="Last step">⏭</button>
+        <span class="pos num" id="pos"></span>
+        <span class="legend" style="margin:0 0 0 auto">
+          <span class="mark" style="color:var(--serious)"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 4h7l-2-2M10.5 8h-7l2 2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="secondary">plan changed by evidence</span></span>
+          <span class="mark" style="color:var(--critical)"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="secondary">law rejected</span></span>
+        </span>
+      </div>
+      <div id="budget" style="margin-top:12px"></div>
+    </section>
+
+    <div class="grid cols-replay">
+      <div class="stack">
+        <section class="panel" aria-labelledby="cycle-title"><header><h2 id="cycle-title">Cycle</h2></header><div id="cycle-body"></div></section>
+        <section class="panel mission" aria-labelledby="mission-h"><header><h2 id="mission-h">Mission</h2><span class="hint">targets, hit zones and the fired shots</span></header><div id="mission-body"></div></section>
+      </div>
+      <div class="stack">
+        <section class="panel" id="video" hidden></section>
+        <section class="panel" aria-labelledby="laws-h"><header><h2 id="laws-h">Law cards</h2><span class="hint">every law proposed so far</span></header><div class="laws" id="laws-body"></div></section>
+        <section class="panel" aria-labelledby="reveal-h"><header><h2 id="reveal-h">Hidden law vs discovered law</h2></header><div id="reveal-body"></div></section>
+      </div>
+    </div>
+    <footer class="site">This site replays recorded runs from their ledger, metrics and video files. It does not talk to the world server, and nothing on it is live.</footer>
+  </main>
+</body>
+</html>

@@ -105,6 +105,8 @@ def test_nominate_commit_and_admin(client):
             "claims_non_ordinary": False}
     assert client.post("/commit", json={**body, "shots": [dict(shots[0], speed_mps=9.0)]}).status_code == 422
     assert client.post("/commit", json={**body, "shots": shots[:1] * 2}).status_code == 422
+    assert client.post("/commit", json={**body, "shots": shots[:4]}).status_code == 422  # one target missing
+    assert client.post("/commit", json={**body, "shots": shots + shots[:1]}).status_code == 422
     r = client.post("/commit", json=body)
     assert r.json() == {"status": "committed"}  # no hit or miss information
     assert client.post("/commit", json=body).status_code == 409
@@ -116,3 +118,19 @@ def test_nominate_commit_and_admin(client):
     assert 0 <= score["nominations"][0]["probe_within_beyond"] <= 1
     truth = client.get(f"/admin/truth/{WORLD}", headers={"X-Admin-Token": TOKEN}).json()
     assert truth["family"] in {"F0", "F1", "F2", "F3"}
+
+
+def test_revised_law_with_same_id_invalidates_table(client):
+    sid = new_session(client).session_id
+    law, _ = law_and_fit("L1")
+    client.post("/laws", json={"session_id": sid, "live_laws": [law]})
+    pred = {"law_id": "L1", "observables": {"force_n": {"mean": 1.0, "sd": 0.02}}}
+    t1 = predict(client, sid, WEIGH, [pred]).json()["prediction_table_id"]
+    revised = dict(law, az="-g0*(1 + kappa*z) - c*speed*vz/m",
+                   params={**law["params"], "kappa": {"init": 0, "lo": -1, "hi": 1}})
+    client.post("/laws", json={"session_id": sid, "live_laws": [revised]})
+    assert run(client, sid, WEIGH, t1).status_code == 422
+    # Re-registering identical content keeps a table valid.
+    t2 = predict(client, sid, WEIGH, [pred]).json()["prediction_table_id"]
+    client.post("/laws", json={"session_id": sid, "live_laws": [revised]})
+    assert run(client, sid, WEIGH, t2).status_code == 200

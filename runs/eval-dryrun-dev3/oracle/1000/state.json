@@ -1,0 +1,14 @@
+{
+ "attempts": 1,
+ "status": "done",
+ "session_id": "s_a9136cfc6b",
+ "world_id": "w_3c4adce51f85",
+ "seed": 1000,
+ "condition": "oracle",
+ "label": "oracle",
+ "attempt_dir": "attempt1",
+ "started": 1791070829.061596,
+ "returncode": 0,
+ "wall_s": 12.839815855026245,
+ "agent_status": "committed"
+}

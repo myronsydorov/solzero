@@ -1,0 +1,846 @@
+{
+ "session_id": "s_b4d33757d0",
+ "world_id": "w_3c4adce51f85",
+ "condition": "random",
+ "budget": 12,
+ "used": 12,
+ "results": [
+  {
+   "experiment_id": "e01",
+   "index": 1,
+   "spec": {
+    "type": "weigh",
+    "sample_id": "mission_300",
+    "height_m": 0.7505008507405678
+   },
+   "observables": {
+    "force_n": 2.57585342108387
+   },
+   "noise_sd": {
+    "force_n": 0.05241145870635413
+   },
+   "status": "ok",
+   "budget_left": 11
+  },
+  {
+   "experiment_id": "e02",
+   "index": 2,
+   "spec": {
+    "type": "launch",
+    "sample_id": "ref_020",
+    "speed_mps": 2.143114959918575,
+    "elevation_deg": 18.064977162266686
+   },
+   "observables": {
+    "landing_x_m": 0.38413325064129517,
+    "flight_time_s": 0.3249911894985513
+   },
+   "noise_sd": {
+    "landing_x_m": 0.01,
+    "flight_time_s": 0.005,
+    "speed_frac": 0.005,
+    "elevation_deg": 0.1
+   },
+   "status": "ok",
+   "budget_left": 10
+  },
+  {
+   "experiment_id": "e03",
+   "index": 3,
+   "spec": {
+    "type": "launch",
+    "sample_id": "ref_020",
+    "speed_mps": 3.4514214569393746,
+    "elevation_deg": 20.699035645188467
+   },
+   "observables": {
+    "landing_x_m": 0.5556502134998179,
+    "flight_time_s": 0.37741183363195335
+   },
+   "noise_sd": {
+    "landing_x_m": 0.01,
+    "flight_time_s": 0.005,
+    "speed_frac": 0.005,
+    "elevation_deg": 0.1
+   },
+   "status": "ok",
+   "budget_left": 9
+  },
+  {
+   "experiment_id": "e04",
+   "index": 4,
+   "spec": {
+    "type": "launch",
+    "sample_id": "ref_100",
+    "speed_mps": 2.2129702802072027,
+    "elevation_deg": 59.29760258934168
+   },
+   "observables": {
+    "landing_x_m": 0.49445885055179084,
+    "flight_time_s": 0.5135899385079158
+   },
+   "noise_sd": {
+    "landing_x_m": 0.01,
+    "flight_time_s": 0.005,
+    "speed_frac": 0.005,
+    "elevation_deg": 0.1
+   },
+   "status": "ok",
+   "budget_left": 8
+  },
+  {
+   "experiment_id": "e05",
+   "index": 5,
+   "spec": {
+    "type": "drop",
+    "sample_id": "ref_200",
+    "height_m": 0.1540754195648422
+   },
+   "observables": {
+    "fall_time_s": 0.18649054585417035
+   },
+   "noise_sd": {
+    "fall_time_s": 0.005
+   },
+   "status": "ok",
+   "budget_left": 7
+  },
+  {
+   "experiment_id": "e06",
+   "index": 6,
+   "spec": {
+    "type": "launch",
+    "sample_id": "ref_100",
+    "speed_mps": 2.2868935987805346,
+    "elevation_deg": 49.3831615358239
+   },
+   "observables": {
+    "landing_x_m": 0.5983215005731,
+    "flight_time_s": 0.4832234639659705
+   },
+   "noise_sd": {
+    "landing_x_m": 0.01,
+    "flight_time_s": 0.005,
+    "speed_frac": 0.005,
+    "elevation_deg": 0.1
+   },
+   "status": "ok",
+   "budget_left": 6
+  },
+  {
+   "experiment_id": "e07",
+   "index": 7,
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_050",
+    "height_m": 0.8824257120009427
+   },
+   "observables": {
+    "force_n": 0.4187408497619127
+   },
+   "noise_sd": {
+    "force_n": 0.00873524311772569
+   },
+   "status": "ok",
+   "budget_left": 5
+  },
+  {
+   "experiment_id": "e08",
+   "index": 8,
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_020",
+    "height_m": 0.14167462786089308
+   },
+   "observables": {
+    "force_n": 0.17457315346873348
+   },
+   "noise_sd": {
+    "force_n": 0.003494097247090276
+   },
+   "status": "ok",
+   "budget_left": 4
+  },
+  {
+   "experiment_id": "e09",
+   "index": 9,
+   "spec": {
+    "type": "drop",
+    "sample_id": "ref_200",
+    "height_m": 1.0094799161954446
+   },
+   "observables": {
+    "fall_time_s": 0.49918146488854453
+   },
+   "noise_sd": {
+    "fall_time_s": 0.005
+   },
+   "status": "ok",
+   "budget_left": 3
+  },
+  {
+   "experiment_id": "e10",
+   "index": 10,
+   "spec": {
+    "type": "launch",
+    "sample_id": "ref_400",
+    "speed_mps": 1.3222035237619618,
+    "elevation_deg": 33.99737546664598
+   },
+   "observables": {
+    "landing_x_m": 0.3394382139080651,
+    "flight_time_s": 0.3157019819112822
+   },
+   "noise_sd": {
+    "landing_x_m": 0.01,
+    "flight_time_s": 0.005,
+    "speed_frac": 0.005,
+    "elevation_deg": 0.1
+   },
+   "status": "ok",
+   "budget_left": 2
+  },
+  {
+   "experiment_id": "e11",
+   "index": 11,
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_400",
+    "height_m": 0.17565793699247048
+   },
+   "observables": {
+    "force_n": 3.4961464710248187
+   },
+   "noise_sd": {
+    "force_n": 0.06988194494180552
+   },
+   "status": "ok",
+   "budget_left": 1
+  },
+  {
+   "experiment_id": "e12",
+   "index": 12,
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_100",
+    "height_m": 0.5755433370217063
+   },
+   "observables": {
+    "force_n": 0.8797413341493036
+   },
+   "noise_sd": {
+    "force_n": 0.01747048623545138
+   },
+   "status": "ok",
+   "budget_left": 0
+  }
+ ],
+ "live_laws": [],
+ "prediction_tables": [],
+ "nominations": [
+  {
+   "n_experiments": 1,
+   "law": {
+    "law_id": "textbook",
+    "description": "",
+    "ax": "-c*speed*vx/m",
+    "az": "-g0 - c*speed*vz/m",
+    "params": {
+     "g0": {
+      "init": 9.81,
+      "lo": 9.81,
+      "hi": 9.81
+     },
+     "c": {
+      "init": 0.00035437165132492864,
+      "lo": 0.00035437165132492864,
+      "hi": 0.00035437165132492864
+     }
+    }
+   },
+   "fit": {
+    "law_id": "textbook",
+    "params": {
+     "g0": {
+      "value": 9.81,
+      "sd": 0.0
+     },
+     "c": {
+      "value": 0.00035437165132492864,
+      "sd": 0.0
+     }
+    },
+    "chi2_dof": 0.0,
+    "loo_error": null,
+    "n_experiments": 0,
+    "converged": true,
+    "cov": null
+   },
+   "probe_median_error_m": 0.2737870665393105,
+   "probe_within_beyond": 0.0,
+   "probe_within_in_range": 0.6
+  },
+  {
+   "n_experiments": 2,
+   "law": {
+    "law_id": "textbook",
+    "description": "",
+    "ax": "-c*speed*vx/m",
+    "az": "-g0 - c*speed*vz/m",
+    "params": {
+     "g0": {
+      "init": 9.81,
+      "lo": 9.81,
+      "hi": 9.81
+     },
+     "c": {
+      "init": 0.00035437165132492864,
+      "lo": 0.00035437165132492864,
+      "hi": 0.00035437165132492864
+     }
+    }
+   },
+   "fit": {
+    "law_id": "textbook",
+    "params": {
+     "g0": {
+      "value": 9.81,
+      "sd": 0.0
+     },
+     "c": {
+      "value": 0.00035437165132492864,
+      "sd": 0.0
+     }
+    },
+    "chi2_dof": 0.0,
+    "loo_error": null,
+    "n_experiments": 0,
+    "converged": true,
+    "cov": null
+   },
+   "probe_median_error_m": 0.2737870665393105,
+   "probe_within_beyond": 0.0,
+   "probe_within_in_range": 0.6
+  },
+  {
+   "n_experiments": 3,
+   "law": {
+    "law_id": "textbook",
+    "description": "",
+    "ax": "-c*speed*vx/m",
+    "az": "-g0 - c*speed*vz/m",
+    "params": {
+     "g0": {
+      "init": 9.81,
+      "lo": 9.81,
+      "hi": 9.81
+     },
+     "c": {
+      "init": 0.00035437165132492864,
+      "lo": 0.00035437165132492864,
+      "hi": 0.00035437165132492864
+     }
+    }
+   },
+   "fit": {
+    "law_id": "textbook",
+    "params": {
+     "g0": {
+      "value": 9.81,
+      "sd": 0.0
+     },
+     "c": {
+      "value": 0.00035437165132492864,
+      "sd": 0.0
+     }
+    },
+    "chi2_dof": 0.0,
+    "loo_error": null,
+    "n_experiments": 0,
+    "converged": true,
+    "cov": null
+   },
+   "probe_median_error_m": 0.2737870665393105,
+   "probe_within_beyond": 0.0,
+   "probe_within_in_range": 0.6
+  },
+  {
+   "n_experiments": 4,
+   "law": {
+    "law_id": "textbook",
+    "description": "",
+    "ax": "-c*speed*vx/m",
+    "az": "-g0 - c*speed*vz/m",
+    "params": {
+     "g0": {
+      "init": 9.81,
+      "lo": 9.81,
+      "hi": 9.81
+     },
+     "c": {
+      "init": 0.00035437165132492864,
+      "lo": 0.00035437165132492864,
+      "hi": 0.00035437165132492864
+     }
+    }
+   },
+   "fit": {
+    "law_id": "textbook",
+    "params": {
+     "g0": {
+      "value": 9.81,
+      "sd": 0.0
+     },
+     "c": {
+      "value": 0.00035437165132492864,
+      "sd": 0.0
+     }
+    },
+    "chi2_dof": 0.0,
+    "loo_error": null,
+    "n_experiments": 0,
+    "converged": true,
+    "cov": null
+   },
+   "probe_median_error_m": 0.2737870665393105,
+   "probe_within_beyond": 0.0,
+   "probe_within_in_range": 0.6
+  },
+  {
+   "n_experiments": 5,
+   "law": {
+    "law_id": "textbook",
+    "description": "",
+    "ax": "-c*speed*vx/m",
+    "az": "-g0 - c*speed*vz/m",
+    "params": {
+     "g0": {
+      "init": 9.81,
+      "lo": 9.81,
+      "hi": 9.81
+     },
+     "c": {
+      "init": 0.00035437165132492864,
+      "lo": 0.00035437165132492864,
+      "hi": 0.00035437165132492864
+     }
+    }
+   },
+   "fit": {
+    "law_id": "textbook",
+    "params": {
+     "g0": {
+      "value": 9.81,
+      "sd": 0.0
+     },
+     "c": {
+      "value": 0.00035437165132492864,
+      "sd": 0.0
+     }
+    },
+    "chi2_dof": 0.0,
+    "loo_error": null,
+    "n_experiments": 0,
+    "converged": true,
+    "cov": null
+   },
+   "probe_median_error_m": 0.2737870665393105,
+   "probe_within_beyond": 0.0,
+   "probe_within_in_range": 0.6
+  },
+  {
+   "n_experiments": 6,
+   "law": {
+    "law_id": "textbook",
+    "description": "",
+    "ax": "-c*speed*vx/m",
+    "az": "-g0 - c*speed*vz/m",
+    "params": {
+     "g0": {
+      "init": 9.81,
+      "lo": 9.81,
+      "hi": 9.81
+     },
+     "c": {
+      "init": 0.00035437165132492864,
+      "lo": 0.00035437165132492864,
+      "hi": 0.00035437165132492864
+     }
+    }
+   },
+   "fit": {
+    "law_id": "textbook",
+    "params": {
+     "g0": {
+      "value": 9.81,
+      "sd": 0.0
+     },
+     "c": {
+      "value": 0.00035437165132492864,
+      "sd": 0.0
+     }
+    },
+    "chi2_dof": 0.0,
+    "loo_error": null,
+    "n_experiments": 0,
+    "converged": true,
+    "cov": null
+   },
+   "probe_median_error_m": 0.2737870665393105,
+   "probe_within_beyond": 0.0,
+   "probe_within_in_range": 0.6
+  },
+  {
+   "n_experiments": 7,
+   "law": {
+    "law_id": "textbook",
+    "description": "",
+    "ax": "-c*speed*vx/m",
+    "az": "-g0 - c*speed*vz/m",
+    "params": {
+     "g0": {
+      "init": 9.81,
+      "lo": 9.81,
+      "hi": 9.81
+     },
+     "c": {
+      "init": 0.00035437165132492864,
+      "lo": 0.00035437165132492864,
+      "hi": 0.00035437165132492864
+     }
+    }
+   },
+   "fit": {
+    "law_id": "textbook",
+    "params": {
+     "g0": {
+      "value": 9.81,
+      "sd": 0.0
+     },
+     "c": {
+      "value": 0.00035437165132492864,
+      "sd": 0.0
+     }
+    },
+    "chi2_dof": 0.0,
+    "loo_error": null,
+    "n_experiments": 0,
+    "converged": true,
+    "cov": null
+   },
+   "probe_median_error_m": 0.2737870665393105,
+   "probe_within_beyond": 0.0,
+   "probe_within_in_range": 0.6
+  },
+  {
+   "n_experiments": 8,
+   "law": {
+    "law_id": "textbook",
+    "description": "",
+    "ax": "-c*speed*vx/m",
+    "az": "-g0 - c*speed*vz/m",
+    "params": {
+     "g0": {
+      "init": 9.81,
+      "lo": 9.81,
+      "hi": 9.81
+     },
+     "c": {
+      "init": 0.00035437165132492864,
+      "lo": 0.00035437165132492864,
+      "hi": 0.00035437165132492864
+     }
+    }
+   },
+   "fit": {
+    "law_id": "textbook",
+    "params": {
+     "g0": {
+      "value": 9.81,
+      "sd": 0.0
+     },
+     "c": {
+      "value": 0.00035437165132492864,
+      "sd": 0.0
+     }
+    },
+    "chi2_dof": 0.0,
+    "loo_error": null,
+    "n_experiments": 0,
+    "converged": true,
+    "cov": null
+   },
+   "probe_median_error_m": 0.2737870665393105,
+   "probe_within_beyond": 0.0,
+   "probe_within_in_range": 0.6
+  },
+  {
+   "n_experiments": 9,
+   "law": {
+    "law_id": "textbook",
+    "description": "",
+    "ax": "-c*speed*vx/m",
+    "az": "-g0 - c*speed*vz/m",
+    "params": {
+     "g0": {
+      "init": 9.81,
+      "lo": 9.81,
+      "hi": 9.81
+     },
+     "c": {
+      "init": 0.00035437165132492864,
+      "lo": 0.00035437165132492864,
+      "hi": 0.00035437165132492864
+     }
+    }
+   },
+   "fit": {
+    "law_id": "textbook",
+    "params": {
+     "g0": {
+      "value": 9.81,
+      "sd": 0.0
+     },
+     "c": {
+      "value": 0.00035437165132492864,
+      "sd": 0.0
+     }
+    },
+    "chi2_dof": 0.0,
+    "loo_error": null,
+    "n_experiments": 0,
+    "converged": true,
+    "cov": null
+   },
+   "probe_median_error_m": 0.2737870665393105,
+   "probe_within_beyond": 0.0,
+   "probe_within_in_range": 0.6
+  },
+  {
+   "n_experiments": 10,
+   "law": {
+    "law_id": "textbook",
+    "description": "",
+    "ax": "-c*speed*vx/m",
+    "az": "-g0 - c*speed*vz/m",
+    "params": {
+     "g0": {
+      "init": 9.81,
+      "lo": 9.81,
+      "hi": 9.81
+     },
+     "c": {
+      "init": 0.00035437165132492864,
+      "lo": 0.00035437165132492864,
+      "hi": 0.00035437165132492864
+     }
+    }
+   },
+   "fit": {
+    "law_id": "textbook",
+    "params": {
+     "g0": {
+      "value": 9.81,
+      "sd": 0.0
+     },
+     "c": {
+      "value": 0.00035437165132492864,
+      "sd": 0.0
+     }
+    },
+    "chi2_dof": 0.0,
+    "loo_error": null,
+    "n_experiments": 0,
+    "converged": true,
+    "cov": null
+   },
+   "probe_median_error_m": 0.2737870665393105,
+   "probe_within_beyond": 0.0,
+   "probe_within_in_range": 0.6
+  },
+  {
+   "n_experiments": 11,
+   "law": {
+    "law_id": "textbook",
+    "description": "",
+    "ax": "-c*speed*vx/m",
+    "az": "-g0 - c*speed*vz/m",
+    "params": {
+     "g0": {
+      "init": 9.81,
+      "lo": 9.81,
+      "hi": 9.81
+     },
+     "c": {
+      "init": 0.00035437165132492864,
+      "lo": 0.00035437165132492864,
+      "hi": 0.00035437165132492864
+     }
+    }
+   },
+   "fit": {
+    "law_id": "textbook",
+    "params": {
+     "g0": {
+      "value": 9.81,
+      "sd": 0.0
+     },
+     "c": {
+      "value": 0.00035437165132492864,
+      "sd": 0.0
+     }
+    },
+    "chi2_dof": 0.0,
+    "loo_error": null,
+    "n_experiments": 0,
+    "converged": true,
+    "cov": null
+   },
+   "probe_median_error_m": 0.2737870665393105,
+   "probe_within_beyond": 0.0,
+   "probe_within_in_range": 0.6
+  },
+  {
+   "n_experiments": 12,
+   "law": {
+    "law_id": "textbook",
+    "description": "",
+    "ax": "-c*speed*vx/m",
+    "az": "-g0 - c*speed*vz/m",
+    "params": {
+     "g0": {
+      "init": 9.81,
+      "lo": 9.81,
+      "hi": 9.81
+     },
+     "c": {
+      "init": 0.00035437165132492864,
+      "lo": 0.00035437165132492864,
+      "hi": 0.00035437165132492864
+     }
+    }
+   },
+   "fit": {
+    "law_id": "textbook",
+    "params": {
+     "g0": {
+      "value": 9.81,
+      "sd": 0.0
+     },
+     "c": {
+      "value": 0.00035437165132492864,
+      "sd": 0.0
+     }
+    },
+    "chi2_dof": 0.0,
+    "loo_error": null,
+    "n_experiments": 0,
+    "converged": true,
+    "cov": null
+   },
+   "probe_median_error_m": 0.2737870665393105,
+   "probe_within_beyond": 0.0,
+   "probe_within_in_range": 0.6
+  }
+ ],
+ "commit": {
+  "law_id": "textbook",
+  "claim": "insufficient_evidence",
+  "claims_non_ordinary": false,
+  "after_experiments": 12,
+  "shots": [
+   {
+    "target_id": "t1",
+    "speed_mps": 3.743588549723654,
+    "elevation_deg": 17.5,
+    "kind": "in_range",
+    "x_m": 1.0535915182009732,
+    "miss_m": 0.005408481799026754,
+    "miss_frac": 0.005107159394737257,
+    "hit_radius_m": 0.05,
+    "hit": true
+   },
+   {
+    "target_id": "t2",
+    "speed_mps": 3.271364961985931,
+    "elevation_deg": 17.5,
+    "kind": "in_range",
+    "x_m": 0.8824464571160547,
+    "miss_m": 0.01844645711605475,
+    "miss_frac": 0.021350066106544847,
+    "hit_radius_m": 0.05,
+    "hit": true
+   },
+   {
+    "target_id": "t3",
+    "speed_mps": 5.263154001882617,
+    "elevation_deg": 60.0,
+    "kind": "beyond",
+    "x_m": 1.8852001407344512,
+    "miss_m": 0.44679985926554866,
+    "miss_frac": 0.1915951369063245,
+    "hit_radius_m": 0.05,
+    "hit": false
+   },
+   {
+    "target_id": "t4",
+    "speed_mps": 5.381636924304757,
+    "elevation_deg": 45.0,
+    "kind": "beyond",
+    "x_m": 2.219780275111499,
+    "miss_m": 0.47121972488850083,
+    "miss_frac": 0.1751095224409145,
+    "hit_radius_m": 0.0538,
+    "hit": false
+   },
+   {
+    "target_id": "t5",
+    "speed_mps": 4.594180772944593,
+    "elevation_deg": 57.5,
+    "kind": "beyond",
+    "x_m": 1.7343512893599797,
+    "miss_m": 0.2586487106400204,
+    "miss_frac": 0.12977858035123951,
+    "hit_radius_m": 0.05,
+    "hit": false
+   }
+  ]
+ },
+ "targets": [
+  {
+   "target_id": "t1",
+   "x_m": 1.059,
+   "z_m": 0.102,
+   "hit_radius_m": 0.05,
+   "kind": "in_range"
+  },
+  {
+   "target_id": "t2",
+   "x_m": 0.864,
+   "z_m": 0.096,
+   "hit_radius_m": 0.05,
+   "kind": "in_range"
+  },
+  {
+   "target_id": "t3",
+   "x_m": 2.332,
+   "z_m": 0.377,
+   "hit_radius_m": 0.05,
+   "kind": "beyond"
+  },
+  {
+   "target_id": "t4",
+   "x_m": 2.691,
+   "z_m": 0.432,
+   "hit_radius_m": 0.0538,
+   "kind": "beyond"
+  },
+  {
+   "target_id": "t5",
+   "x_m": 1.993,
+   "z_m": 0.124,
+   "hit_radius_m": 0.05,
+   "kind": "beyond"
+  }
+ ]
+}

@@ -1,0 +1,10 @@
+{
+ "session_id": "s_0867c11f3e",
+ "status": "committed",
+ "tokens_used": 0,
+ "wall_s": 11.681141208973713,
+ "n_experiments": 12,
+ "error": null,
+ "agent": "scripted:scripted_random",
+ "final_form": "mass_p3"
+}

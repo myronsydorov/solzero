@@ -1,0 +1,65 @@
+[
+ {
+  "type": "launch",
+  "sample_id": "ref_020",
+  "speed_mps": 3.8381989749876464,
+  "elevation_deg": 47.209850425005875
+ },
+ {
+  "type": "drop",
+  "sample_id": "ref_100",
+  "height_m": 0.11034343195983275
+ },
+ {
+  "type": "weigh",
+  "sample_id": "ref_020",
+  "height_m": 0.4100118681703891
+ },
+ {
+  "type": "drop",
+  "sample_id": "ref_020",
+  "height_m": 0.8795297521129231
+ },
+ {
+  "type": "drop",
+  "sample_id": "ref_020",
+  "height_m": 1.1422179964915053
+ },
+ {
+  "type": "launch",
+  "sample_id": "ref_100",
+  "speed_mps": 3.4215711418449306,
+  "elevation_deg": 16.57435209956782
+ },
+ {
+  "type": "drop",
+  "sample_id": "ref_020",
+  "height_m": 1.1270334735812948
+ },
+ {
+  "type": "launch",
+  "sample_id": "ref_400",
+  "speed_mps": 1.2066062876911903,
+  "elevation_deg": 57.96513458699879
+ },
+ {
+  "type": "weigh",
+  "sample_id": "ref_050",
+  "height_m": 0.09320861733064212
+ },
+ {
+  "type": "drop",
+  "sample_id": "ref_800",
+  "height_m": 0.8834763752265056
+ },
+ {
+  "type": "weigh",
+  "sample_id": "ref_100",
+  "height_m": 1.119341168828931
+ },
+ {
+  "type": "weigh",
+  "sample_id": "ref_100",
+  "height_m": 1.1531472329727797
+ }
+]

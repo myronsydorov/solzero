@@ -233,6 +233,7 @@ One JSON object per line in `runs/<session_id>/ledger.jsonl`:
 
 `kind` is one of `law_set`, `candidates`, `prediction_table`, `result`, `verdicts`, `decision_diff`, `nomination`, `commit`.
 A `decision_diff` payload is `{"tentative": ExperimentSpec, "actual": ExperimentSpec, "changed": true, "reason": "..."}`.
+A `candidates` payload is `{"candidates": [ExperimentSpec], "chosen": ExperimentSpec, "disagreements": [Disagreement]}`. `disagreements` is optional, one per candidate in the same order; the viewer shows it as the disagreement table and otherwise derives gaps for the chosen spec from the prediction table.
 
 ### 5.6 Agent run CLI (lane B exposes, `eval/` calls)
 
@@ -249,6 +250,37 @@ python -m lab.run --world-url URL --session-info FILE --condition {lab,single,ra
 - `--approval auto` approves the five-shot table automatically, for evaluation runs only. It is recorded in the ledger as `{"kind": "commit", "payload": {..., "approval": "auto"}}`. `human` keeps the section 6 gate.
 - On exit it writes `DIR/summary.json`: `{"session_id", "status": "committed" | "cap_reached" | "error" | "pending_approval", "tokens_used", "wall_s", "n_experiments", "error": str | null}`, plus `DIR/ledger.jsonl` (section 5.5).
 - Exit code 0 means `summary.json` was written. Any other code is a crash, and the runner retries the run once.
+
+### 5.7 Viewer inputs
+
+The replay site (`viewer/`) is static. It reads files only; it never calls the world server.
+
+```
+viewer/public/runs/index.json            // built by `node viewer/scripts/build-index.mjs`; lists run directories
+viewer/public/runs/<run_id>/ledger.jsonl // section 5.5, unchanged
+viewer/public/runs/<run_id>/metrics.json // see below
+viewer/public/runs/<run_id>/video.mp4    // optional
+viewer/public/eval/aggregate.json        // see below
+```
+
+```json
+// metrics.json: written by the condition runner after the session, from admin data
+{"run_id": "s_ab12", "label": "lab on dev world 1002", "condition": "lab",
+ "session_info": SessionInfo,
+ "score": {...},   // GET /admin/score/{session_id}, unchanged
+ "truth": {...}}   // GET /admin/truth/{world_id}, unchanged
+
+// aggregate.json: written by eval/, one row per (world, condition) session
+{"label": "...", "budget": 12, "notes": {"<condition>": "..."},
+ "rows": [{"world": "1002", "family": "F2", "condition": "lab",
+           "within_beyond": [0.0, ...],   // after 0..budget experiments; null where not nominated
+           "median_error_m": [0.31, ...], // same indexing
+           "law_recovered": true, "claim": "law_identified", "claims_non_ordinary": true,
+           "mission_hits": 4, "mission_hits_in_range": 2, "mission_hits_beyond": 2,
+           "median_miss_frac_in_range": 0.006, "median_miss_frac_beyond": 0.007}]}
+```
+
+`condition` in aggregate rows is one of `lab`, `random`, `single`, `textbook`, `oracle`. The viewer computes the section 7 primary metrics (final `within_beyond`, mission hit rate, law-form recovery, control false discovery from F0 rows), experiments to threshold (first index with `within_beyond >= 0.8`, budget + 1 if never) and the paired differences from the rows. `law_recovered` is graded by `eval/grade.py`. The `median_miss_frac_*` fields are optional.
 
 ## 6. Agents and Omnigent
 
@@ -388,13 +420,13 @@ Fix the run-selection rule before looking at results, and state it. No reruns fo
 
 | Path | Contents | Owner | Visible to scientific agents |
 | --- | --- | --- | --- |
-| `schemas/` | Shared pydantic models for section 5 | Claude Code (changes need a spec update) | Yes |
-| `tools/` | `fit_law`, `predict`, `disagreement`, `plan_shot`, integrator | Claude Code | Yes, through tool wrappers |
-| `world/` | Generator, world server, hidden scoring, `test_seeds.lock` | Claude Code | No |
-| `calibration/` | Scripted policies, study runner, results, plots | Claude Code | No |
-| `sim/` | MuJoCo scene, arm primitives, launcher | Claude Code | No |
-| `mock/` | Mock world server implementing section 5.2 | Codex | Yes |
-| `lab/` | Omnigent agent definitions, tool wrappers, policies, ledger writer | Codex | Yes |
-| `eval/` | Condition runners, grading script, figures | Shared, agreed in `STATUS.md` | No |
-| `viewer/` | Replay site | Shared | No |
+| `schemas/` | Shared pydantic models for section 5 | physics lane (changes need a spec update) | Yes |
+| `tools/` | `fit_law`, `predict`, `disagreement`, `plan_shot`, integrator | physics lane | Yes, through tool wrappers |
+| `world/` | Generator, world server, hidden scoring, freeze script, `test_seeds.lock` | physics lane | No |
+| `calibration/` | Scripted policies, study runner, results, plots | physics lane | No |
+| `eval/` | Condition runner, sampler, scripted references, grading, figures | physics lane (integrator) | No |
+| `sim/` | MuJoCo scene, arm primitives, launcher | sim lane | No |
+| `mock/` | Mock world server implementing section 5.2 | omnigent lane | Yes |
+| `lab/` | Omnigent agent definitions, tool wrappers, policies, ledger writer | omnigent lane | Yes |
+| `viewer/` | Replay site | viewer lane | No |
 | `runs/` | Ledgers and traces | Generated | Own session only |

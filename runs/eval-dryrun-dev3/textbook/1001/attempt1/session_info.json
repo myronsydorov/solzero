@@ -1,0 +1,130 @@
+{
+ "session_id": "s_4ad43c2bbb",
+ "budget": 12,
+ "samples": [
+  {
+   "sample_id": "ref_020",
+   "mass_kg": 0.02,
+   "launchable": true
+  },
+  {
+   "sample_id": "ref_050",
+   "mass_kg": 0.05,
+   "launchable": true
+  },
+  {
+   "sample_id": "ref_100",
+   "mass_kg": 0.1,
+   "launchable": true
+  },
+  {
+   "sample_id": "ref_200",
+   "mass_kg": 0.2,
+   "launchable": true
+  },
+  {
+   "sample_id": "ref_400",
+   "mass_kg": 0.4,
+   "launchable": true
+  },
+  {
+   "sample_id": "ref_800",
+   "mass_kg": 0.8,
+   "launchable": true
+  },
+  {
+   "sample_id": "mission_300",
+   "mass_kg": 0.3,
+   "launchable": false
+  }
+ ],
+ "ranges": {
+  "weigh": {
+   "height_m": [
+    0.0,
+    1.2
+   ]
+  },
+  "drop": {
+   "height_m": [
+    0.1,
+    1.2
+   ]
+  },
+  "launch": {
+   "speed_mps": [
+    1.0,
+    4.0
+   ],
+   "elevation_deg": [
+    15.0,
+    75.0
+   ]
+  },
+  "mission": {
+   "speed_mps": [
+    1.0,
+    7.0
+   ],
+   "elevation_deg": [
+    15.0,
+    75.0
+   ]
+  }
+ },
+ "noise_sd": {
+  "force_frac": 0.02,
+  "fall_time_s": 0.005,
+  "landing_x_m": 0.01,
+  "flight_time_s": 0.005,
+  "speed_frac": 0.005,
+  "elevation_deg": 0.1
+ },
+ "launcher": {
+  "x_m": 0.0,
+  "z_m": 0.2
+ },
+ "targets": [
+  {
+   "target_id": "t1",
+   "x_m": 0.577,
+   "z_m": 0.429,
+   "hit_radius_m": 0.05
+  },
+  {
+   "target_id": "t2",
+   "x_m": 1.178,
+   "z_m": 0.101,
+   "hit_radius_m": 0.05
+  },
+  {
+   "target_id": "t3",
+   "x_m": 2.116,
+   "z_m": 0.049,
+   "hit_radius_m": 0.05
+  },
+  {
+   "target_id": "t4",
+   "x_m": 2.04,
+   "z_m": 0.09,
+   "hit_radius_m": 0.05
+  },
+  {
+   "target_id": "t5",
+   "x_m": 2.875,
+   "z_m": 0.492,
+   "hit_radius_m": 0.0575
+  }
+ ],
+ "shot_zero": {
+  "spec": {
+   "type": "launch",
+   "sample_id": "ref_100",
+   "speed_mps": 3.67,
+   "elevation_deg": 17.5
+  },
+  "target_id": "t0",
+  "landing_x_m": 1.11842112477869,
+  "miss_m": 0.08157887522131002
+ }
+}

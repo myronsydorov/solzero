@@ -1,0 +1,78 @@
+{
+ "label": "textbook",
+ "seed": 1000,
+ "world_id": "w_3c4adce51f85",
+ "condition": "textbook",
+ "family": "F0",
+ "session_id": "s_6635afa449",
+ "agent_status": "committed",
+ "tokens_used": 0,
+ "wall_s": 0.8936443750280887,
+ "n_experiments": 0,
+ "flags": [],
+ "probe_hit_beyond": 0.0,
+ "mission_hit_rate": 0.4,
+ "law_form_recovered": true,
+ "false_discovery": false,
+ "mission_hit_in_range": 1.0,
+ "mission_hit_beyond": 0.0,
+ "mission_median_miss_frac": {
+  "in_range": 0.012028139222692517,
+  "beyond": 0.1837130010634406
+ },
+ "probe_hit_in_range": 0.6,
+ "probe_beyond_curve": [
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  0.0,
+  0.0
+ ],
+ "probe_median_error_curve_m": [
+  0.2737870665393105,
+  0.2737870665393105,
+  0.2737870665393105,
+  0.2737870665393105,
+  0.2737870665393105,
+  0.2737870665393105,
+  0.2737870665393105,
+  0.2737870665393105,
+  0.2737870665393105,
+  0.2737870665393105,
+  0.2737870665393105,
+  0.2737870665393105,
+  0.2737870665393105
+ ],
+ "experiments_to_threshold": null,
+ "claim": "predictive_only",
+ "abstained": false,
+ "claims_non_ordinary": false,
+ "law_dependence": {
+  "mass_dep": false,
+  "height_dep": false,
+  "drag_p": 2.0,
+  "g_ref": 9.81,
+  "reduced_params": {
+   "g0": 9.81,
+   "c": 0.00035437165132492864
+  }
+ },
+ "law_recovery_detail": {
+  "mass_ok": true,
+  "height_ok": true,
+  "drag_ok": true,
+  "recovered": true
+ },
+ "plan_changed_share": null,
+ "laws_rejected": null,
+ "initial_explanation_rejected": null,
+ "run_status": "done"
+}
