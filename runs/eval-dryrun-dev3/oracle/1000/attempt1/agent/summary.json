@@ -1,0 +1,10 @@
+{
+ "session_id": "s_a9136cfc6b",
+ "status": "committed",
+ "tokens_used": 0,
+ "wall_s": 12.258441583020613,
+ "n_experiments": 12,
+ "error": null,
+ "agent": "scripted:oracle",
+ "final_form": "const_p2"
+}

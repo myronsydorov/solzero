@@ -1,0 +1,530 @@
+{
+ "per_condition": {
+  "lab": {
+   "n_worlds": 3,
+   "n_control": 1,
+   "probe_hit_beyond": {
+    "mean": 0.017,
+    "ci95": [
+     0.0,
+     0.05
+    ],
+    "n": 3
+   },
+   "mission_hit_rate": {
+    "mean": 0.333,
+    "ci95": [
+     0.2,
+     0.4
+    ],
+    "n": 3
+   },
+   "law_form_recovered": {
+    "mean": 0.333,
+    "ci95": [
+     0.0,
+     1.0
+    ],
+    "n": 3
+   },
+   "false_discovery": {
+    "mean": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "n": 1
+   },
+   "mission_hit_in_range": {
+    "mean": 0.833,
+    "ci95": [
+     0.5,
+     1.0
+    ]
+   },
+   "mission_hit_beyond": {
+    "mean": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ]
+   },
+   "probe_hit_in_range": {
+    "mean": 0.567,
+    "ci95": [
+     0.35,
+     0.75
+    ]
+   },
+   "experiments_to_threshold_median": 13.0,
+   "reached_threshold": 0.0,
+   "abstention": 1.0,
+   "plan_changed_share_mean": null,
+   "initial_explanation_rejected": null,
+   "failed_runs": 0,
+   "flags": []
+  },
+  "single": {
+   "n_worlds": 3,
+   "n_control": 1,
+   "probe_hit_beyond": {
+    "mean": 0.017,
+    "ci95": [
+     0.0,
+     0.05
+    ],
+    "n": 3
+   },
+   "mission_hit_rate": {
+    "mean": 0.333,
+    "ci95": [
+     0.2,
+     0.4
+    ],
+    "n": 3
+   },
+   "law_form_recovered": {
+    "mean": 0.333,
+    "ci95": [
+     0.0,
+     1.0
+    ],
+    "n": 3
+   },
+   "false_discovery": {
+    "mean": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "n": 1
+   },
+   "mission_hit_in_range": {
+    "mean": 0.833,
+    "ci95": [
+     0.5,
+     1.0
+    ]
+   },
+   "mission_hit_beyond": {
+    "mean": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ]
+   },
+   "probe_hit_in_range": {
+    "mean": 0.567,
+    "ci95": [
+     0.35,
+     0.75
+    ]
+   },
+   "experiments_to_threshold_median": 13.0,
+   "reached_threshold": 0.0,
+   "abstention": 1.0,
+   "plan_changed_share_mean": null,
+   "initial_explanation_rejected": null,
+   "failed_runs": 0,
+   "flags": []
+  },
+  "random": {
+   "n_worlds": 3,
+   "n_control": 1,
+   "probe_hit_beyond": {
+    "mean": 0.017,
+    "ci95": [
+     0.0,
+     0.05
+    ],
+    "n": 3
+   },
+   "mission_hit_rate": {
+    "mean": 0.333,
+    "ci95": [
+     0.2,
+     0.4
+    ],
+    "n": 3
+   },
+   "law_form_recovered": {
+    "mean": 0.333,
+    "ci95": [
+     0.0,
+     1.0
+    ],
+    "n": 3
+   },
+   "false_discovery": {
+    "mean": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "n": 1
+   },
+   "mission_hit_in_range": {
+    "mean": 0.833,
+    "ci95": [
+     0.5,
+     1.0
+    ]
+   },
+   "mission_hit_beyond": {
+    "mean": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ]
+   },
+   "probe_hit_in_range": {
+    "mean": 0.567,
+    "ci95": [
+     0.35,
+     0.75
+    ]
+   },
+   "experiments_to_threshold_median": 13.0,
+   "reached_threshold": 0.0,
+   "abstention": 1.0,
+   "plan_changed_share_mean": null,
+   "initial_explanation_rejected": null,
+   "failed_runs": 0,
+   "flags": []
+  },
+  "random-scripted": {
+   "n_worlds": 3,
+   "n_control": 1,
+   "probe_hit_beyond": {
+    "mean": 0.833,
+    "ci95": [
+     0.5,
+     1.0
+    ],
+    "n": 3
+   },
+   "mission_hit_rate": {
+    "mean": 0.8,
+    "ci95": [
+     0.4,
+     1.0
+    ],
+    "n": 3
+   },
+   "law_form_recovered": {
+    "mean": 0.667,
+    "ci95": [
+     0.0,
+     1.0
+    ],
+    "n": 3
+   },
+   "false_discovery": {
+    "mean": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "n": 1
+   },
+   "mission_hit_in_range": {
+    "mean": 1.0,
+    "ci95": [
+     1.0,
+     1.0
+    ]
+   },
+   "mission_hit_beyond": {
+    "mean": 0.667,
+    "ci95": [
+     0.0,
+     1.0
+    ]
+   },
+   "probe_hit_in_range": {
+    "mean": 0.867,
+    "ci95": [
+     0.6,
+     1.0
+    ]
+   },
+   "experiments_to_threshold_median": 2.0,
+   "reached_threshold": 1.0,
+   "abstention": 0.0,
+   "plan_changed_share_mean": null,
+   "initial_explanation_rejected": null,
+   "failed_runs": 0,
+   "flags": []
+  },
+  "oracle": {
+   "n_worlds": 3,
+   "n_control": 1,
+   "probe_hit_beyond": {
+    "mean": 1.0,
+    "ci95": [
+     1.0,
+     1.0
+    ],
+    "n": 3
+   },
+   "mission_hit_rate": {
+    "mean": 0.933,
+    "ci95": [
+     0.8,
+     1.0
+    ],
+    "n": 3
+   },
+   "law_form_recovered": {
+    "mean": 1.0,
+    "ci95": [
+     1.0,
+     1.0
+    ],
+    "n": 3
+   },
+   "false_discovery": {
+    "mean": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "n": 1
+   },
+   "mission_hit_in_range": {
+    "mean": 1.0,
+    "ci95": [
+     1.0,
+     1.0
+    ]
+   },
+   "mission_hit_beyond": {
+    "mean": 0.889,
+    "ci95": [
+     0.667,
+     1.0
+    ]
+   },
+   "probe_hit_in_range": {
+    "mean": 1.0,
+    "ci95": [
+     1.0,
+     1.0
+    ]
+   },
+   "experiments_to_threshold_median": 3.0,
+   "reached_threshold": 1.0,
+   "abstention": 0.0,
+   "plan_changed_share_mean": null,
+   "initial_explanation_rejected": null,
+   "failed_runs": 0,
+   "flags": []
+  },
+  "textbook": {
+   "n_worlds": 3,
+   "n_control": 1,
+   "probe_hit_beyond": {
+    "mean": 0.017,
+    "ci95": [
+     0.0,
+     0.05
+    ],
+    "n": 3
+   },
+   "mission_hit_rate": {
+    "mean": 0.267,
+    "ci95": [
+     0.2,
+     0.4
+    ],
+    "n": 3
+   },
+   "law_form_recovered": {
+    "mean": 0.333,
+    "ci95": [
+     0.0,
+     1.0
+    ],
+    "n": 3
+   },
+   "false_discovery": {
+    "mean": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "n": 1
+   },
+   "mission_hit_in_range": {
+    "mean": 0.667,
+    "ci95": [
+     0.5,
+     1.0
+    ]
+   },
+   "mission_hit_beyond": {
+    "mean": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ]
+   },
+   "probe_hit_in_range": {
+    "mean": 0.567,
+    "ci95": [
+     0.35,
+     0.75
+    ]
+   },
+   "experiments_to_threshold_median": 13.0,
+   "reached_threshold": 0.0,
+   "abstention": 0.0,
+   "plan_changed_share_mean": null,
+   "initial_explanation_rejected": null,
+   "failed_runs": 0,
+   "flags": []
+  }
+ },
+ "paired": {
+  "lab - random": {
+   "n_worlds": 3,
+   "probe_hit_beyond": {
+    "mean_diff": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "n": 3
+   },
+   "mission_hit_rate": {
+    "mean_diff": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "n": 3
+   },
+   "law_form_recovered": {
+    "mean_diff": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "n": 3
+   },
+   "false_discovery": {
+    "mean_diff": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "n": 1
+   }
+  },
+  "lab - single": {
+   "n_worlds": 3,
+   "probe_hit_beyond": {
+    "mean_diff": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "n": 3
+   },
+   "mission_hit_rate": {
+    "mean_diff": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "n": 3
+   },
+   "law_form_recovered": {
+    "mean_diff": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "n": 3
+   },
+   "false_discovery": {
+    "mean_diff": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "n": 1
+   }
+  },
+  "oracle - random-scripted": {
+   "n_worlds": 3,
+   "probe_hit_beyond": {
+    "mean_diff": 0.167,
+    "ci95": [
+     0.0,
+     0.5
+    ],
+    "n": 3
+   },
+   "mission_hit_rate": {
+    "mean_diff": 0.133,
+    "ci95": [
+     -0.2,
+     0.6
+    ],
+    "n": 3
+   },
+   "law_form_recovered": {
+    "mean_diff": 0.333,
+    "ci95": [
+     0.0,
+     1.0
+    ],
+    "n": 3
+   },
+   "false_discovery": {
+    "mean_diff": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "n": 1
+   }
+  },
+  "lab - oracle": {
+   "n_worlds": 3,
+   "probe_hit_beyond": {
+    "mean_diff": -0.983,
+    "ci95": [
+     -1.0,
+     -0.95
+    ],
+    "n": 3
+   },
+   "mission_hit_rate": {
+    "mean_diff": -0.6,
+    "ci95": [
+     -0.8,
+     -0.4
+    ],
+    "n": 3
+   },
+   "law_form_recovered": {
+    "mean_diff": -0.667,
+    "ci95": [
+     -1.0,
+     0.0
+    ],
+    "n": 3
+   },
+   "false_discovery": {
+    "mean_diff": 0.0,
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "n": 1
+   }
+  }
+ }
+}

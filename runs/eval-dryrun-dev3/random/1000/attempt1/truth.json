@@ -1,0 +1,48 @@
+{
+ "world_id": "w_3c4adce51f85",
+ "family": "F0",
+ "p": 2.0,
+ "g0": 8.73524311772569,
+ "rho": 0.4830734776050637,
+ "alpha": 0.0,
+ "kappa": 0.0,
+ "c": 0.04688626967339386,
+ "seed": 1000,
+ "targets": [
+  {
+   "target_id": "t1",
+   "x_m": 1.059,
+   "z_m": 0.102,
+   "hit_radius_m": 0.05,
+   "kind": "in_range"
+  },
+  {
+   "target_id": "t2",
+   "x_m": 0.864,
+   "z_m": 0.096,
+   "hit_radius_m": 0.05,
+   "kind": "in_range"
+  },
+  {
+   "target_id": "t3",
+   "x_m": 2.332,
+   "z_m": 0.377,
+   "hit_radius_m": 0.05,
+   "kind": "beyond"
+  },
+  {
+   "target_id": "t4",
+   "x_m": 2.691,
+   "z_m": 0.432,
+   "hit_radius_m": 0.0538,
+   "kind": "beyond"
+  },
+  {
+   "target_id": "t5",
+   "x_m": 1.993,
+   "z_m": 0.124,
+   "hit_radius_m": 0.05,
+   "kind": "beyond"
+  }
+ ]
+}

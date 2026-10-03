@@ -1,0 +1,1 @@
+[".venv/bin/python", "-m", "eval.agent_stub", "--condition", "single", "--world-url", "http://127.0.0.1:60661", "--session-info", "runs/eval-dryrun-dev3/single/1001/attempt1/session_info.json", "--out", "runs/eval-dryrun-dev3/single/1001/attempt1/agent", "--max-wall-s", "1800", "--approval", "auto", "--max-tokens", "2000000"]
