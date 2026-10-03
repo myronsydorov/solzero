@@ -99,7 +99,7 @@ def run(seed: int, out: Path) -> dict:
     rng = np.random.default_rng([seed, 30])
     with tempfile.TemporaryDirectory() as tmp:
         ws = WorldServer([seed], runs_dir=Path(tmp))
-        info = ws.create_session(SessionRequest(world_id=world_id_for(seed), condition="lab"))
+        info = ws.create_session(SessionRequest(world_id=world_id_for(seed), condition="oracle"))
         sid = info.session_id
         sess = ws.sessions[sid]
         w = sess.world

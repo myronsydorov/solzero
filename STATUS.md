@@ -128,7 +128,7 @@ SOLZERO_ADMIN_TOKEN=t .venv/bin/python -m world.loadtest --url http://127.0.0.1:
   - paired per-world differences with a seeded bootstrap 95% interval (lab − random, lab − single, references − random);
   - control-world false discovery, and law recovery by family.
 - V3, fixtures and deployment:
-  - `viewer.fixtures.oracle_session` runs the scripted greedy-disagreement oracle (12-form library, no language model) against the real `world.server.WorldServer` in-process, on dev seeds 1000 to 1003. Pre-registration and budget are enforced by the server code. It writes SPEC 5.5 ledgers and 5.7 `metrics.json`.
+  - `viewer.fixtures.oracle_session` runs the scripted greedy-disagreement oracle (12-form library, no language model) against the real `world.server.WorldServer` in-process, on dev seeds 1000 to 1003. Prediction tables and the budget are checked by the server code. It writes SPEC 5.5 ledgers and 5.7 `metrics.json`.
   - `viewer.fixtures.calibration_aggregate` turns calibration stage B (`dev20_v2`) into `aggregate.json`.
   - Real runs load by dropping a directory into `viewer/public/runs/` and running `node viewer/scripts/build-index.mjs` (Vercel runs it on every build). See `viewer/README.md`.
 - `tests/test_viewer_fixtures.py` validates every fixture ledger entry against `schemas`, checks that prediction tables cover exactly the live set, and checks the `metrics.json` and `aggregate.json` shapes.
@@ -138,12 +138,12 @@ SOLZERO_ADMIN_TOKEN=t .venv/bin/python -m world.loadtest --url http://127.0.0.1:
 
 | Seed | Family | Final form | Hits | Plan changed by evidence |
 | --- | --- | --- | --- | --- |
-| 1000 | F0 | const_p2 | 5/5 | 6 of 12 cycles |
-| 1001 | F1 (p = 3) | const_p3 | 5/5 | 3 |
-| 1002 | F2 | mass_p2 | 5/5 | 5 |
+| 1000 | F0 | const_p2 | 5/5 | 7 of 12 cycles |
+| 1001 | F1 (p = 3) | const_p3 | 5/5 | 5 |
+| 1002 | F2 | mass_p2 | 5/5 | 4 |
 | 1003 | F3 | height_p2 | 4/5 | 5 |
 
-- Runtime is 14 to 28 s per world (29 s wall with 4 jobs).
+- Runtime is 11 to 26 s per world.
 - The aggregate page reproduces the calibration report:
 
   | | Random | Greedy |
@@ -163,7 +163,7 @@ SOLZERO_ADMIN_TOKEN=t .venv/bin/python -m world.loadtest --url http://127.0.0.1:
 node viewer/scripts/build-index.mjs
 cd viewer/public && python3 -m http.server 8000          # local preview
 cd viewer && npx vercel deploy --temporary --prod --yes  # redeploy (no login)
-.venv/bin/python -m pytest -q                            # 49 passed, 1 skipped
+.venv/bin/python -m pytest -q                            # 64 passed, 1 skipped (after merging main)
 ```
 
 **Blockers**
@@ -180,7 +180,7 @@ cd viewer && npx vercel deploy --temporary --prod --yes  # redeploy (no login)
   - `metrics.json` = SessionInfo + `GET /admin/score` + `GET /admin/truth`, unchanged. The ledger alone lacks targets, shot zero and the truth.
   - `aggregate.json` is a flat list of per-world rows, and the viewer computes the metrics from them. That keeps `eval/` output simple.
 - **Disagreement table:** taken from an optional `disagreements` field in the `candidates` payload. When it is absent (lane B ledgers today), gaps for the chosen spec are derived from the prediction table, using the same formula as `tools.disagreement`, and the page says so.
-- **Fixture condition:** the fixture uses the `lab` server condition, because `world/server.py` does not yet accept `oracle`. `metrics.json` labels it `condition: "oracle"`.
+- **Fixture condition:** the fixture now opens `oracle` sessions; the merged server accepts that condition. The first version used `lab`, because the server did not accept `oracle` then. The oracle still sends a prediction table with every experiment, so the server checks each one.
 - **Fixture verdicts:**
   - The z-score is the signed z of the worst observable.
   - A law is rejected above |z| 3, supported at |z| 2 or below, and insufficient evidence in between.
