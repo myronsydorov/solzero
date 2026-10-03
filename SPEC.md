@@ -232,6 +232,37 @@ One JSON object per line in `runs/<session_id>/ledger.jsonl`:
 
 `kind` is one of `law_set`, `candidates`, `prediction_table`, `result`, `verdicts`, `decision_diff`, `nomination`, `commit`.
 A `decision_diff` payload is `{"tentative": ExperimentSpec, "actual": ExperimentSpec, "changed": true, "reason": "..."}`.
+A `candidates` payload is `{"candidates": [ExperimentSpec], "chosen": ExperimentSpec, "disagreements": [Disagreement]}`. `disagreements` is optional, one per candidate in the same order; the viewer shows it as the disagreement table and otherwise derives gaps for the chosen spec from the prediction table.
+
+### 5.6 Viewer inputs
+
+The replay site (`viewer/`) is static. It reads files only; it never calls the world server.
+
+```
+viewer/public/runs/index.json            // built by `node viewer/scripts/build-index.mjs`; lists run directories
+viewer/public/runs/<run_id>/ledger.jsonl // section 5.5, unchanged
+viewer/public/runs/<run_id>/metrics.json // see below
+viewer/public/runs/<run_id>/video.mp4    // optional
+viewer/public/eval/aggregate.json        // see below
+```
+
+```json
+// metrics.json: written by the condition runner after the session, from admin data
+{"run_id": "s_ab12", "label": "lab on dev world 1002", "condition": "lab",
+ "session_info": SessionInfo,
+ "score": {...},   // GET /admin/score/{session_id}, unchanged
+ "truth": {...}}   // GET /admin/truth/{world_id}, unchanged
+
+// aggregate.json: written by eval/, one row per (world, condition) session
+{"label": "...", "budget": 12, "notes": {"<condition>": "..."},
+ "rows": [{"world": "1002", "family": "F2", "condition": "lab",
+           "within_beyond": [0.0, ...],   // after 0..budget experiments; null where not nominated
+           "median_error_m": [0.31, ...], // same indexing
+           "law_recovered": true, "claim": "law_identified", "claims_non_ordinary": true,
+           "mission_hits": 4, "mission_hits_beyond": 2}]}
+```
+
+`condition` in aggregate rows is one of `lab`, `random`, `single`, `textbook`, `oracle`. The viewer computes experiments to accuracy (first index with `within_beyond >= 0.8`), the metric table and the control-world false-discovery rate (F0 rows) from the rows.
 
 ## 6. Agents and Omnigent
 
