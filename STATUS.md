@@ -127,7 +127,60 @@ SOLZERO_ADMIN_TOKEN=... .venv/bin/python -m world.server --port 8000
 
 - Install Omnigent, run one of its bundled examples, then build `mock/` against `SPEC.md` section 5.2.
 
+## Lane sim: MuJoCo (Claude Code, branch `sim`)
+
+**Current milestone:** S1 done. S2 to S5 are not started (session stopped at a usage limit).
+
+**Done** (2026-10-04, `12ec586`)
+
+- S1 is in `sim/scene.py`, `sim/arm.py` and `sim/experiment.py`:
+  - Scene: table, Menagerie Panda on a 0.35 m pedestal, launcher with an elevation actuator, tray with the seven spheres, target bins, wrist force sensor.
+  - MuJoCo gravity is 0 and fluid forces are off. The hidden law (`world.law` compiled by `tools.analysis.compile_law`) is added as an external force on every sample in the passive-force callback, every step.
+  - Flights use RK4 at 1 ms, so the law is evaluated at every stage.
+- Fast mode places the sample at its release state. Full mode runs the arm primitives: pick, transit, move_sample_to, hold, release, load_launcher, aim, fire.
+- `Lab.run_experiment` returns a `Result` with the same noise draw order as `World.run_experiment`.
+- `sim/oracle_ledger.py` (written by a subagent) runs the greedy-disagreement oracle against the in-process `WorldServer` and writes a SPEC 5.5 ledger. On seeds 1001 and 1002 it selected the true form and hit 5 of 5 targets.
+- `tests/test_sim.py` (skipped without mujoco or the assets) and `tests/test_sim_oracle_ledger.py`.
+
+**Results** (noiseless, dev seeds 1002 and 1003)
+
+- Weigh, fast and full: matches the integrator to 1e-8 relative.
+- Drop and launch, fast: matches to 1e-6 s and 1e-9 m. An 11 m beyond-range mission shot agrees to 2 nm.
+- Full-mode drop: up to 0.21 ms early at 0.1 m height (0.04 sd), from the release state. `Lab.release_error` records it.
+- One experiment takes about 1 s wall time in full mode and 0.1 s in fast mode.
+- Bugs fixed on the way:
+  - MjSpec reads angles in degrees by default, which pinned the launcher at 2 degrees.
+  - Fingers touched the barrel while loading; loading now happens at 75 degrees, via a transit height.
+  - Holding the law force constant over a step gave first-order error (8 mm on an 11 m shot at 0.1 ms). The passive callback with RK4 replaced it.
+
+**Commands**
+
+```
+.venv/bin/python -m sim.fetch_assets      # Menagerie panda at commit 4d038b3f into sim/assets/ (gitignored)
+.venv/bin/python -m sim.experiment --seed 1002 --mode full --spec '{"type":"drop","sample_id":"ref_100","height_m":1.0}'
+.venv/bin/python -m sim.oracle_ledger --seed 1001 --out runs/oracle_1001
+.venv/bin/python -m pytest -q             # 54 passed, 1 skipped
+```
+
+**Decisions made autonomously**
+
+- The Menagerie assets (34 MB) are fetched at a pinned commit, not committed.
+- The arm is gravity-compensated, and grasping uses a weld constraint. Samples never collide with the fingers.
+- The weigh station sits beyond the table edge, so height 0 touches nothing. Above about 1 m the arm holds the sample with the gripper horizontal.
+- The launcher releases the sample at the muzzle (the barrel guides it). The arm's loading error is checked, and anything over 5 mm fails as a misload.
+- Target bins are visual only, and hits are scored geometrically as in SPEC 3.
+- The oracle ledger opens its session as condition `lab`, because the server does not accept `oracle` yet.
+
+**Next step**
+
+- S2: run 50 randomized full-mode experiments and report the failure rate.
+- S3: run 20 experiments in full mode against `World.run_experiment` with the same rng.
+- S4: `sim/render.py`, built against `runs/oracle_1001`.
+- S5: the side-by-side clip.
+
 ## Requests (one lane asking the other, or the human, for something)
+
+- Lane sim to physics: please `uv add mujoco` (3.14 tested). Until then, `tests/test_sim.py` skips. Please also add `runs/` to `.gitignore`.
 
 - Lane A to human: should the wrong-form check exclude forms that contain the true law? See the lane A Blockers.
 - Lane A to lane B: the real server is in `world/server.py`, with the same contract as `mock/` plus `POST /laws` and `Target.hit_radius_m`. The mock needs `/laws` and the live-set check to stay faithful to 5.2.
