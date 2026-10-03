@@ -1,4 +1,4 @@
-"""Convert calibration stage B results into the SPEC 5.6 aggregate.json the viewer reads.
+"""Convert calibration stage B results into the SPEC 5.7 aggregate.json the viewer reads.
 
     .venv/bin/python -m viewer.fixtures.calibration_aggregate calibration/results/dev20_v2 --out viewer/public/eval/aggregate.json
 """
@@ -29,8 +29,20 @@ def row(d: dict) -> dict:
         "law_recovered": d["final_form"] == d["true_form"],
         "claim": "law_identified", "claims_non_ordinary": bool(d["claims_non_ordinary"]),
         "mission_hits": sum(bool(s["realized_hit"]) for s in shots),
+        "mission_hits_in_range": sum(bool(s["realized_hit"]) for s in shots if s["kind"] == "in_range"),
         "mission_hits_beyond": sum(bool(s["realized_hit"]) for s in shots if s["kind"] == "beyond"),
+        "median_miss_frac_in_range": _median([s["median_miss_frac"] for s in shots if s["kind"] == "in_range"]),
+        "median_miss_frac_beyond": _median([s["median_miss_frac"] for s in shots if s["kind"] == "beyond"]),
     }
+
+
+def _median(xs):
+    xs = sorted(x if x is not None and math.isfinite(x) else math.inf for x in xs)
+    if not xs:
+        return None
+    n = len(xs)
+    m = xs[n // 2] if n % 2 else (xs[n // 2 - 1] + xs[n // 2]) / 2
+    return _num(m)
 
 
 def main():
@@ -48,6 +60,8 @@ def main():
             "oracle": "Scripted greedy-disagreement policy (calibration stage B), stands in for the oracle reference",
             "random": "Scripted uniform-random experiments with library fitting (calibration stage B), "
                       "not the agent random condition",
+            "all": "Mission hits are one realised shot per target. Law recovery uses calibration's definition "
+                   "(selected library form equals the true form), not eval/grade.py.",
         },
         "rows": rows,
     }

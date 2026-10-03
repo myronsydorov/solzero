@@ -1,4 +1,4 @@
-// Replay of one recorded session: ledger.jsonl (SPEC 5.5) + metrics.json (SPEC 5.6) + optional video.
+// Replay of one recorded session: ledger.jsonl (SPEC 5.5) + metrics.json (SPEC 5.7) + optional video.
 import {
   CONDITION_LABEL, FAMILY_LABEL, ICON, badge, esc, fetchJSON, fetchJSONL, fmt, initTheme, lawTex,
   obsLabel, obsUnit, pct, renderTex, specEqual, specText, truthTex, verdictBadge,
@@ -417,7 +417,7 @@ function renderReveal(snap) {
     lineChart($("#probe-chart"), {
       xs, yDomain: [0, 1], yTicks: [0, 0.25, 0.5, 0.75, 1], yFormat: (v) => pct(v), xLabel: "experiments",
       series: [{ label: "beyond range", color: "var(--series-1)", values: beyond }, { label: "in range", color: "var(--series-3)", values: inr }],
-      refLines: [{ y: 0.8, label: "80% headline" }], height: 220, tipTitle: (x) => `after ${x} experiment${x === 1 ? "" : "s"}`,
+      refLines: [{ y: 0.8, label: "80% threshold" }], height: 220, tipTitle: (x) => `after ${x} experiment${x === 1 ? "" : "s"}`,
     });
   } else $("#probe-chart").innerHTML = '<p class="muted">No nominations recorded.</p>';
 }

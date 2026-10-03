@@ -4,7 +4,8 @@
  "budget": 12,
  "notes": {
   "oracle": "Scripted greedy-disagreement policy (calibration stage B), stands in for the oracle reference",
-  "random": "Scripted uniform-random experiments with library fitting (calibration stage B), not the agent random condition"
+  "random": "Scripted uniform-random experiments with library fitting (calibration stage B), not the agent random condition",
+  "all": "Mission hits are one realised shot per target. Law recovery uses calibration's definition (selected library form equals the true form), not eval/grade.py."
  },
  "rows": [
   {
@@ -45,7 +46,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": false,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.00506451050006522,
+   "median_miss_frac_beyond": 0.007863186626762915
   },
   {
    "world": "1001",
@@ -85,7 +89,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 4,
-   "mission_hits_beyond": 2
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 2,
+   "median_miss_frac_in_range": 0.007434092698193556,
+   "median_miss_frac_beyond": 0.007672536651063637
   },
   {
    "world": "1002",
@@ -125,7 +132,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.005587348206803815,
+   "median_miss_frac_beyond": 0.006133816095540469
   },
   {
    "world": "1003",
@@ -165,7 +175,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 4,
-   "mission_hits_beyond": 2
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 2,
+   "median_miss_frac_in_range": 0.008960255407059366,
+   "median_miss_frac_beyond": 0.022791327834822947
   },
   {
    "world": "1004",
@@ -205,7 +218,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": false,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.0069706490636984066,
+   "median_miss_frac_beyond": 0.0062903191346419295
   },
   {
    "world": "1005",
@@ -245,7 +261,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.0057589328630467404,
+   "median_miss_frac_beyond": 0.003329570827314834
   },
   {
    "world": "1006",
@@ -285,7 +304,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.006601404395164768,
+   "median_miss_frac_beyond": 0.005303883417150353
   },
   {
    "world": "1007",
@@ -325,7 +347,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.005359316882114249,
+   "median_miss_frac_beyond": 0.00499658590187616
   },
   {
    "world": "1008",
@@ -365,7 +390,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": false,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.005967205389682423,
+   "median_miss_frac_beyond": 0.0045685248610839125
   },
   {
    "world": "1009",
@@ -405,7 +433,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.0065211442819932625,
+   "median_miss_frac_beyond": 0.006180430258140983
   },
   {
    "world": "1010",
@@ -445,7 +476,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.006356338935259451,
+   "median_miss_frac_beyond": 0.006026127944918786
   },
   {
    "world": "1011",
@@ -485,7 +519,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 4,
-   "mission_hits_beyond": 2
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 2,
+   "median_miss_frac_in_range": 0.005852364716058668,
+   "median_miss_frac_beyond": 0.01589998771000778
   },
   {
    "world": "1012",
@@ -525,7 +562,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": false,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.010619913398832215,
+   "median_miss_frac_beyond": 0.011132045453033305
   },
   {
    "world": "1013",
@@ -565,7 +605,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.0060946671407814965,
+   "median_miss_frac_beyond": 0.004929316125547642
   },
   {
    "world": "1014",
@@ -605,7 +648,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.008610638427989585,
+   "median_miss_frac_beyond": 0.007008038978553313
   },
   {
    "world": "1015",
@@ -645,7 +691,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.007001460750762824,
+   "median_miss_frac_beyond": 0.008581810657787355
   },
   {
    "world": "1016",
@@ -685,7 +734,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": false,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.006035025190473426,
+   "median_miss_frac_beyond": 0.005184821446547057
   },
   {
    "world": "1017",
@@ -725,7 +777,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.006318018720721205,
+   "median_miss_frac_beyond": 0.005273218409373916
   },
   {
    "world": "1018",
@@ -765,7 +820,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.02177417023754706,
+   "median_miss_frac_beyond": 0.019495279661507218
   },
   {
    "world": "1019",
@@ -805,7 +863,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 3,
-   "mission_hits_beyond": 1
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 1,
+   "median_miss_frac_in_range": 0.00735771977848654,
+   "median_miss_frac_beyond": 0.031049273816874775
   },
   {
    "world": "1000",
@@ -845,7 +906,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.005348573616190476,
+   "median_miss_frac_beyond": 0.007112238022789004
   },
   {
    "world": "1001",
@@ -885,7 +949,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.0076767733174750545,
+   "median_miss_frac_beyond": 0.010217399318821166
   },
   {
    "world": "1002",
@@ -925,7 +992,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.006403462077048019,
+   "median_miss_frac_beyond": 0.006580189608671815
   },
   {
    "world": "1003",
@@ -965,7 +1035,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 3,
-   "mission_hits_beyond": 1
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 1,
+   "median_miss_frac_in_range": 0.008696411819462598,
+   "median_miss_frac_beyond": 0.03213206343603286
   },
   {
    "world": "1004",
@@ -1005,7 +1078,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": false,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.006725747107920064,
+   "median_miss_frac_beyond": 0.006371706648908601
   },
   {
    "world": "1005",
@@ -1045,7 +1121,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.00743430784088828,
+   "median_miss_frac_beyond": 0.010061418797323177
   },
   {
    "world": "1006",
@@ -1085,7 +1164,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.0071697070370330615,
+   "median_miss_frac_beyond": 0.005561886655375374
   },
   {
    "world": "1007",
@@ -1125,7 +1207,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.0054867693692307665,
+   "median_miss_frac_beyond": 0.005592796628558727
   },
   {
    "world": "1008",
@@ -1165,7 +1250,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": false,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.005823305669287081,
+   "median_miss_frac_beyond": 0.004859342016721446
   },
   {
    "world": "1009",
@@ -1205,7 +1293,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.007572334430788608,
+   "median_miss_frac_beyond": 0.007617429042076825
   },
   {
    "world": "1010",
@@ -1245,7 +1336,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.006039864050516272,
+   "median_miss_frac_beyond": 0.004869138943336618
   },
   {
    "world": "1011",
@@ -1285,7 +1379,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 1,
-   "mission_hits_beyond": 0
+   "mission_hits_in_range": 1,
+   "mission_hits_beyond": 0,
+   "median_miss_frac_in_range": 0.03167702280335392,
+   "median_miss_frac_beyond": null
   },
   {
    "world": "1012",
@@ -1325,7 +1422,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": false,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.00868605126920498,
+   "median_miss_frac_beyond": 0.009829082311293529
   },
   {
    "world": "1013",
@@ -1365,7 +1465,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.005863507582173093,
+   "median_miss_frac_beyond": 0.017001033620102256
   },
   {
    "world": "1014",
@@ -1405,7 +1508,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.007551467164752723,
+   "median_miss_frac_beyond": 0.006926575832682328
   },
   {
    "world": "1015",
@@ -1445,7 +1551,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 4,
-   "mission_hits_beyond": 2
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 2,
+   "median_miss_frac_in_range": 0.006739874495158319,
+   "median_miss_frac_beyond": 0.00608983921541962
   },
   {
    "world": "1016",
@@ -1485,7 +1594,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.007681827538542809,
+   "median_miss_frac_beyond": 0.005501834595420367
   },
   {
    "world": "1017",
@@ -1525,7 +1637,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.005747601224332993,
+   "median_miss_frac_beyond": 0.004367304449446238
   },
   {
    "world": "1018",
@@ -1565,7 +1680,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 5,
-   "mission_hits_beyond": 3
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 3,
+   "median_miss_frac_in_range": 0.006382736054184775,
+   "median_miss_frac_beyond": 0.009147227088852296
   },
   {
    "world": "1019",
@@ -1605,7 +1723,10 @@
    "claim": "law_identified",
    "claims_non_ordinary": true,
    "mission_hits": 3,
-   "mission_hits_beyond": 1
+   "mission_hits_in_range": 2,
+   "mission_hits_beyond": 1,
+   "median_miss_frac_in_range": 0.007510472382930337,
+   "median_miss_frac_beyond": 0.03533298346522119
   }
  ]
 }

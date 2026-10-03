@@ -1,4 +1,4 @@
-"""Viewer inputs (SPEC 5.5 and 5.6): every run under viewer/public/runs and the aggregate
+"""Viewer inputs (SPEC 5.5 and 5.7): every run under viewer/public/runs and the aggregate
 file parse with the shared schemas, and every prediction table covers the live law set."""
 
 import json

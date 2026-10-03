@@ -1,6 +1,6 @@
 """Fixture sessions for the replay viewer: the scripted greedy-disagreement oracle (no language
 model) run through the real world server code in-process, written as a SPEC 5.5 ledger plus a
-SPEC 5.6 metrics.json. Dev seeds only.
+SPEC 5.7 metrics.json. Dev seeds only.
 
     .venv/bin/python -m viewer.fixtures.oracle_session --seeds 1000,1001,1002,1003 --out viewer/public/runs --jobs 4
 """

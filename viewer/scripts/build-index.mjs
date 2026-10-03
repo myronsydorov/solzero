@@ -1,4 +1,4 @@
-// Scan viewer/public/runs/*/ and write viewer/public/runs/index.json (SPEC 5.6).
+// Scan viewer/public/runs/*/ and write viewer/public/runs/index.json (SPEC 5.7).
 // A run directory needs ledger.jsonl; metrics.json and video.mp4/.webm are optional.
 //   node viewer/scripts/build-index.mjs
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
