@@ -1,0 +1,479 @@
+Scripted policies on 60 dev worlds (hit radius 2%, launcher 0.5% / 0.1 deg). Means with 95% bootstrap CIs over worlds; paired = greedy minus random on the same world.
+
+| Metric | Random | Greedy | Paired difference (greedy - random) | n |
+| --- | --- | --- | --- | --- |
+| Beyond-range probe hit rate (after 12) | 0.892 [0.831, 0.945] | 0.995 [0.990, 0.999] | 0.103 [0.052, 0.164] | 60 |
+| Mission hit rate | 0.895 [0.846, 0.938] | 0.951 [0.924, 0.973] | 0.056 [0.024, 0.094] | 60 |
+|   in-range targets | 0.970 [0.944, 0.989] | 0.988 [0.980, 0.994] | 0.018 [0.002, 0.042] | 60 |
+|   beyond-range targets | 0.845 [0.774, 0.909] | 0.926 [0.886, 0.960] | 0.081 [0.036, 0.138] | 60 |
+| Law-form recovery (SPEC 7 rule) | 0.900 [0.817, 0.967] | 0.967 [0.917, 1.000] | 0.067 [-0.017, 0.167] | 60 |
+| Control false discovery | 0.200 [0.000, 0.400] | 0.133 [0.000, 0.333] | -0.067 [-0.333, 0.200] | 15 |
+
+{
+ "run": "calibration/results/dev60",
+ "n_worlds_A": 60,
+ "n_worlds_B": 60,
+ "stageA": {
+  "exact_truth": {
+   "radius_0.03": {
+    "all": 0.984,
+    "in_range": 0.999,
+    "beyond": 0.974
+   },
+   "radius_0.03_nominal": {
+    "all": 1.0,
+    "in_range": 1.0,
+    "beyond": 1.0
+   },
+   "radius_0.02": {
+    "all": 0.965,
+    "in_range": 0.989,
+    "beyond": 0.948
+   },
+   "radius_0.02_nominal": {
+    "all": 1.0,
+    "in_range": 1.0,
+    "beyond": 1.0
+   },
+   "median_miss_frac": {
+    "in_range": 0.0062,
+    "beyond": 0.0054
+   }
+  },
+  "true_fit": {
+   "radius_0.03": {
+    "all": 0.976,
+    "in_range": 0.998,
+    "beyond": 0.961
+   },
+   "radius_0.03_nominal": {
+    "all": 0.993,
+    "in_range": 1.0,
+    "beyond": 0.989
+   },
+   "radius_0.02": {
+    "all": 0.951,
+    "in_range": 0.987,
+    "beyond": 0.927
+   },
+   "radius_0.02_nominal": {
+    "all": 0.98,
+    "in_range": 1.0,
+    "beyond": 0.967
+   },
+   "median_miss_frac": {
+    "in_range": 0.0066,
+    "beyond": 0.0063
+   }
+  },
+  "best_wrong_all_worlds": {
+   "radius_0.03": {
+    "all": 0.653,
+    "in_range": 0.862,
+    "beyond": 0.513
+   },
+   "radius_0.03_nominal": {
+    "all": 0.657,
+    "in_range": 0.867,
+    "beyond": 0.517
+   },
+   "radius_0.02": {
+    "all": 0.634,
+    "in_range": 0.844,
+    "beyond": 0.493
+   },
+   "radius_0.02_nominal": {
+    "all": 0.647,
+    "in_range": 0.858,
+    "beyond": 0.506
+   },
+   "median_miss_frac": {
+    "in_range": 0.0082,
+    "beyond": 0.0228
+   }
+  },
+  "best_wrong_non_control": {
+   "radius_0.03": {
+    "all": 0.545,
+    "in_range": 0.817,
+    "beyond": 0.365
+   },
+   "radius_0.03_nominal": {
+    "all": 0.551,
+    "in_range": 0.822,
+    "beyond": 0.37
+   },
+   "radius_0.02": {
+    "all": 0.525,
+    "in_range": 0.794,
+    "beyond": 0.345
+   },
+   "radius_0.02_nominal": {
+    "all": 0.538,
+    "in_range": 0.811,
+    "beyond": 0.356
+   },
+   "median_miss_frac": {
+    "in_range": 0.0124,
+    "beyond": 0.1149
+   }
+  },
+  "best_non_nesting_wrong_all_worlds": {
+   "radius_0.03": {
+    "all": 0.366,
+    "in_range": 0.806,
+    "beyond": 0.073
+   },
+   "radius_0.03_nominal": {
+    "all": 0.37,
+    "in_range": 0.808,
+    "beyond": 0.078
+   },
+   "radius_0.02": {
+    "all": 0.343,
+    "in_range": 0.777,
+    "beyond": 0.054
+   },
+   "radius_0.02_nominal": {
+    "all": 0.347,
+    "in_range": 0.792,
+    "beyond": 0.05
+   },
+   "median_miss_frac": {
+    "in_range": 0.016,
+    "beyond": 0.1596
+   }
+  },
+  "best_wrong_beyond_by_family_0.02": {
+   "F0": 0.939,
+   "F1": 0.968,
+   "F2": 0.023,
+   "F3": 0.043
+  },
+  "best_non_nesting_wrong_beyond_by_family_0.02": {
+   "F0": 0.124,
+   "F1": 0.024,
+   "F2": 0.023,
+   "F3": 0.043
+  },
+  "exact_truth_hit_prob_by_actuation_radius_0.02": {
+   "0.02/0.5": {
+    "all": 0.589,
+    "in_range": 0.709,
+    "beyond": 0.51
+   },
+   "0.01/0.25": {
+    "all": 0.832,
+    "in_range": 0.903,
+    "beyond": 0.785
+   },
+   "0.005/0.1": {
+    "all": 0.965,
+    "in_range": 0.988,
+    "beyond": 0.949
+   },
+   "0.0/0.0": {
+    "all": 1.0,
+    "in_range": 1.0,
+    "beyond": 1.0
+   }
+  },
+  "unreachable_under_truth": 0,
+  "true_form_selected_by_bic": 0.9333333333333333,
+  "probe_median_true_fit_noiseless_m_max": 0.00408,
+  "fit_time_max_s": 1.61,
+  "mean_runtime_s": 10.870061145130117,
+  "separability_nominal_0.02_non_control": 0.6666666666666666
+ },
+ "stageB": {
+  "hit_frac": 0.02,
+  "random": {
+   "n": 60,
+   "headline_experiments_to_80pct_beyond": [
+    4,
+    1,
+    6,
+    4,
+    1,
+    2,
+    1,
+    2,
+    4,
+    0,
+    2,
+    null,
+    8,
+    1,
+    3,
+    2,
+    3,
+    3,
+    2,
+    1,
+    7,
+    1,
+    1,
+    2,
+    3,
+    0,
+    7,
+    10,
+    1,
+    2,
+    3,
+    5,
+    9,
+    1,
+    3,
+    4,
+    2,
+    null,
+    null,
+    5,
+    2,
+    0,
+    3,
+    5,
+    1,
+    1,
+    4,
+    3,
+    2,
+    0,
+    5,
+    7,
+    1,
+    0,
+    3,
+    5,
+    9,
+    0,
+    3,
+    null
+   ],
+   "headline_reached_within_12": 0.9333333333333333,
+   "mean_within_beyond_curve": [
+    0.254,
+    0.384,
+    0.564,
+    0.723,
+    0.772,
+    0.805,
+    0.813,
+    0.852,
+    0.854,
+    0.872,
+    0.902,
+    0.903,
+    0.892
+   ],
+   "mean_within_beyond_curve_true_form": [
+    0.543,
+    0.702,
+    0.786,
+    0.841,
+    0.873,
+    0.877,
+    0.876,
+    0.906,
+    0.912,
+    0.911,
+    0.917,
+    0.905,
+    0.904
+   ],
+   "law_form_recovery": 0.85,
+   "law_form_recovery_by_family": {
+    "F0": "12/15",
+    "F1": "12/15",
+    "F2": "14/15",
+    "F3": "13/15"
+   },
+   "false_discovery_control": "3/15",
+   "secondary_median_all_probe_error_curve_m": [
+    0.1017,
+    0.0651,
+    0.0263,
+    0.014,
+    0.0138,
+    0.0108,
+    0.0105,
+    0.0103,
+    0.009,
+    0.0079,
+    0.0063,
+    0.0061,
+    0.0056
+   ],
+   "mission_hit_prob": {
+    "all": 0.895,
+    "in_range": 0.97,
+    "beyond": 0.845
+   },
+   "mission_nominal_hit": {
+    "all": 0.917,
+    "in_range": 0.992,
+    "beyond": 0.867
+   },
+   "mission_median_miss_frac": {
+    "in_range": 0.0072,
+    "beyond": 0.0075
+   },
+   "fit_time_max_s": 1.14,
+   "mean_runtime_s": 20.206105631266837
+  },
+  "greedy": {
+   "n": 60,
+   "headline_experiments_to_80pct_beyond": [
+    2,
+    1,
+    4,
+    3,
+    2,
+    1,
+    4,
+    4,
+    6,
+    0,
+    4,
+    5,
+    2,
+    2,
+    4,
+    2,
+    3,
+    1,
+    4,
+    3,
+    3,
+    3,
+    4,
+    2,
+    2,
+    0,
+    4,
+    5,
+    2,
+    2,
+    4,
+    2,
+    2,
+    2,
+    4,
+    3,
+    3,
+    6,
+    5,
+    3,
+    3,
+    0,
+    4,
+    4,
+    4,
+    4,
+    5,
+    4,
+    4,
+    0,
+    5,
+    3,
+    2,
+    0,
+    4,
+    4,
+    2,
+    0,
+    4,
+    4
+   ],
+   "headline_reached_within_12": 1.0,
+   "mean_within_beyond_curve": [
+    0.254,
+    0.267,
+    0.498,
+    0.618,
+    0.899,
+    0.965,
+    0.974,
+    0.991,
+    0.992,
+    0.992,
+    0.996,
+    0.994,
+    0.995
+   ],
+   "mean_within_beyond_curve_true_form": [
+    0.543,
+    0.66,
+    0.658,
+    0.697,
+    0.949,
+    0.983,
+    0.988,
+    0.992,
+    0.993,
+    0.992,
+    0.996,
+    0.994,
+    0.995
+   ],
+   "law_form_recovery": 0.9333333333333333,
+   "law_form_recovery_by_family": {
+    "F0": "13/15",
+    "F1": "13/15",
+    "F2": "15/15",
+    "F3": "15/15"
+   },
+   "false_discovery_control": "2/15",
+   "secondary_median_all_probe_error_curve_m": [
+    0.1017,
+    0.0814,
+    0.0295,
+    0.0145,
+    0.0084,
+    0.006,
+    0.0054,
+    0.0047,
+    0.0044,
+    0.0045,
+    0.0037,
+    0.0032,
+    0.0033
+   ],
+   "mission_hit_prob": {
+    "all": 0.951,
+    "in_range": 0.988,
+    "beyond": 0.926
+   },
+   "mission_nominal_hit": {
+    "all": 0.99,
+    "in_range": 1.0,
+    "beyond": 0.983
+   },
+   "mission_median_miss_frac": {
+    "in_range": 0.0067,
+    "beyond": 0.0064
+   },
+   "fit_time_max_s": 3.65,
+   "mean_runtime_s": 25.789126913898507
+  },
+  "paired": {
+   "random_minus_greedy_experiments_to_headline": {
+    "mean": 0.733,
+    "ci95": [
+     0.0,
+     1.5
+    ],
+    "note": "13 means not reached within 12 experiments"
+   },
+   "greedy_minus_random_mission_hit_prob": {
+    "mean": 0.056,
+    "ci95": [
+     0.025,
+     0.093
+    ]
+   }
+  }
+ }
+}
+plot: calibration/results/dev60/error_vs_experiment.png

@@ -1,0 +1,14 @@
+{
+ "attempts": 1,
+ "status": "done",
+ "session_id": "s_dcd9552215",
+ "world_id": "w_3e4c79f80383",
+ "seed": 1002,
+ "condition": "single",
+ "label": "single",
+ "attempt_dir": "attempt1",
+ "started": 1791070870.498346,
+ "returncode": 0,
+ "wall_s": 2.2160139083862305,
+ "agent_status": "committed"
+}

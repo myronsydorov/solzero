@@ -420,13 +420,13 @@ Fix the run-selection rule before looking at results, and state it. No reruns fo
 
 | Path | Contents | Owner | Visible to scientific agents |
 | --- | --- | --- | --- |
-| `schemas/` | Shared pydantic models for section 5 | Claude Code (changes need a spec update) | Yes |
-| `tools/` | `fit_law`, `predict`, `disagreement`, `plan_shot`, integrator | Claude Code | Yes, through tool wrappers |
-| `world/` | Generator, world server, hidden scoring, `test_seeds.lock` | Claude Code | No |
-| `calibration/` | Scripted policies, study runner, results, plots | Claude Code | No |
-| `sim/` | MuJoCo scene, arm primitives, launcher | Claude Code | No |
-| `mock/` | Mock world server implementing section 5.2 | Codex | Yes |
-| `lab/` | Omnigent agent definitions, tool wrappers, policies, ledger writer | Codex | Yes |
-| `eval/` | Condition runners, grading script, figures | Shared, agreed in `STATUS.md` | No |
-| `viewer/` | Replay site | Shared | No |
+| `schemas/` | Shared pydantic models for section 5 | physics lane (changes need a spec update) | Yes |
+| `tools/` | `fit_law`, `predict`, `disagreement`, `plan_shot`, integrator | physics lane | Yes, through tool wrappers |
+| `world/` | Generator, world server, hidden scoring, freeze script, `test_seeds.lock` | physics lane | No |
+| `calibration/` | Scripted policies, study runner, results, plots | physics lane | No |
+| `eval/` | Condition runner, sampler, scripted references, grading, figures | physics lane (integrator) | No |
+| `sim/` | MuJoCo scene, arm primitives, launcher | sim lane | No |
+| `mock/` | Mock world server implementing section 5.2 | omnigent lane | Yes |
+| `lab/` | Omnigent agent definitions, tool wrappers, policies, ledger writer | omnigent lane | Yes |
+| `viewer/` | Replay site | viewer lane | No |
 | `runs/` | Ledgers and traces | Generated | Own session only |

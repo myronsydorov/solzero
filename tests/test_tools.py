@@ -84,3 +84,16 @@ def test_predict_disagreement_and_plan_shot_under_truth():
     assert plan.reachable
     x = w.shot_x("mission_300", [plan.speed_mps], [plan.elevation_deg], t.z_m)[0, 0]
     assert abs(x - t.x_m) < 0.005
+
+
+def test_fit_ignores_missing_observables():
+    """Shot zero arrives over HTTP with landing distance only; the fit must accept that."""
+    w = make_world(1000)
+    rng = np.random.default_rng(1)
+    r0 = w.shot_zero_result.model_copy(update={"observables": {"landing_x_m": w.shot_zero.landing_x_m}})
+    rest = [w.run_experiment(s, rng, i + 1) for i, s in enumerate([
+        WeighSpec(sample_id="ref_100", height_m=0.3), DropSpec(sample_id="ref_100", height_m=1.0)])]
+    law = Law(law_id="L", ax="-c*speed*vx/m", az="-g0 - c*speed*vz/m",
+              params={"g0": {"init": 9.8, "lo": 1, "hi": 20}, "c": {"init": 0.01, "lo": 0, "hi": 1}})
+    fit = fit_law(law, [r0] + rest, loo=False)
+    assert fit.converged and fit.params["g0"].value == pytest.approx(w.g0, rel=0.05)

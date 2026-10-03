@@ -73,8 +73,12 @@ Fill these in as they come into existence, and keep them current.
 | Run tests | `.venv/bin/python -m pytest -q` |
 | Start the world server | `SOLZERO_ADMIN_TOKEN=<token> .venv/bin/python -m world.server --port 8000` (dev seeds; world ids from `GET /admin/worlds`) |
 | Start the mock server | to be added |
-| Run calibration | `.venv/bin/python -m calibration.study --seeds 1000-1019 --stages A --out calibration/results/dev20_v2 --jobs 12`, then the same with `--stages B --hit-frac 0.02`, then `.venv/bin/python -m calibration.report calibration/results/dev20_v2` |
-| Run one lab session on a dev world | to be added |
+| Run calibration | `.venv/bin/python -m calibration.study --seeds 1000-1059 --stages AB --hit-frac 0.02 --out calibration/results/dev60 --jobs 8`, then `.venv/bin/python -m calibration.report calibration/results/dev60` |
+| Run one lab session on a dev world | `.venv/bin/python -m eval.run --condition lab --seeds 1000 --out runs/eval --serve --agent-cmd ".venv/bin/python -m lab.run"` (needs SPEC 5.6 in `lab.run`) |
+| Run an evaluation condition | `.venv/bin/python -m eval.run --condition {lab,single,random,textbook,oracle} --seeds 1000-1059 --out runs/eval --serve [--agent scripted]` |
+| Grade and report | `.venv/bin/python -m eval.grade runs/eval && .venv/bin/python -m eval.report runs/eval --readme README.md` |
+| Load test the server | `.venv/bin/python -m world.loadtest --url URL --admin-token T --sessions 16 --out runs/loadtest` |
+| Freeze test seeds (human only) | `.venv/bin/python -m world.freeze --entropy <string> --confirm-human-freeze` |
 
 ## Working protocol
 

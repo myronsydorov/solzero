@@ -1,0 +1,78 @@
+{
+ "label": "random-scripted",
+ "seed": 1000,
+ "world_id": "w_3c4adce51f85",
+ "condition": "random",
+ "family": "F0",
+ "session_id": "s_9397e667e0",
+ "agent_status": "committed",
+ "tokens_used": 0,
+ "wall_s": 8.644340291968547,
+ "n_experiments": 12,
+ "flags": [],
+ "probe_hit_beyond": 1.0,
+ "mission_hit_rate": 1.0,
+ "law_form_recovered": true,
+ "false_discovery": false,
+ "mission_hit_in_range": 1.0,
+ "mission_hit_beyond": 1.0,
+ "mission_median_miss_frac": {
+  "in_range": 0.006796056761722661,
+  "beyond": 0.002262836042575935
+ },
+ "probe_hit_in_range": 1.0,
+ "probe_beyond_curve": [
+  0.1,
+  0.1,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  1.0,
+  0.7,
+  0.7,
+  1.0,
+  1.0,
+  1.0,
+  1.0
+ ],
+ "probe_median_error_curve_m": [
+  0.10621500969164435,
+  0.12122173150958285,
+  0.008982585251344655,
+  0.0042226754593471805,
+  0.00579181315649141,
+  0.0054695706500101915,
+  0.0052545613190146945,
+  0.011452583623272727,
+  0.011414707540914504,
+  0.006045207221467452,
+  0.005814151393294387,
+  0.00555691021244431,
+  0.0050581940337247056
+ ],
+ "experiments_to_threshold": 2,
+ "claim": "law_identified",
+ "abstained": false,
+ "claims_non_ordinary": false,
+ "law_dependence": {
+  "mass_dep": false,
+  "height_dep": false,
+  "drag_p": 2.0,
+  "g_ref": 8.67145620179997,
+  "reduced_params": {
+   "g0": 8.67145620179997,
+   "c": 0.046843579845333806
+  }
+ },
+ "law_recovery_detail": {
+  "mass_ok": true,
+  "height_ok": true,
+  "drag_ok": true,
+  "recovered": true
+ },
+ "plan_changed_share": null,
+ "laws_rejected": null,
+ "initial_explanation_rejected": null,
+ "run_status": "done"
+}

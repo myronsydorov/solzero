@@ -1,0 +1,966 @@
+{
+ "session_id": "s_31744b7b4e",
+ "world_id": "w_3e4c79f80383",
+ "condition": "lab",
+ "budget": 12,
+ "used": 12,
+ "results": [
+  {
+   "experiment_id": "e01",
+   "index": 1,
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_100",
+    "height_m": 0.5
+   },
+   "observables": {
+    "force_n": 0.7204417760681402
+   },
+   "noise_sd": {
+    "force_n": 0.014378065508628551
+   },
+   "status": "ok",
+   "budget_left": 11
+  },
+  {
+   "experiment_id": "e02",
+   "index": 2,
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_100",
+    "height_m": 0.5
+   },
+   "observables": {
+    "force_n": 0.6954424911454387
+   },
+   "noise_sd": {
+    "force_n": 0.014378065508628551
+   },
+   "status": "ok",
+   "budget_left": 10
+  },
+  {
+   "experiment_id": "e03",
+   "index": 3,
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_100",
+    "height_m": 0.5
+   },
+   "observables": {
+    "force_n": 0.7379081443906251
+   },
+   "noise_sd": {
+    "force_n": 0.014378065508628551
+   },
+   "status": "ok",
+   "budget_left": 9
+  },
+  {
+   "experiment_id": "e04",
+   "index": 4,
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_100",
+    "height_m": 0.5
+   },
+   "observables": {
+    "force_n": 0.7200921476029477
+   },
+   "noise_sd": {
+    "force_n": 0.014378065508628551
+   },
+   "status": "ok",
+   "budget_left": 8
+  },
+  {
+   "experiment_id": "e05",
+   "index": 5,
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_100",
+    "height_m": 0.5
+   },
+   "observables": {
+    "force_n": 0.7019833250132425
+   },
+   "noise_sd": {
+    "force_n": 0.014378065508628551
+   },
+   "status": "ok",
+   "budget_left": 7
+  },
+  {
+   "experiment_id": "e06",
+   "index": 6,
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_100",
+    "height_m": 0.5
+   },
+   "observables": {
+    "force_n": 0.7355293440776433
+   },
+   "noise_sd": {
+    "force_n": 0.014378065508628551
+   },
+   "status": "ok",
+   "budget_left": 6
+  },
+  {
+   "experiment_id": "e07",
+   "index": 7,
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_100",
+    "height_m": 0.5
+   },
+   "observables": {
+    "force_n": 0.7330110829996501
+   },
+   "noise_sd": {
+    "force_n": 0.014378065508628551
+   },
+   "status": "ok",
+   "budget_left": 5
+  },
+  {
+   "experiment_id": "e08",
+   "index": 8,
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_100",
+    "height_m": 0.5
+   },
+   "observables": {
+    "force_n": 0.6980517356753506
+   },
+   "noise_sd": {
+    "force_n": 0.014378065508628551
+   },
+   "status": "ok",
+   "budget_left": 4
+  },
+  {
+   "experiment_id": "e09",
+   "index": 9,
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_100",
+    "height_m": 0.5
+   },
+   "observables": {
+    "force_n": 0.7348592395404444
+   },
+   "noise_sd": {
+    "force_n": 0.014378065508628551
+   },
+   "status": "ok",
+   "budget_left": 3
+  },
+  {
+   "experiment_id": "e10",
+   "index": 10,
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_100",
+    "height_m": 0.5
+   },
+   "observables": {
+    "force_n": 0.7101063944975875
+   },
+   "noise_sd": {
+    "force_n": 0.014378065508628551
+   },
+   "status": "ok",
+   "budget_left": 2
+  },
+  {
+   "experiment_id": "e11",
+   "index": 11,
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_100",
+    "height_m": 0.5
+   },
+   "observables": {
+    "force_n": 0.7048292921485171
+   },
+   "noise_sd": {
+    "force_n": 0.014378065508628551
+   },
+   "status": "ok",
+   "budget_left": 1
+  },
+  {
+   "experiment_id": "e12",
+   "index": 12,
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_100",
+    "height_m": 0.5
+   },
+   "observables": {
+    "force_n": 0.7294497354249123
+   },
+   "noise_sd": {
+    "force_n": 0.014378065508628551
+   },
+   "status": "ok",
+   "budget_left": 0
+  }
+ ],
+ "live_laws": [],
+ "prediction_tables": [
+  {
+   "id": "p_691f2718c3",
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_100",
+    "height_m": 0.5
+   },
+   "law_ids": [],
+   "used": true,
+   "experiment_index": 1,
+   "tentative_followup": null
+  },
+  {
+   "id": "p_c294088f16",
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_100",
+    "height_m": 0.5
+   },
+   "law_ids": [],
+   "used": true,
+   "experiment_index": 2,
+   "tentative_followup": null
+  },
+  {
+   "id": "p_eb27d584f1",
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_100",
+    "height_m": 0.5
+   },
+   "law_ids": [],
+   "used": true,
+   "experiment_index": 3,
+   "tentative_followup": null
+  },
+  {
+   "id": "p_72383b79f2",
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_100",
+    "height_m": 0.5
+   },
+   "law_ids": [],
+   "used": true,
+   "experiment_index": 4,
+   "tentative_followup": null
+  },
+  {
+   "id": "p_03f238d893",
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_100",
+    "height_m": 0.5
+   },
+   "law_ids": [],
+   "used": true,
+   "experiment_index": 5,
+   "tentative_followup": null
+  },
+  {
+   "id": "p_b3f41d4a15",
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_100",
+    "height_m": 0.5
+   },
+   "law_ids": [],
+   "used": true,
+   "experiment_index": 6,
+   "tentative_followup": null
+  },
+  {
+   "id": "p_057f0d9d12",
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_100",
+    "height_m": 0.5
+   },
+   "law_ids": [],
+   "used": true,
+   "experiment_index": 7,
+   "tentative_followup": null
+  },
+  {
+   "id": "p_c939d7f9d1",
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_100",
+    "height_m": 0.5
+   },
+   "law_ids": [],
+   "used": true,
+   "experiment_index": 8,
+   "tentative_followup": null
+  },
+  {
+   "id": "p_e4732e0aa0",
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_100",
+    "height_m": 0.5
+   },
+   "law_ids": [],
+   "used": true,
+   "experiment_index": 9,
+   "tentative_followup": null
+  },
+  {
+   "id": "p_2d5f86f9ac",
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_100",
+    "height_m": 0.5
+   },
+   "law_ids": [],
+   "used": true,
+   "experiment_index": 10,
+   "tentative_followup": null
+  },
+  {
+   "id": "p_081aa23e7a",
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_100",
+    "height_m": 0.5
+   },
+   "law_ids": [],
+   "used": true,
+   "experiment_index": 11,
+   "tentative_followup": null
+  },
+  {
+   "id": "p_a1e344ed2b",
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_100",
+    "height_m": 0.5
+   },
+   "law_ids": [],
+   "used": true,
+   "experiment_index": 12,
+   "tentative_followup": null
+  }
+ ],
+ "nominations": [
+  {
+   "n_experiments": 1,
+   "law": {
+    "law_id": "textbook",
+    "description": "",
+    "ax": "-c*speed*vx/m",
+    "az": "-g0 - c*speed*vz/m",
+    "params": {
+     "g0": {
+      "init": 9.81,
+      "lo": 9.81,
+      "hi": 9.81
+     },
+     "c": {
+      "init": 0.00035437165132492864,
+      "lo": 0.00035437165132492864,
+      "hi": 0.00035437165132492864
+     }
+    }
+   },
+   "fit": {
+    "law_id": "textbook",
+    "params": {
+     "g0": {
+      "value": 9.81,
+      "sd": 0.0
+     },
+     "c": {
+      "value": 0.00035437165132492864,
+      "sd": 0.0
+     }
+    },
+    "chi2_dof": 0.0,
+    "loo_error": null,
+    "n_experiments": 0,
+    "converged": true,
+    "cov": null
+   },
+   "probe_median_error_m": 0.26713900603779495,
+   "probe_within_beyond": 0.0,
+   "probe_within_in_range": 0.35
+  },
+  {
+   "n_experiments": 2,
+   "law": {
+    "law_id": "textbook",
+    "description": "",
+    "ax": "-c*speed*vx/m",
+    "az": "-g0 - c*speed*vz/m",
+    "params": {
+     "g0": {
+      "init": 9.81,
+      "lo": 9.81,
+      "hi": 9.81
+     },
+     "c": {
+      "init": 0.00035437165132492864,
+      "lo": 0.00035437165132492864,
+      "hi": 0.00035437165132492864
+     }
+    }
+   },
+   "fit": {
+    "law_id": "textbook",
+    "params": {
+     "g0": {
+      "value": 9.81,
+      "sd": 0.0
+     },
+     "c": {
+      "value": 0.00035437165132492864,
+      "sd": 0.0
+     }
+    },
+    "chi2_dof": 0.0,
+    "loo_error": null,
+    "n_experiments": 0,
+    "converged": true,
+    "cov": null
+   },
+   "probe_median_error_m": 0.26713900603779495,
+   "probe_within_beyond": 0.0,
+   "probe_within_in_range": 0.35
+  },
+  {
+   "n_experiments": 3,
+   "law": {
+    "law_id": "textbook",
+    "description": "",
+    "ax": "-c*speed*vx/m",
+    "az": "-g0 - c*speed*vz/m",
+    "params": {
+     "g0": {
+      "init": 9.81,
+      "lo": 9.81,
+      "hi": 9.81
+     },
+     "c": {
+      "init": 0.00035437165132492864,
+      "lo": 0.00035437165132492864,
+      "hi": 0.00035437165132492864
+     }
+    }
+   },
+   "fit": {
+    "law_id": "textbook",
+    "params": {
+     "g0": {
+      "value": 9.81,
+      "sd": 0.0
+     },
+     "c": {
+      "value": 0.00035437165132492864,
+      "sd": 0.0
+     }
+    },
+    "chi2_dof": 0.0,
+    "loo_error": null,
+    "n_experiments": 0,
+    "converged": true,
+    "cov": null
+   },
+   "probe_median_error_m": 0.26713900603779495,
+   "probe_within_beyond": 0.0,
+   "probe_within_in_range": 0.35
+  },
+  {
+   "n_experiments": 4,
+   "law": {
+    "law_id": "textbook",
+    "description": "",
+    "ax": "-c*speed*vx/m",
+    "az": "-g0 - c*speed*vz/m",
+    "params": {
+     "g0": {
+      "init": 9.81,
+      "lo": 9.81,
+      "hi": 9.81
+     },
+     "c": {
+      "init": 0.00035437165132492864,
+      "lo": 0.00035437165132492864,
+      "hi": 0.00035437165132492864
+     }
+    }
+   },
+   "fit": {
+    "law_id": "textbook",
+    "params": {
+     "g0": {
+      "value": 9.81,
+      "sd": 0.0
+     },
+     "c": {
+      "value": 0.00035437165132492864,
+      "sd": 0.0
+     }
+    },
+    "chi2_dof": 0.0,
+    "loo_error": null,
+    "n_experiments": 0,
+    "converged": true,
+    "cov": null
+   },
+   "probe_median_error_m": 0.26713900603779495,
+   "probe_within_beyond": 0.0,
+   "probe_within_in_range": 0.35
+  },
+  {
+   "n_experiments": 5,
+   "law": {
+    "law_id": "textbook",
+    "description": "",
+    "ax": "-c*speed*vx/m",
+    "az": "-g0 - c*speed*vz/m",
+    "params": {
+     "g0": {
+      "init": 9.81,
+      "lo": 9.81,
+      "hi": 9.81
+     },
+     "c": {
+      "init": 0.00035437165132492864,
+      "lo": 0.00035437165132492864,
+      "hi": 0.00035437165132492864
+     }
+    }
+   },
+   "fit": {
+    "law_id": "textbook",
+    "params": {
+     "g0": {
+      "value": 9.81,
+      "sd": 0.0
+     },
+     "c": {
+      "value": 0.00035437165132492864,
+      "sd": 0.0
+     }
+    },
+    "chi2_dof": 0.0,
+    "loo_error": null,
+    "n_experiments": 0,
+    "converged": true,
+    "cov": null
+   },
+   "probe_median_error_m": 0.26713900603779495,
+   "probe_within_beyond": 0.0,
+   "probe_within_in_range": 0.35
+  },
+  {
+   "n_experiments": 6,
+   "law": {
+    "law_id": "textbook",
+    "description": "",
+    "ax": "-c*speed*vx/m",
+    "az": "-g0 - c*speed*vz/m",
+    "params": {
+     "g0": {
+      "init": 9.81,
+      "lo": 9.81,
+      "hi": 9.81
+     },
+     "c": {
+      "init": 0.00035437165132492864,
+      "lo": 0.00035437165132492864,
+      "hi": 0.00035437165132492864
+     }
+    }
+   },
+   "fit": {
+    "law_id": "textbook",
+    "params": {
+     "g0": {
+      "value": 9.81,
+      "sd": 0.0
+     },
+     "c": {
+      "value": 0.00035437165132492864,
+      "sd": 0.0
+     }
+    },
+    "chi2_dof": 0.0,
+    "loo_error": null,
+    "n_experiments": 0,
+    "converged": true,
+    "cov": null
+   },
+   "probe_median_error_m": 0.26713900603779495,
+   "probe_within_beyond": 0.0,
+   "probe_within_in_range": 0.35
+  },
+  {
+   "n_experiments": 7,
+   "law": {
+    "law_id": "textbook",
+    "description": "",
+    "ax": "-c*speed*vx/m",
+    "az": "-g0 - c*speed*vz/m",
+    "params": {
+     "g0": {
+      "init": 9.81,
+      "lo": 9.81,
+      "hi": 9.81
+     },
+     "c": {
+      "init": 0.00035437165132492864,
+      "lo": 0.00035437165132492864,
+      "hi": 0.00035437165132492864
+     }
+    }
+   },
+   "fit": {
+    "law_id": "textbook",
+    "params": {
+     "g0": {
+      "value": 9.81,
+      "sd": 0.0
+     },
+     "c": {
+      "value": 0.00035437165132492864,
+      "sd": 0.0
+     }
+    },
+    "chi2_dof": 0.0,
+    "loo_error": null,
+    "n_experiments": 0,
+    "converged": true,
+    "cov": null
+   },
+   "probe_median_error_m": 0.26713900603779495,
+   "probe_within_beyond": 0.0,
+   "probe_within_in_range": 0.35
+  },
+  {
+   "n_experiments": 8,
+   "law": {
+    "law_id": "textbook",
+    "description": "",
+    "ax": "-c*speed*vx/m",
+    "az": "-g0 - c*speed*vz/m",
+    "params": {
+     "g0": {
+      "init": 9.81,
+      "lo": 9.81,
+      "hi": 9.81
+     },
+     "c": {
+      "init": 0.00035437165132492864,
+      "lo": 0.00035437165132492864,
+      "hi": 0.00035437165132492864
+     }
+    }
+   },
+   "fit": {
+    "law_id": "textbook",
+    "params": {
+     "g0": {
+      "value": 9.81,
+      "sd": 0.0
+     },
+     "c": {
+      "value": 0.00035437165132492864,
+      "sd": 0.0
+     }
+    },
+    "chi2_dof": 0.0,
+    "loo_error": null,
+    "n_experiments": 0,
+    "converged": true,
+    "cov": null
+   },
+   "probe_median_error_m": 0.26713900603779495,
+   "probe_within_beyond": 0.0,
+   "probe_within_in_range": 0.35
+  },
+  {
+   "n_experiments": 9,
+   "law": {
+    "law_id": "textbook",
+    "description": "",
+    "ax": "-c*speed*vx/m",
+    "az": "-g0 - c*speed*vz/m",
+    "params": {
+     "g0": {
+      "init": 9.81,
+      "lo": 9.81,
+      "hi": 9.81
+     },
+     "c": {
+      "init": 0.00035437165132492864,
+      "lo": 0.00035437165132492864,
+      "hi": 0.00035437165132492864
+     }
+    }
+   },
+   "fit": {
+    "law_id": "textbook",
+    "params": {
+     "g0": {
+      "value": 9.81,
+      "sd": 0.0
+     },
+     "c": {
+      "value": 0.00035437165132492864,
+      "sd": 0.0
+     }
+    },
+    "chi2_dof": 0.0,
+    "loo_error": null,
+    "n_experiments": 0,
+    "converged": true,
+    "cov": null
+   },
+   "probe_median_error_m": 0.26713900603779495,
+   "probe_within_beyond": 0.0,
+   "probe_within_in_range": 0.35
+  },
+  {
+   "n_experiments": 10,
+   "law": {
+    "law_id": "textbook",
+    "description": "",
+    "ax": "-c*speed*vx/m",
+    "az": "-g0 - c*speed*vz/m",
+    "params": {
+     "g0": {
+      "init": 9.81,
+      "lo": 9.81,
+      "hi": 9.81
+     },
+     "c": {
+      "init": 0.00035437165132492864,
+      "lo": 0.00035437165132492864,
+      "hi": 0.00035437165132492864
+     }
+    }
+   },
+   "fit": {
+    "law_id": "textbook",
+    "params": {
+     "g0": {
+      "value": 9.81,
+      "sd": 0.0
+     },
+     "c": {
+      "value": 0.00035437165132492864,
+      "sd": 0.0
+     }
+    },
+    "chi2_dof": 0.0,
+    "loo_error": null,
+    "n_experiments": 0,
+    "converged": true,
+    "cov": null
+   },
+   "probe_median_error_m": 0.26713900603779495,
+   "probe_within_beyond": 0.0,
+   "probe_within_in_range": 0.35
+  },
+  {
+   "n_experiments": 11,
+   "law": {
+    "law_id": "textbook",
+    "description": "",
+    "ax": "-c*speed*vx/m",
+    "az": "-g0 - c*speed*vz/m",
+    "params": {
+     "g0": {
+      "init": 9.81,
+      "lo": 9.81,
+      "hi": 9.81
+     },
+     "c": {
+      "init": 0.00035437165132492864,
+      "lo": 0.00035437165132492864,
+      "hi": 0.00035437165132492864
+     }
+    }
+   },
+   "fit": {
+    "law_id": "textbook",
+    "params": {
+     "g0": {
+      "value": 9.81,
+      "sd": 0.0
+     },
+     "c": {
+      "value": 0.00035437165132492864,
+      "sd": 0.0
+     }
+    },
+    "chi2_dof": 0.0,
+    "loo_error": null,
+    "n_experiments": 0,
+    "converged": true,
+    "cov": null
+   },
+   "probe_median_error_m": 0.26713900603779495,
+   "probe_within_beyond": 0.0,
+   "probe_within_in_range": 0.35
+  },
+  {
+   "n_experiments": 12,
+   "law": {
+    "law_id": "textbook",
+    "description": "",
+    "ax": "-c*speed*vx/m",
+    "az": "-g0 - c*speed*vz/m",
+    "params": {
+     "g0": {
+      "init": 9.81,
+      "lo": 9.81,
+      "hi": 9.81
+     },
+     "c": {
+      "init": 0.00035437165132492864,
+      "lo": 0.00035437165132492864,
+      "hi": 0.00035437165132492864
+     }
+    }
+   },
+   "fit": {
+    "law_id": "textbook",
+    "params": {
+     "g0": {
+      "value": 9.81,
+      "sd": 0.0
+     },
+     "c": {
+      "value": 0.00035437165132492864,
+      "sd": 0.0
+     }
+    },
+    "chi2_dof": 0.0,
+    "loo_error": null,
+    "n_experiments": 0,
+    "converged": true,
+    "cov": null
+   },
+   "probe_median_error_m": 0.26713900603779495,
+   "probe_within_beyond": 0.0,
+   "probe_within_in_range": 0.35
+  }
+ ],
+ "commit": {
+  "law_id": "textbook",
+  "claim": "insufficient_evidence",
+  "claims_non_ordinary": false,
+  "after_experiments": 12,
+  "shots": [
+   {
+    "target_id": "t1",
+    "speed_mps": 3.2697259043428146,
+    "elevation_deg": 57.5,
+    "kind": "in_range",
+    "x_m": 0.9225954749940222,
+    "miss_m": 0.08340452500597784,
+    "miss_frac": 0.08290708251091236,
+    "hit_radius_m": 0.05,
+    "hit": false
+   },
+   {
+    "target_id": "t2",
+    "speed_mps": 2.8822243780344436,
+    "elevation_deg": 17.5,
+    "kind": "in_range",
+    "x_m": 0.6852694069438614,
+    "miss_m": 0.028730593056138565,
+    "miss_frac": 0.040238925848933564,
+    "hit_radius_m": 0.05,
+    "hit": true
+   },
+   {
+    "target_id": "t3",
+    "speed_mps": 5.014252179094709,
+    "elevation_deg": 60.0,
+    "kind": "beyond",
+    "x_m": 1.7377533916472936,
+    "miss_m": 0.3412466083527066,
+    "miss_frac": 0.16413978275743463,
+    "hit_radius_m": 0.05,
+    "hit": false
+   },
+   {
+    "target_id": "t4",
+    "speed_mps": 5.142006107855217,
+    "elevation_deg": 65.0,
+    "kind": "beyond",
+    "x_m": 1.5983567090457107,
+    "miss_m": 0.32964329095428924,
+    "miss_frac": 0.1709768106609384,
+    "hit_radius_m": 0.05,
+    "hit": false
+   },
+   {
+    "target_id": "t5",
+    "speed_mps": 6.541181118477041,
+    "elevation_deg": 25.0,
+    "kind": "beyond",
+    "x_m": 2.789242262297183,
+    "miss_m": 0.578757737702817,
+    "miss_frac": 0.17184018340344925,
+    "hit_radius_m": 0.0674,
+    "hit": false
+   }
+  ]
+ },
+ "targets": [
+  {
+   "target_id": "t1",
+   "x_m": 1.006,
+   "z_m": 0.169,
+   "hit_radius_m": 0.05,
+   "kind": "in_range"
+  },
+  {
+   "target_id": "t2",
+   "x_m": 0.714,
+   "z_m": 0.094,
+   "hit_radius_m": 0.05,
+   "kind": "in_range"
+  },
+  {
+   "target_id": "t3",
+   "x_m": 2.079,
+   "z_m": 0.42,
+   "hit_radius_m": 0.05,
+   "kind": "beyond"
+  },
+  {
+   "target_id": "t4",
+   "x_m": 1.928,
+   "z_m": 0.464,
+   "hit_radius_m": 0.05,
+   "kind": "beyond"
+  },
+  {
+   "target_id": "t5",
+   "x_m": 3.368,
+   "z_m": 0.183,
+   "hit_radius_m": 0.0674,
+   "kind": "beyond"
+  }
+ ]
+}
