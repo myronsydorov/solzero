@@ -134,3 +134,24 @@ def test_revised_law_with_same_id_invalidates_table(client):
     t2 = predict(client, sid, WEIGH, [pred]).json()["prediction_table_id"]
     client.post("/laws", json={"session_id": sid, "live_laws": [revised]})
     assert run(client, sid, WEIGH, t2).status_code == 200
+
+
+def test_failed_launch_returns_empty_observables(tmp_path, monkeypatch):
+    """A launch that never comes down is a failed Result with no observables, valid JSON."""
+    import numpy as np
+
+    from schemas import LaunchSpec
+    from world.generator import make_world
+
+    w = make_world(1003)  # dev world where gravity vanishes about 2 m up
+    rng = np.random.default_rng(0)
+    spec = next(s for s in (LaunchSpec(sample_id=sid, speed_mps=v, elevation_deg=e)
+                            for sid in ("ref_800", "ref_400") for v in (4.0, 3.8, 3.6) for e in (75, 70, 65))
+                if w.run_experiment(s, rng).status == "failed")
+    monkeypatch.setenv("SOLZERO_ADMIN_TOKEN", TOKEN)
+    c = TestClient(create_app(seeds=[1003], runs_dir=tmp_path))
+    sid = c.post("/session", json={"world_id": world_id_for(1003), "condition": "random"}).json()["session_id"]
+    r = c.post("/experiment", json={"session_id": sid, "spec": spec.model_dump()})
+    assert r.status_code == 200
+    res = Result.model_validate(r.json())
+    assert res.status == "failed" and res.observables == {} and res.budget_left == BUDGET - 1

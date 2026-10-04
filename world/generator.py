@@ -106,7 +106,7 @@ class World:
             sd = {k: noise[k] for k in ("landing_x_m", "flight_time_s", "speed_frac", "elevation_deg")}
         ok = all(np.isfinite(v) for v in vals.values())
         if not ok:
-            vals = {k: float("nan") for k in vals}
+            vals = {}  # SPEC 5.3: a failed run has no observables (e.g. the sample never lands)
         return Result(experiment_id=f"e{index:02d}", index=index, spec=spec,
                       observables={k: float(v) for k, v in vals.items()}, noise_sd=sd,
                       status="ok" if ok else "failed", budget_left=budget_left)

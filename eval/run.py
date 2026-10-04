@@ -253,8 +253,10 @@ def main():
     ap.add_argument("--rate-limit-wait", type=float, default=900,
                     help="pause (s) after a provider limit that states no reset time")
     ap.add_argument("--max-pauses", type=int, default=20, help="provider-limit pauses allowed per run")
-    ap.add_argument("--max-wall-s", type=float, default=1800)
-    ap.add_argument("--max-tokens", type=int, default=2_000_000)
+    # Caps from the pilot (2026-10-04): lab used about 228k tokens and 139 s per experiment, so
+    # about 2.7M tokens and 28 min for 12; caps are about twice that (STATUS.md, decisions).
+    ap.add_argument("--max-wall-s", type=float, default=3600)
+    ap.add_argument("--max-tokens", type=int, default=5_500_000)
     ap.add_argument("--approval", choices=["auto", "human"], default="auto")
     ap.add_argument("--world-url", default=os.environ.get("SOLZERO_WORLD_URL"))
     ap.add_argument("--admin-token", default=os.environ.get("SOLZERO_ADMIN_TOKEN"))
