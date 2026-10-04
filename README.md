@@ -1,48 +1,63 @@
 # Sol Zero
 
-A robot lab that has to discover an unfamiliar force law from 12 experiments, then launch a sample into five untouched targets. Three of the targets lie beyond the speeds it was allowed to test. A multi-agent lab (Omnigent) chooses the experiments, proposes and rejects laws, and commits the firing table. The same tools run under a random-experiment baseline, a single-agent baseline, a textbook-physics floor and a scripted oracle.
+A simulated robot lab that learns from experiments before committing five mission shots. An Omnigent lab proposes laws, chooses measurements, judges evidence and decides when to stop. Current code has four model-backed roles and a deterministic Operator. Every experiment leaves an auditable record of the prediction and result.
 
-The full design is in [`SPEC.md`](SPEC.md). Progress and every number we have measured are in [`STATUS.md`](STATUS.md).
+**Watch:** [two-minute demo](docs/media/demo.mp4) · [two-minute technical walkthrough](docs/media/technical.mp4) · [narration and disclosures](docs/submission-scripts.md)
+
+**Explore:** [interactive replay viewer](https://viewer-delta-ten.vercel.app) — the deployed site currently shows **fixture data**, not the completed run below.
+
+The videos are rendered replays of a development simulation, not a live physical robot. The lab connects to the actual project world server over HTTP; that server still implements simulated physics.
+
+## Completed lab run
+
+Development world 1000, session **`s_dce1ebea1d`**: the PI chose to stop after **10 of 12 available experiments**, and the server graded **5/5 mission shots as hits**, including three beyond-range targets. Its final claim was **`predictive_only`**, with `claims_non_ordinary=false`. This historical baseline used a model-backed Operator; it predates the current deterministic execution optimization.
+
+| Target | Server outcome | Miss distance |
+| --- | --- | ---: |
+| t1 | Hit | 15.18 mm |
+| t2 | Hit | 0.40 mm |
+| t3 | Hit | 4.63 mm |
+| t4 | Hit | 16.93 mm |
+| t5 | Hit | 7.33 mm |
+
+[Run evidence](docs/evidence/lab-dev1000) includes the ledger and recorded outcomes. This standalone run took about **17.1 active minutes**, with pauses and resumes. Token accounting includes an interrupted response and is incomplete. It demonstrates the workflow; it does **not** establish superiority over random experiments or a single agent, or success on held-out test worlds.
 
 ## How it works
 
-- **Hidden world** (`world/`). Each world draws one of four physics families: ordinary physics with unfamiliar constants (the control), a different drag law, mass-dependent gravity, or height-dependent gravity. The world server exposes only the experiment API (SPEC 5.2). Families, parameters and probe scores stay behind admin endpoints.
-- **Experiments.** `weigh`, `drop` and `launch` return one or two noisy summary numbers each, never trajectories. Launches carry 0.5% speed and 0.1 degree actuation error.
-- **Analysis tools** (`tools/`). `fit_law`, `predict`, `disagreement` and `plan_shot` work on free-form law expressions, using a batched RK4 integrator. Every condition uses the same tools.
-- **Lab** (`lab/`). Five Omnigent agents (PI, Theorist, Experimentalist, Operator, Analyst) work under pre-registration: no experiment runs without a prediction from every live law.
-- **Evaluation** (`eval/`). One runner covers every condition. Grading and statistics were fixed before any test world was run.
+- **Five roles:** the Theorist owns live laws, the Experimentalist chooses experiments, the Operator executes, the Analyst judges evidence, and the PI decides when to commit.
+- **Pre-registration:** predictions cover every live law before an experiment. The server enforces the twelve-experiment budget, including failed measurements.
+- **Shared tools:** fitting, prediction, disagreement and shot planning use the same numerical implementation across conditions.
+- **Isolation:** scientific agents receive public observations through HTTP, without generator code or admin scores.
+- **Records:** a JSONL ledger captures laws, candidate choices, predictions, results, verdicts, changed decisions, nominations and the mission commit.
+
+The design is in [SPEC.md](SPEC.md), with measured results and development decisions in [STATUS.md](STATUS.md).
 
 ## Reproduce
 
-Python 3.12 and [uv](https://docs.astral.sh/uv/).
+Use Python 3.12 and [uv](https://docs.astral.sh/uv/). The default check makes no model calls:
 
 ```sh
 uv venv --python 3.12 && uv sync
 .venv/bin/python -m pytest -q
-
-# World server (dev seeds 1000-1999). Admin endpoints need the token.
-SOLZERO_ADMIN_TOKEN=change-me .venv/bin/python -m world.server --port 8000
-
-# Calibration on dev worlds (scripted policies, no language model)
-.venv/bin/python -m calibration.study --seeds 1000-1059 --stages AB --hit-frac 0.02 --out calibration/results/dev60 --jobs 8
-.venv/bin/python -m calibration.report calibration/results/dev60
-
-# Evaluation. --serve starts a private world server; otherwise pass --world-url and --admin-token.
-.venv/bin/python -m eval.run --condition textbook --seeds 1000-1002 --out runs/eval --serve
-.venv/bin/python -m eval.run --condition oracle   --seeds 1000-1002 --out runs/eval --serve
-.venv/bin/python -m eval.run --condition random --agent scripted --seeds 1000-1002 --out runs/eval --serve
-.venv/bin/python -m eval.run --condition lab    --seeds 1000-1002 --out runs/eval --serve --agent-cmd ".venv/bin/python -m lab.run"
-.venv/bin/python -m eval.run --condition single --seeds 1000-1002 --out runs/eval --serve --agent-cmd ".venv/bin/python -m lab.run"
-.venv/bin/python -m eval.run --condition random --seeds 1000-1002 --out runs/eval --serve --agent-cmd ".venv/bin/python -m lab.run"
-.venv/bin/python -m eval.grade runs/eval
-.venv/bin/python -m eval.report runs/eval --readme README.md
 ```
 
-- The runner skips finished runs, so rerunning the same command resumes after a crash.
-- Without a language model, `--agent-cmd ".venv/bin/python -m eval.agent_stub"` exercises the whole pipeline.
-- The agent command line is specified in SPEC 5.6.
+One scripted development run, also without a model:
 
-**Final evaluation, human only.** The human freezes 40 test seeds (10 per family) with `python -m world.freeze --entropy <string> --confirm-human-freeze`. The same commands then run with `--final-eval` on the seeds in `world/test_seeds.lock`. No code path serves a test seed without that flag.
+```sh
+.venv/bin/python -m eval.run --condition textbook --seeds 1000 \
+  --out runs/textbook-dev1000 --serve --max-concurrency 1
+```
+
+**Optional, consumes model quota:** the agent run requires a working Claude Code subscription login and Omnigent's Claude SDK connection. Development runs reached the subscription session limit; a run can pause or stop before completing. The explicit caps below may stop it before its mission. Video duration is not model runtime.
+
+```sh
+.venv/bin/python -m eval.run --condition lab --seeds 1000 \
+  --out runs/lab-dev1000 --serve --max-concurrency 1 \
+  --max-tokens 2000000 --max-wall-s 600 --max-pauses 0 --approval auto \
+  --agent-cmd ".venv/bin/python -m lab.run"
+```
+
+The runner saves state and artifacts. A fresh attempt can be created after a crash; ambiguous experiment outcomes are not blindly replayed. See [SPEC section 5.6](SPEC.md#56-agent-run-cli-lane-b-exposes-eval-calls) and [lab documentation](lab/README.md). Automatic approval above is explicit and for development; interactive demos retain the human gate. Test-seed generation and evaluation require a separate human freeze decision.
 
 ## Disclosure: difficulty was calibrated on dev worlds
 
@@ -52,7 +67,7 @@ The task's difficulty was set on development worlds (seeds 1000 to 1999) with sc
 - A hit radius of max(5 cm, 2% of target distance).
 - A probe set of 20 in-range and 20 beyond-range launches.
 
-Each change was decided by the human from measured numbers and is logged with before and after values in `STATUS.md` ("Design changes from calibration"). The experiment budget, the parameter ranges and the physics families were never tuned to favour any condition. The four primary metrics were fixed in SPEC section 7 before the test seeds were frozen. Test seeds 9000 to 9999 were not generated, run or inspected during development.
+Each change was decided by the human from measured numbers and is logged with before and after values in `STATUS.md` ("Design changes from calibration"). The experiment budget, the parameter ranges and the physics families were never tuned to favour any condition. The four primary metrics are fixed in SPEC section 7. Test seeds 9000 to 9999 were not generated, run or inspected during development.
 
 ## Results
 
@@ -69,15 +84,20 @@ From `calibration/results/dev60/primary_table.md`: greedy disagreement versus un
 
 These dev worlds were used to calibrate the task, so this table is not an independent test.
 
-### Evaluation
+### Agent comparison
 
 <!-- results:start -->
-_No evaluation results yet. `python -m eval.report runs/eval --readme README.md` fills this section in._
+No completed matched comparison is reported here. The standalone lab result above is development evidence; the scripted calibration table is not an agent comparison.
 <!-- results:end -->
 
-## Limits
+## Known limits
 
-The physics is simulated and designed by us. The families are few and smooth. Sensing is Gaussian noise on summary numbers. Forty test worlds give wide intervals. SPEC section 11 has the full list.
+- All physics and robot footage are simulated; this is not a physical robotics deployment.
+- One completed lab run is not statistical evidence of superiority. A matched lab/single/random evaluation remains incomplete.
+- The demonstrated run exceeded the ten-minute runtime target; subscription quota constrained further validation.
+- Token totals are incomplete for one interrupted response. Replay timing is compressed.
+- The public viewer currently presents fixtures. Use the linked recorded evidence for the submitted lab run.
+- World families are deliberately limited, with noisy summary observations rather than full sensor streams. See SPEC section 11.
 
 ## Repository
 

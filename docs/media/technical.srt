@@ -1,0 +1,129 @@
+1
+00:00:00,000 --> 00:00:05,000
+Sol Zero separates scientific reasoning from the world implementation
+
+2
+00:00:05,000 --> 00:00:10,000
+Omnigent agents call Python function tools through a fixed public HTTP
+interface
+
+3
+00:00:10,000 --> 00:00:15,000
+Generator code and admin scores remain outside the agents'
+environment.
+
+4
+00:00:15,000 --> 00:00:18,000
+Each specialist owns a decision and returns structured records
+
+5
+00:00:18,000 --> 00:00:21,000
+Theorist laws feed candidate selection
+
+6
+00:00:21,000 --> 00:00:24,000
+Pre registered predictions feed the Operator
+
+7
+00:00:24,000 --> 00:00:27,000
+Measurements feed Analyst verdicts
+
+8
+00:00:27,000 --> 00:00:30,000
+The principal investigator owns the stopping decision and final
+mission.
+
+9
+00:00:30,000 --> 00:00:33,750
+Shared Pydantic records connect client and server
+
+10
+00:00:33,750 --> 00:00:37,500
+Prediction tables must cover every live law before execution
+
+11
+00:00:37,500 --> 00:00:41,250
+The server enforces the twelve experiment budget, including failed
+measurements
+
+12
+00:00:41,250 --> 00:00:45,000
+Insufficient evidence remains a valid scientific verdict.
+
+13
+00:00:45,000 --> 00:00:50,000
+The durable ledger captures laws, candidates, predictions, results,
+verdicts, nominations, decision changes, and commitment
+
+14
+00:00:50,000 --> 00:00:55,000
+This run records six changed plans
+
+15
+00:00:55,000 --> 00:01:00,000
+Reviewers can inspect the evidence behind the decisions, rather than
+trusting a summary.
+
+16
+00:01:00,000 --> 00:01:03,750
+Tool policies restrict robot access, check safe settings, and gate
+commitment
+
+17
+00:01:03,750 --> 00:01:07,500
+Development uses explicit automatic approval; interactive demos
+default to human approval
+
+18
+00:01:07,500 --> 00:01:11,250
+Checkpoints preserve progress
+
+19
+00:01:11,250 --> 00:01:15,000
+Ambiguous experiment responses fail closed instead of being blindly
+replayed.
+
+20
+00:01:15,000 --> 00:01:18,750
+Provider limits exposed substantial overhead
+
+21
+00:01:18,750 --> 00:01:22,500
+Current code adds exponential backoff with jitter, compact structured
+context, and at most three candidates
+
+22
+00:01:22,500 --> 00:01:26,250
+The Operator now executes without a model turn
+
+23
+00:01:26,250 --> 00:01:30,000
+End to end savings still need measurement.
+
+24
+00:01:30,000 --> 00:01:35,000
+The preserved baseline used the earlier Operator implementation
+
+25
+00:01:35,000 --> 00:01:40,000
+Its investigator stopped after ten experiments, and the server graded
+five mission hits
+
+26
+00:01:40,000 --> 00:01:45,000
+The repository includes its ledger, score, measurement notes, and
+evidence hashes for independent inspection.
+
+27
+00:01:45,000 --> 00:01:50,000
+This is a compressed replay of a development simulation, not a
+physical robot or held out validation
+
+28
+00:01:50,000 --> 00:01:55,000
+The run took seventeen active minutes
+
+29
+00:01:55,000 --> 00:02:00,000
+The next test compares laboratory, random, and single agent conditions
+with shared tools and budgets.

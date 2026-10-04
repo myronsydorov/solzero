@@ -1,18 +1,18 @@
 # Scientific agents and execution
 
 `python -m lab.run --world <opaque-id> --condition lab` runs the five roles
-through open-source Omnigent 0.16.0 and its Claude SDK executor. Set
+with four model-backed roles through open-source Omnigent 0.16.0 and its Claude SDK executor, plus a deterministic Operator. Set
 `SOLZERO_WORLD_URL` to the server origin first. Python 3.12 is required.
 
 | Role | Decision and input | Required output and tools |
 | --- | --- | --- |
 | Theorist | Propose, revise, retain or retire laws from public results and verdicts | Complete `/laws` replacement and fits from `fit_law` |
 | Experimentalist | Choose the next measurement from live fits, coverage and allowed settings | At least two distinct candidates, disagreement, prediction per live law, chosen spec and tentative follow-up |
-| Operator | Execute the registered settings faithfully | One `/experiment` result; no settings selection |
+| Operator | Deterministically execute the durable registered settings; no model call | One `/experiment` result; no settings selection |
 | Analyst | Assess prior predictions and confounds | Coverage, per-law verdict and signed z-score, refit and `/nominate` |
 | PI | Stop or continue based on evidence, coverage and extrapolation | `plan_shot` for each target, then a five-shot `/commit` |
 
-Prompts are versioned in `lab/agents/*.yaml`. They state ownership, inputs,
+Model-role prompts are versioned in `lab/agents/*.yaml`; the Operator YAML is retained, but the current runner bypasses it. Prompts state ownership, inputs,
 output schemas and that insufficient evidence is valid. They provide no hidden
 law menu, family names or parameter bounds. Public instrument limits come from
 the session. Every domain record comes from `schemas/`; all conditions share the
@@ -26,7 +26,7 @@ SOLZERO_WORLD_URL=http://127.0.0.1:8003 .venv/bin/python -m lab.run \
   --output runs/example
 ```
 
-- `lab`: five specialists in the sequence above, with Theorist revision after
+- `lab`: five roles (four model-backed, one deterministic) in the sequence above, with Theorist revision after
   each assessment and PI review after each cycle.
 - `random`: the same Theorist, Analyst, Operator and PI; a host-prepared schedule
   from lane A's `eval.sampler.random_specs` chooses experiments in supplied order.
@@ -58,7 +58,8 @@ Output is a fresh explicit directory, or `runs/session-<timestamp>/` by default:
 
 - `<session_id>/ledger.jsonl`: every SPEC 5.5 record, UTC timestamps and fsync.
 - `tools.jsonl`: inputs, outputs and actual policy decisions.
-- `conversation.jsonl`: model text, model identity and SDK-reported usage per turn.
+- `conversation.jsonl`: model text, model identity and SDK-reported usage per model-backed turn.
+- `model-calls.jsonl`: observed provider responses and usage; interrupted responses can leave accounting incomplete.
 - `checkpoint.json`: host resume state, phase, successful-call memo and outstanding mutation.
 - `summary.json`: outcome, timing, usage, ledger record counts and decision changes.
 - `mlflow.db` plus MLflow artifacts: nested agent/tool spans, configurable with
@@ -101,6 +102,21 @@ limitation is explicit and is not hidden behind a fresh session.
 checkpoints and traces. Its manifest contains the same eight dev worlds for all
 conditions; family selection and scores are host-only artifacts. It automatically
 approves dev commits and reports failures as failures, without dropping worlds.
+
+## Demonstration provenance
+
+Submitted session `s_dce1ebea1d` is a historical standalone development baseline:
+10 experiments, PI-selected early stop, five server-graded mission hits, and a
+`predictive_only` claim. **All five roles, including Operator, made model calls in
+that run.** It took about 17.1 active minutes; one interrupted response makes its
+token accounting incomplete. Evidence is in `docs/evidence/lab-dev1000`.
+
+The current deterministic Operator reuses the registered spec and the same
+policy, checkpoint and HTTP dispatch path, without asking a model to restate it.
+That optimization is implemented, but the submitted baseline does not validate
+its runtime or scientific outcomes. A subsequent optimized run stopped after two
+experiments at a provider session limit. No completed matched comparison or
+held-out-world result is claimed.
 
 ## Verification and provenance
 

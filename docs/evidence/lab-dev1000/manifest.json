@@ -1,0 +1,20 @@
+{
+  "session_id": "s_dce1ebea1d",
+  "condition": "lab",
+  "dev_seed": 1000,
+  "selection": "Completed B1 measurement run; selected for a submission replay, not a held-out comparison.",
+  "score_source": "Persisted world-server admin-score payload, same session; not re-simulated grades.",
+  "claim": "predictive_only",
+  "limitations": [
+    "Development simulation only",
+    "PI stopped at 10 of 12 experiments",
+    "Not a matched-condition evaluation",
+    "At least 2,495,917 observed tokens; one interrupted response incomplete",
+    "Recorded active runtime 1028.816 seconds; video is compressed replay"
+  ],
+  "files": {
+    "score.json": "086f96962581a3ac3a0adcd3392860d7db992c9518334612ee00bc9b0c90089e",
+    "measurement.json": "4cd9f93fd6690a273707c235470a79846850b5cbffc088db39d757721dfccf7d",
+    "ledger.jsonl": "ead2c8d79073b5df8e34bfbbacbb3018ac1915f1df251e3c3809c7bd024128b2"
+  }
+}

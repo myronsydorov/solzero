@@ -1,0 +1,122 @@
+1
+00:00:00,000 --> 00:00:06,666
+What if a robot arrived with the wrong physics model? Sol Zero is a
+simulated robot lab
+
+2
+00:00:06,666 --> 00:00:13,333
+It gets twelve experiments to learn from measurements, then must hit
+five untouched targets, one shot each
+
+3
+00:00:13,333 --> 00:00:20,000
+This is a recorded development run, replayed from its actual
+decisions.
+
+4
+00:00:20,000 --> 00:00:22,857
+Open source Omnigent connects five specialist roles
+
+5
+00:00:22,857 --> 00:00:25,714
+The Theorist proposes rival laws
+
+6
+00:00:25,714 --> 00:00:28,571
+The Experimentalist compares candidate tests
+
+7
+00:00:28,571 --> 00:00:31,428
+The Operator makes the measurement
+
+8
+00:00:31,428 --> 00:00:34,285
+The Analyst judges the evidence
+
+9
+00:00:34,285 --> 00:00:37,142
+The principal investigator decides when to stop
+
+10
+00:00:37,142 --> 00:00:40,000
+Agents exchange structured records and use tools, rather than
+receiving a scripted discovery.
+
+11
+00:00:40,000 --> 00:00:45,000
+Here is a concrete failure from the ledger
+
+12
+00:00:45,000 --> 00:00:50,000
+Before the second experiment, one initial law predicted a range of two
+point three six metres
+
+13
+00:00:50,000 --> 00:00:55,000
+The measurement was only zero point five six three metres
+
+14
+00:00:55,000 --> 00:01:00,000
+The Analyst rejected that law, recorded its uncertainty assessment,
+and considered confounding explanations.
+
+15
+00:01:00,000 --> 00:01:04,000
+The lab does not simply repeat a fixed sequence
+
+16
+00:01:04,000 --> 00:01:08,000
+The ledger records a tentative follow up, then compares it with the
+next chosen test
+
+17
+00:01:08,000 --> 00:01:12,000
+In this run, a heavy sample drop became a light sample launch
+
+18
+00:01:12,000 --> 00:01:16,000
+Six decisions changed
+
+19
+00:01:16,000 --> 00:01:20,000
+After ten experiments, the investigator chose to commit.
+
+20
+00:01:20,000 --> 00:01:24,000
+The committed firing table produced five hits out of five
+
+21
+00:01:24,000 --> 00:01:28,000
+Three targets were beyond the experimental launch range
+
+22
+00:01:28,000 --> 00:01:32,000
+These miss distances come from the server score for this same session
+
+23
+00:01:32,000 --> 00:01:36,000
+The animation replays the recorded shots and their graded landing
+points
+
+24
+00:01:36,000 --> 00:01:40,000
+It does not generate replacement results.
+
+25
+00:01:40,000 --> 00:01:45,000
+The result is a working, auditable scientific loop, with a predictive
+only claim
+
+26
+00:01:45,000 --> 00:01:50,000
+The actual run took about seventeen active minutes
+
+27
+00:01:50,000 --> 00:01:55,000
+This development example does not prove superiority over random tests
+or a single agent
+
+28
+00:01:55,000 --> 00:02:00,000
+Our next experiment is a matched comparison, using the same tools,
+worlds, and budgets.
