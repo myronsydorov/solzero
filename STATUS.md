@@ -269,54 +269,109 @@ cd viewer && npx vercel deploy --temporary --prod --yes  # redeploy (no login)
 
 ## Lane sim: MuJoCo (Claude Code, branch `sim`)
 
-**Current milestone:** S1 done. S2 to S5 are not started (session stopped at a usage limit).
+**Current milestone (2026-10-04):** S1 to S5 are done. The demo video and the side-by-side clip render from any SPEC 5.5 ledger.
 
-**Done** (2026-10-04, `12ec586`)
+**Done**
 
-- S1 is in `sim/scene.py`, `sim/arm.py` and `sim/experiment.py`:
-  - Scene: table, Menagerie Panda on a 0.35 m pedestal, launcher with an elevation actuator, tray with the seven spheres, target bins, wrist force sensor.
-  - MuJoCo gravity is 0 and fluid forces are off. The hidden law (`world.law` compiled by `tools.analysis.compile_law`) is added as an external force on every sample in the passive-force callback, every step.
-  - Flights use RK4 at 1 ms, so the law is evaluated at every stage.
-- Fast mode places the sample at its release state. Full mode runs the arm primitives: pick, transit, move_sample_to, hold, release, load_launcher, aim, fire.
-- `Lab.run_experiment` returns a `Result` with the same noise draw order as `World.run_experiment`.
-- `sim/oracle_ledger.py` (written by a subagent) runs the greedy-disagreement oracle against the in-process `WorldServer` and writes a SPEC 5.5 ledger. On seeds 1001 and 1002 it selected the true form and hit 5 of 5 targets.
-- `tests/test_sim.py` (skipped without mujoco or the assets) and `tests/test_sim_oracle_ledger.py`.
+- **S1, the scene** (`sim/scene.py`, `sim/arm.py`, `sim/experiment.py`):
+  - Table, a Menagerie Panda on a 0.35 m pedestal, a launcher with an elevation actuator, a tray with the seven spheres, target bins, and a wrist force sensor.
+  - MuJoCo gravity is 0 and fluid forces are off. Every step, the hidden law (`world.law` compiled by `tools.analysis.compile_law`) is added as an external force on every sample, in the passive-force callback. Flights use RK4 at 1 ms, so the law is evaluated at every stage.
+- **S2, primitives:**
+  - The primitives are pick, transit, move_sample_to, hold, release (drop), load_launcher, aim and fire.
+  - Fast mode places the sample at its release state. Full mode runs the arm.
+  - The arm servo now has integral action: a load offset is learned while the arm settles, and the hidden law is never used.
+- **S3, equivalence:** `sim/validate.py` runs full mode against `World.run_experiment` with the same random stream.
+- **S4, the renderer** (`sim/render.py`):
+  - Sequence: title, shot zero, each experiment executed by the arm, then the five mission shots, then the hidden law beside the discovered law.
+  - Overlays per experiment: experiment number, spec, each live law's pre-registered prediction, the measured value, verdicts with z, the plan-changed flag, and the budget.
+  - Output is 1920x1080 at 30 fps, rendered offscreen. Arm sequences are compressed to 2.2 s, flights run near real time (capped at 1.5 s), and results hold for 1.2 s.
+  - Inputs, in order of preference:
+    - `metrics.json` (SPEC 5.7);
+    - else `session_info.json` + `world_session.json`;
+    - else a bare ledger plus `--seed` (SessionInfo is rebuilt from the world).
+  - Mission shots are steered to the server's graded landing point when one is available. Otherwise they use a seeded actuation draw, and the scoreboard says "simulated here: no server grade".
+- **S5, the clip** (`sim/clip.py`):
+  - Left: `mission_300` aimed with textbook physics by the shared `plan_shot`. Right: the committed shot.
+  - Both are fired into the hidden law, side by side. By default the target is the beyond-range target with the worst textbook miss.
+- **Tests:** `tests/test_sim.py` has 7 tests, including a render and clip smoke test of about 60 s. It skips without mujoco or the assets. `tests/test_sim_oracle_ledger.py` also runs.
 
-**Results** (noiseless, dev seeds 1002 and 1003)
+**Results** (dev worlds only; raw JSON in `sim/results/`)
 
-- Weigh, fast and full: matches the integrator to 1e-8 relative.
-- Drop and launch, fast: matches to 1e-6 s and 1e-9 m. An 11 m beyond-range mission shot agrees to 2 nm.
-- Full-mode drop: up to 0.21 ms early at 0.1 m height (0.04 sd), from the release state. `Lab.release_error` records it.
-- One experiment takes about 1 s wall time in full mode and 0.1 s in fast mode.
-- Bugs fixed on the way:
+- **S2 failure rate:**
+
+  | Run | Failed | Worst deviation from integrator (noiseless) | Median deviation |
+  | --- | --- | --- | --- |
+  | 50 randomized full-mode experiments (seeds 1000 to 1009) | **0/50** | 0.022 sd | 0.0005 sd |
+  | 500 randomized (seeds 1000 to 1049), before integral action | 1/500 (weigh of ref_800 at 0.04 m, "arm did not settle") | 0.086 sd (drops of ref_800 began up to 1.1 mm low) | |
+  | 500 randomized, after integral action | **0/500** | 0.032 sd | 0.0006 sd |
+
+  - Zero failures in 50 bounds the failure rate at about 6% (95%). Zero in 500 bounds it at about 0.6%.
+  - One full-mode experiment takes 1.5 to 1.8 s of wall time and 15 to 19 s of simulated time.
+- **S3 equivalence:** 20 full-mode experiments, 5 each on seeds 1000 to 1003 (F0 to F3), against the server path with identical noise draws.
+
+  | Observable | n | Max abs difference |
+  | --- | --- | --- |
+  | force_n | 6 | 0.0009 sd |
+  | fall_time_s | 6 | 0.011 sd |
+  | landing_x_m | 8 | 0.0005 sd |
+  | flight_time_s | 8 | 0.0008 sd |
+
+  - All are within noise, with no status mismatches. Fast mode alone agrees with the integrator to 1e-9 m on an 11 m shot.
+- **S4 renders:**
+  - The scripted oracle on dev 1001 (viewer fixture): 12 experiments in **67.3 s**, 1920x1080, 30 fps, h.264, 3.4 MB. It takes 100 s to render.
+  - Lane B's real agent ledger on dev 1000 (5 experiments, then commit): 40.6 s.
+- **S5 clip** on dev 1001, target t5 (beyond range, radius 5.75 cm), 5.3 s:
+
+  | Shot | Speed | Elevation | Miss | Outcome |
+  | --- | --- | --- | --- | --- |
+  | Textbook | 6.09 m/s | 32.5° | 41.8 cm | miss |
+  | Discovered (const_p3) | 6.08 m/s | 52.5° | 3.2 cm | hit |
+
+- **Bugs fixed during S1 to S2:**
   - MjSpec reads angles in degrees by default, which pinned the launcher at 2 degrees.
-  - Fingers touched the barrel while loading; loading now happens at 75 degrees, via a transit height.
-  - Holding the law force constant over a step gave first-order error (8 mm on an 11 m shot at 0.1 ms). The passive callback with RK4 replaced it.
+  - The fingers touched the barrel while loading.
+  - Holding the force constant over a step gave first-order error (8 mm on an 11 m shot at 0.1 ms).
+  - The servo sagged under the heaviest sample.
+  - The model-compile path calls the passive callback, so the callback is installed only while stepping.
 
 **Commands**
 
 ```
 .venv/bin/python -m sim.fetch_assets      # Menagerie panda at commit 4d038b3f into sim/assets/ (gitignored)
+uv pip install --python .venv/bin/python mujoco==3.14.0   # until physics adds it to pyproject (see Requests)
 .venv/bin/python -m sim.experiment --seed 1002 --mode full --spec '{"type":"drop","sample_id":"ref_100","height_m":1.0}'
+.venv/bin/python -m sim.validate robustness --seeds 1000-1009 --per-world 5 --out sim/results/robustness.json          # S2, 9 s
+.venv/bin/python -m sim.validate robustness --seeds 1000-1049 --per-world 10 --jobs 12 --out sim/results/robustness_500.json  # 90 s
+.venv/bin/python -m sim.validate equivalence --seeds 1000-1003 --per-world 5 --out sim/results/equivalence.json        # S3, 7 s
 .venv/bin/python -m sim.oracle_ledger --seed 1001 --out runs/oracle_1001
-.venv/bin/python -m pytest -q             # 54 passed, 1 skipped
+.venv/bin/python -m sim.render --ledger viewer/public/runs/oracle_1001/ledger.jsonl --out runs/render/oracle_1001.mp4   # S4, about 100 s
+.venv/bin/python -m sim.render --ledger runs/laneb_real_1000/ledger.jsonl --seed 1000 --out runs/render/laneb_real_1000.mp4
+.venv/bin/python -m sim.clip --ledger viewer/public/runs/oracle_1001/ledger.jsonl --out runs/render/oracle_1001_clip.mp4  # S5, 10 s
+.venv/bin/python -m pytest -q             # 76 passed, 1 skipped (with mujoco and the assets)
 ```
+
+Videos are in `runs/render/`, which is untracked. For the demo run on a test world, pass `--final-eval` to `sim.render` and `sim.clip`, and only after the human's freeze.
 
 **Decisions made autonomously**
 
 - The Menagerie assets (34 MB) are fetched at a pinned commit, not committed.
-- The arm is gravity-compensated, and grasping uses a weld constraint. Samples never collide with the fingers.
-- The weigh station sits beyond the table edge, so height 0 touches nothing. Above about 1 m the arm holds the sample with the gripper horizontal.
-- The launcher releases the sample at the muzzle (the barrel guides it). The arm's loading error is checked, and anything over 5 mm fails as a misload.
+- The arm is gravity-compensated and has integral action on its joint servos.
+- Grasping uses a weld constraint, and samples never collide with the fingers.
+- The weigh station sits beyond the table edge, so height 0 touches nothing. Above about 1 m the sample is held with the gripper horizontal.
+- The launcher releases the sample at the muzzle (the barrel guides it). The arm's loading error is checked, and anything over 5 mm fails as a misload. Loading happens at 75° elevation, so the barrel clears the fingers.
 - Target bins are visual only, and hits are scored geometrically as in SPEC 3.
-- The oracle ledger opens its session as condition `lab`, because the server does not accept `oracle` yet.
+- The law force goes in through MuJoCo's passive-force callback rather than `xfrc_applied`. It is still an external force each step, now also at every RK4 stage.
+- **S2 counts these failure causes:** IK failure, an arm that does not settle within 1.5 s to 0.2 mrad, arm contact with the table, launcher or pedestal, a slipped grasp, a misload, and a launcher that does not reach its elevation.
+- **Renderer:**
+  - On-screen numbers are the ledger's. The arm re-executes each spec without noise.
+  - The side camera looks from the far side of the launch plane, so the arm is not in the way, and is mirrored so downrange runs left to right.
+  - Shot zero's practice target t0 is drawn as a bin.
+- **The clip's textbook shot** uses the shared `plan_shot` with `textbook_law()`, plus a seeded actuation draw (stream `[seed, 88, k]`).
 
 **Next step**
 
-- S2: run 50 randomized full-mode experiments and report the failure rate.
-- S3: run 20 experiments in full mode against `World.run_experiment` with the same rng.
-- S4: `sim/render.py`, built against `runs/oracle_1001`.
-- S5: the side-by-side clip.
+- Render the demo run once the human freezes the test seeds and picks it (SPEC 10: the selection rule is fixed before results are seen).
+- Copy `video.mp4` into the viewer run directory, coordinated with the viewer lane.
 
 ## Requests (one lane asking the other, or the human, for something)
 

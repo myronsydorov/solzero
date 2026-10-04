@@ -18,7 +18,8 @@ from .scene import ARM_BASE, HOME_Q, MUZZLE, RADIUS, Scene
 DOWN = np.array([[1.0, 0, 0], [0, -1.0, 0], [0, 0, -1.0]])  # grip frame: z points down
 GRIP_OPEN, GRIP_CLOSED = 255.0, 255.0 * RADIUS / 0.04  # fingers touch the 4 cm sphere
 MAX_JOINT_SPEED = 1.2  # rad/s, for timing min-jerk moves
-SETTLE_TOL = 2e-3  # rad, joint tracking error at the end of a move
+SETTLE_TOL = 2e-4  # rad, joint tracking error at the end of a move
+KI = 0.3  # integral gain on the joint error, per 10 ms tick
 SETTLE_TIMEOUT = 1.5  # s
 
 
@@ -32,6 +33,7 @@ class Arm:
         self.scratch = mujoco.MjData(sc.model)
         self.on_frame = on_frame  # callback(scene) every control tick, e.g. a video writer
         self.held: str | None = None
+        self.reset()
         self.lo = sc.model.jnt_range[[sc.model.joint(f"panda/joint{i}").id for i in range(1, 8)], 0]
         self.hi = sc.model.jnt_range[[sc.model.joint(f"panda/joint{i}").id for i in range(1, 8)], 1]
 
@@ -105,10 +107,20 @@ class Arm:
         if self.on_frame is not None:
             self.on_frame(self.sc)
 
+    def reset(self) -> None:
+        """Forget the commanded posture and the learned load offset (after Scene.reset)."""
+        self.held = None
+        self.q_des = self.sc.data.ctrl[:7].copy()
+        self.offset = np.zeros(7)
+
+    def _command(self, q_des) -> None:
+        self.q_des = np.array(q_des, float)
+        self.sc.data.ctrl[:7] = self.q_des + self.offset
+
     def move_q(self, q1, duration: float | None = None, tick: float = 0.01) -> None:
         """Minimum-jerk joint-space move, then wait until the arm has settled."""
         sc = self.sc
-        q0 = sc.data.ctrl[:7].copy()
+        q0 = self.q_des.copy()
         dist = np.max(np.abs(q1 - q0))
         T = duration if duration is not None else max(0.4, 1.875 * dist / MAX_JOINT_SPEED)
         n_tick = max(1, int(round(tick / sc.model.opt.timestep)))
@@ -116,26 +128,32 @@ class Arm:
         for k in range(1, steps + 1):
             s = k / steps
             b = 10 * s**3 - 15 * s**4 + 6 * s**5
-            sc.data.ctrl[:7] = q0 + b * (q1 - q0)
+            self._command(q0 + b * (q1 - q0))
             self._tick(n_tick)
         self.settle(q1, tick)
 
     def settle(self, q1, tick: float = 0.01) -> None:
+        """Wait until the joints are at q1 and still. Integral action: the position servos have
+        no integrator, so a payload makes them sag; the residual is integrated into a load
+        offset on the commands (what the robot controller would do; it never uses the law)."""
         sc = self.sc
         n_tick = max(1, int(round(tick / sc.model.opt.timestep)))
         t = 0.0
         while t < SETTLE_TIMEOUT:
-            err = np.max(np.abs(self.q() - q1))
+            e = q1 - self.q()
+            err = np.max(np.abs(e))
             vel = np.max(np.abs(sc.data.qvel[sc.arm_dadr]))
-            if err < SETTLE_TOL and vel < 5e-3:
+            if err < SETTLE_TOL and vel < 2e-3:
                 return
+            self.offset += KI * e
+            self._command(q1)
             self._tick(n_tick)
             t += tick
         raise PrimitiveError(f"arm did not settle (joint error {err:.4f} rad)")
 
     def move(self, pos, duration: float | None = None) -> None:
         """Move the grip site (gripper pointing down) to pos."""
-        self.move_q(self.ik(np.asarray(pos, float), q0=self.sc.data.ctrl[:7]), duration)
+        self.move_q(self.ik(np.asarray(pos, float), q0=self.q_des), duration)
 
     def transit(self, pos, height: float = 0.40) -> None:
         """Go up to a safe height, across, then down to pos (clears the launcher and tray)."""

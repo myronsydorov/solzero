@@ -1,0 +1,553 @@
+{
+ "task": "equivalence",
+ "seeds": [
+  1000,
+  1001,
+  1002,
+  1003
+ ],
+ "summary": {
+  "n": 20,
+  "failed": 0,
+  "status_mismatch": 0,
+  "max_abs_diff_sd": 0.011092501124865262,
+  "per_observable": {
+   "force_n": {
+    "n": 6,
+    "max_abs_sd": 0.0009317550204323898,
+    "mean_sd": -0.0001741831641019653
+   },
+   "fall_time_s": {
+    "n": 6,
+    "max_abs_sd": 0.011092501124865262,
+    "mean_sd": 0.0017676811353201094
+   },
+   "landing_x_m": {
+    "n": 8,
+    "max_abs_sd": 0.0005178444728470843,
+    "mean_sd": 6.384877074272488e-06
+   },
+   "flight_time_s": {
+    "n": 8,
+    "max_abs_sd": 0.0008368735493147206,
+    "mean_sd": -0.00015056260170287494
+   }
+  },
+  "within_noise": true,
+  "wall_s_total": 9.012644707981963
+ },
+ "rows": [
+  {
+   "seed": 1000,
+   "family": "F0",
+   "i": 0,
+   "spec": {
+    "type": "launch",
+    "sample_id": "ref_050",
+    "speed_mps": 1.8178521922334854,
+    "elevation_deg": 60.150793850563886
+   },
+   "server": {
+    "landing_x_m": 0.3232426804805042,
+    "flight_time_s": 0.4634070259742072
+   },
+   "sim_full": {
+    "landing_x_m": 0.32324111650405835,
+    "flight_time_s": 0.4634028416064606
+   },
+   "status": [
+    "ok",
+    "ok"
+   ],
+   "failure": null,
+   "diff_sd": {
+    "landing_x_m": -0.00015639764458508232,
+    "flight_time_s": -0.0008368735493147206
+   }
+  },
+  {
+   "seed": 1000,
+   "family": "F0",
+   "i": 1,
+   "spec": {
+    "type": "launch",
+    "sample_id": "ref_800",
+    "speed_mps": 2.3533751125964315,
+    "elevation_deg": 33.82621905621349
+   },
+   "server": {
+    "landing_x_m": 0.7817123873256219,
+    "flight_time_s": 0.41444427292077085
+   },
+   "sim_full": {
+    "landing_x_m": 0.7817175657703503,
+    "flight_time_s": 0.41444821687001404
+   },
+   "status": [
+    "ok",
+    "ok"
+   ],
+   "failure": null,
+   "diff_sd": {
+    "landing_x_m": 0.0005178444728470843,
+    "flight_time_s": 0.0007887898486380607
+   }
+  },
+  {
+   "seed": 1000,
+   "family": "F0",
+   "i": 2,
+   "spec": {
+    "type": "weigh",
+    "sample_id": "mission_300",
+    "height_m": 1.0453481306724894
+   },
+   "server": {
+    "force_n": 2.656206113229604
+   },
+   "sim_full": {
+    "force_n": 2.6562061139084623
+   },
+   "status": [
+    "ok",
+    "ok"
+   ],
+   "failure": null,
+   "diff_sd": {
+    "force_n": 1.2778720362169553e-08
+   }
+  },
+  {
+   "seed": 1000,
+   "family": "F0",
+   "i": 3,
+   "spec": {
+    "type": "drop",
+    "sample_id": "ref_400",
+    "height_m": 0.13841267519648462
+   },
+   "server": {
+    "fall_time_s": 0.17571624514653478
+   },
+   "sim_full": {
+    "fall_time_s": 0.17569653869535265
+   },
+   "status": [
+    "ok",
+    "ok"
+   ],
+   "failure": null,
+   "diff_sd": {
+    "fall_time_s": -0.003941290236425532
+   }
+  },
+  {
+   "seed": 1000,
+   "family": "F0",
+   "i": 4,
+   "spec": {
+    "type": "launch",
+    "sample_id": "ref_050",
+    "speed_mps": 3.4578306570480217,
+    "elevation_deg": 51.42497761011549
+   },
+   "server": {
+    "landing_x_m": 0.7903053759889984,
+    "flight_time_s": 0.5941675399741921
+   },
+   "sim_full": {
+    "landing_x_m": 0.7903067750985703,
+    "flight_time_s": 0.5941702080524603
+   },
+   "status": [
+    "ok",
+    "ok"
+   ],
+   "failure": null,
+   "diff_sd": {
+    "landing_x_m": 0.00013991095718646207,
+    "flight_time_s": 0.0005336156536417391
+   }
+  },
+  {
+   "seed": 1001,
+   "family": "F1",
+   "i": 0,
+   "spec": {
+    "type": "launch",
+    "sample_id": "ref_050",
+    "speed_mps": 1.8138786938757927,
+    "elevation_deg": 40.035468973768246
+   },
+   "server": {
+    "landing_x_m": 0.4752599768370132,
+    "flight_time_s": 0.3495162241898025
+   },
+   "sim_full": {
+    "landing_x_m": 0.4752604156214236,
+    "flight_time_s": 0.3495167060852214
+   },
+   "status": [
+    "ok",
+    "ok"
+   ],
+   "failure": null,
+   "diff_sd": {
+    "landing_x_m": 4.3878441041700356e-05,
+    "flight_time_s": 9.637908378046234e-05
+   }
+  },
+  {
+   "seed": 1001,
+   "family": "F1",
+   "i": 1,
+   "spec": {
+    "type": "launch",
+    "sample_id": "ref_400",
+    "speed_mps": 3.073819531397971,
+    "elevation_deg": 49.038387109831085
+   },
+   "server": {
+    "landing_x_m": 1.0695008896439124,
+    "flight_time_s": 0.5479940784640738
+   },
+   "sim_full": {
+    "landing_x_m": 1.069501356219469,
+    "flight_time_s": 0.5479944155476164
+   },
+   "status": [
+    "ok",
+    "ok"
+   ],
+   "failure": null,
+   "diff_sd": {
+    "landing_x_m": 4.665755566346519e-05,
+    "flight_time_s": 6.741670852683512e-05
+   }
+  },
+  {
+   "seed": 1001,
+   "family": "F1",
+   "i": 2,
+   "spec": {
+    "type": "drop",
+    "sample_id": "ref_100",
+    "height_m": 0.46219392110453916
+   },
+   "server": {
+    "fall_time_s": 0.30929830343148473
+   },
+   "sim_full": {
+    "fall_time_s": 0.30930684458499486
+   },
+   "status": [
+    "ok",
+    "ok"
+   ],
+   "failure": null,
+   "diff_sd": {
+    "fall_time_s": 0.0017082307020244158
+   }
+  },
+  {
+   "seed": 1001,
+   "family": "F1",
+   "i": 3,
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_200",
+    "height_m": 0.14131607269151147
+   },
+   "server": {
+    "force_n": 1.9801645392835103
+   },
+   "sim_full": {
+    "force_n": 1.980161952624097
+   },
+   "status": [
+    "ok",
+    "ok"
+   ],
+   "failure": null,
+   "diff_sd": {
+    "force_n": -6.531425449786871e-05
+   }
+  },
+  {
+   "seed": 1001,
+   "family": "F1",
+   "i": 4,
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_400",
+    "height_m": 1.1394322053389538
+   },
+   "server": {
+    "force_n": 3.884093343582003
+   },
+   "sim_full": {
+    "force_n": 3.8840933610564705
+   },
+   "status": [
+    "ok",
+    "ok"
+   ],
+   "failure": null,
+   "diff_sd": {
+    "force_n": 2.2494912074567158e-07
+   }
+  },
+  {
+   "seed": 1002,
+   "family": "F2",
+   "i": 0,
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_020",
+    "height_m": 0.3784542204146544
+   },
+   "server": {
+    "force_n": 0.09086023054978376
+   },
+   "sim_full": {
+    "force_n": 0.09086014291310925
+   },
+   "status": [
+    "ok",
+    "ok"
+   ],
+   "failure": null,
+   "diff_sd": {
+    "force_n": -4.822609076832814e-05
+   }
+  },
+  {
+   "seed": 1002,
+   "family": "F2",
+   "i": 1,
+   "spec": {
+    "type": "launch",
+    "sample_id": "ref_050",
+    "speed_mps": 1.0358884432286282,
+    "elevation_deg": 15.611165048130648
+   },
+   "server": {
+    "landing_x_m": 0.2851113419800317,
+    "flight_time_s": 0.31891690271594236
+   },
+   "sim_full": {
+    "landing_x_m": 0.2851099072179974,
+    "flight_time_s": 0.3189143818545035
+   },
+   "status": [
+    "ok",
+    "ok"
+   ],
+   "failure": null,
+   "diff_sd": {
+    "landing_x_m": -0.00014347620342913814,
+    "flight_time_s": -0.0005041722877741073
+   }
+  },
+  {
+   "seed": 1002,
+   "family": "F2",
+   "i": 2,
+   "spec": {
+    "type": "drop",
+    "sample_id": "ref_050",
+    "height_m": 0.2221715939680795
+   },
+   "server": {
+    "fall_time_s": 0.27530482661136024
+   },
+   "sim_full": {
+    "fall_time_s": 0.2753278520559249
+   },
+   "status": [
+    "ok",
+    "ok"
+   ],
+   "failure": null,
+   "diff_sd": {
+    "fall_time_s": 0.004605088912934541
+   }
+  },
+  {
+   "seed": 1002,
+   "family": "F2",
+   "i": 3,
+   "spec": {
+    "type": "drop",
+    "sample_id": "ref_400",
+    "height_m": 0.31224709177101145
+   },
+   "server": {
+    "fall_time_s": 0.24742153601171454
+   },
+   "sim_full": {
+    "fall_time_s": 0.2474268030166182
+   },
+   "status": [
+    "ok",
+    "ok"
+   ],
+   "failure": null,
+   "diff_sd": {
+    "fall_time_s": 0.0010534009807328104
+   }
+  },
+  {
+   "seed": 1002,
+   "family": "F2",
+   "i": 4,
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_800",
+    "height_m": 1.075780856025633
+   },
+   "server": {
+    "force_n": 10.523940345162965
+   },
+   "sim_full": {
+    "force_n": 10.523940336460349
+   },
+   "status": [
+    "ok",
+    "ok"
+   ],
+   "failure": null,
+   "diff_sd": {
+    "force_n": -4.134675431293536e-08
+   }
+  },
+  {
+   "seed": 1003,
+   "family": "F3",
+   "i": 0,
+   "spec": {
+    "type": "launch",
+    "sample_id": "ref_200",
+    "speed_mps": 1.5075464376524685,
+    "elevation_deg": 57.41758930886115
+   },
+   "server": {
+    "landing_x_m": 0.5530202829748689,
+    "flight_time_s": 0.7087401152742999
+   },
+   "sim_full": {
+    "landing_x_m": 0.553018096195658,
+    "flight_time_s": 0.7087360573384411
+   },
+   "status": [
+    "ok",
+    "ok"
+   ],
+   "failure": null,
+   "diff_sd": {
+    "landing_x_m": -0.0002186779210933132,
+    "flight_time_s": -0.0008115871717562229
+   }
+  },
+  {
+   "seed": 1003,
+   "family": "F3",
+   "i": 1,
+   "spec": {
+    "type": "weigh",
+    "sample_id": "ref_400",
+    "height_m": 0.21458133390963163
+   },
+   "server": {
+    "force_n": 1.8306898070447517
+   },
+   "sim_full": {
+    "force_n": 1.8306556919563803
+   },
+   "status": [
+    "ok",
+    "ok"
+   ],
+   "failure": null,
+   "diff_sd": {
+    "force_n": -0.0009317550204323898
+   }
+  },
+  {
+   "seed": 1003,
+   "family": "F3",
+   "i": 2,
+   "spec": {
+    "type": "launch",
+    "sample_id": "ref_020",
+    "speed_mps": 2.3084106484107854,
+    "elevation_deg": 28.283442111933013
+   },
+   "server": {
+    "landing_x_m": 0.8447611184152857,
+    "flight_time_s": 0.607325113155251
+   },
+   "sim_full": {
+    "landing_x_m": 0.8447593318088753,
+    "flight_time_s": 0.6073224228097541
+   },
+   "status": [
+    "ok",
+    "ok"
+   ],
+   "failure": null,
+   "diff_sd": {
+    "landing_x_m": -0.0001786606410369984,
+    "flight_time_s": -0.0005380690993650461
+   }
+  },
+  {
+   "seed": 1003,
+   "family": "F3",
+   "i": 3,
+   "spec": {
+    "type": "drop",
+    "sample_id": "ref_050",
+    "height_m": 0.2049974778518642
+   },
+   "server": {
+    "fall_time_s": 0.29817725220184527
+   },
+   "sim_full": {
+    "fall_time_s": 0.2982327147074696
+   },
+   "status": [
+    "ok",
+    "ok"
+   ],
+   "failure": null,
+   "diff_sd": {
+    "fall_time_s": 0.011092501124865262
+   }
+  },
+  {
+   "seed": 1003,
+   "family": "F3",
+   "i": 4,
+   "spec": {
+    "type": "drop",
+    "sample_id": "ref_200",
+    "height_m": 1.0457690676726183
+   },
+   "server": {
+    "fall_time_s": 0.8676568197239893
+   },
+   "sim_full": {
+    "fall_time_s": 0.8676372605006283
+   },
+   "status": [
+    "ok",
+    "ok"
+   ],
+   "failure": null,
+   "diff_sd": {
+    "fall_time_s": -0.00391184467221084
+   }
+  }
+ ]
+}

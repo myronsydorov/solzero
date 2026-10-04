@@ -87,3 +87,32 @@ def test_mission_shot_crosses_target_height(lab):
     ref = w.shot_x("mission_300", [plan.speed_mps], [plan.elevation_deg], t.z_m)[0, 0]
     assert math.isfinite(got) and abs(got - ref) < 0.2 * NOISE_SD["landing_x_m"]
     assert abs(got - t.x_m) < t.hit_radius_m
+
+
+def test_full_mode_equivalence_with_server_path():
+    """S3 in miniature: full mode vs World.run_experiment, same random stream."""
+    from sim.validate import equivalence_world
+
+    rows = equivalence_world((1002, 3))
+    assert all(r["status"] == ["ok", "ok"] for r in rows)
+    assert all(abs(v) < 0.2 for r in rows for v in r["diff_sd"].values())
+
+
+def test_render_and_clip_smoke(tmp_path):
+    """S4/S5: a one-experiment replay and the side-by-side clip from a scripted oracle ledger."""
+    import json
+    import subprocess
+    import sys
+
+    run = tmp_path / "run"
+    subprocess.run([sys.executable, "-m", "sim.oracle_ledger", "--seed", "1001", "--out", str(run),
+                    "--runs-dir", str(tmp_path / "srv"), "--budget", "3"], check=True, capture_output=True)
+    out = subprocess.run([sys.executable, "-m", "sim.render", "--ledger", str(run / "ledger.jsonl"),
+                          "--out", str(tmp_path / "v.mp4"), "--max-experiments", "1", "--scale", "0.25"],
+                         check=True, capture_output=True, text=True).stdout
+    info = json.loads(out[out.index("{"):])
+    assert info["experiments"] == 1 and len(info["mission"]) == 5 and (tmp_path / "v.mp4").stat().st_size > 0
+    out = subprocess.run([sys.executable, "-m", "sim.clip", "--ledger", str(run / "ledger.jsonl"),
+                          "--out", str(tmp_path / "c.mp4")], check=True, capture_output=True, text=True).stdout
+    clip = json.loads(out[out.index("{"):])
+    assert clip["frames"] > 30 and (tmp_path / "c.mp4").stat().st_size > 0
