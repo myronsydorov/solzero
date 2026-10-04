@@ -464,9 +464,16 @@ Videos are in `runs/render/`, which is untracked. For the demo run on a test wor
     - a real agent command (not `eval.agent_stub` or `eval.scripted`).
   - When one appears it runs `sim.demo --style both`. Output goes to `runs/demo/<label>_<seed>_<attempt>/`.
 
+- **Lane B's first complete eval-runner session, rendered by the watcher:** `runs/pilot/random/1000/attempt1` in the physics worktree.
+  - Real `lab.run` agents, random condition, session `s_f8f370ebc1`. The PI committed after 11 experiments.
+  - Server admin score: **5/5 hits** (misses 0.1 to 3.1 cm). Clip on t4: textbook misses by 51.6 cm; the agents' law lands 3.1 cm off (radius 5.4 cm).
+  - Assets (both styles, 63.0 s replay) are in `runs/demo/random_1000_attempt1/`.
+  - The pilot's `lab` sessions on 1000 and 1001 stopped at the token cap after 9 experiments, without committing. There is no mission to render for them.
+- The watcher was restarted to wait for the first committed `lab`-condition session. The pilot batch is paused on a provider limit until 11:52.
+
 **Next step**
 
-- Render lane B's first complete eval-runner session: automatic when the watcher fires. By hand: `sim.demo --run runs/<eval>/lab/<seed> --style both`.
+- Render the first committed `lab`-condition eval session: automatic when the watcher fires. By hand: `sim.demo --run runs/<eval>/lab/<seed> --style both`.
 
 ## Requests (one lane asking the other, or the human, for something)
 
