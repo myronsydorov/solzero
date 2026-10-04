@@ -9,6 +9,7 @@ import hashlib
 import inspect
 import json
 import os
+import random
 from pathlib import Path
 import tempfile
 import time
@@ -24,6 +25,7 @@ from lab.policies import ROLE_TOOLS, role_policy
 from lab.session import LabSession
 from lab.ledger import Ledger
 from lab import tool_functions
+from lab.model_runtime import ObservedExecutor, ModelFailure, limit_kind, backoff_seconds
 
 
 def atomic_json(path, value):
@@ -82,6 +84,7 @@ class Runner:
         self.usage_turns = 0
         self.wall_seconds = 0.0
         self.started = time.monotonic()
+        self.retry_rng = random.Random(getattr(options, "seed", 1000))
         self.schedule = json.loads(Path(options.schedule).read_text()) if options.schedule else None
         if self.schedule and "type" in self.schedule[0]:
             self.schedule = [parse_spec(item).model_dump(mode="json") for item in self.schedule]
@@ -148,17 +151,43 @@ class Runner:
         return sum(self.usage[key] for key in ("input_tokens", "output_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"))
 
     async def turn(self, role, task, cycle):
+        for attempt in range(6):
+            try:
+                return await self._turn_once(role, task, cycle)
+            except ModelFailure as failure:
+                category = limit_kind(str(failure))
+                terminal = category != "transient" or attempt == 5 or self.inflight or self.session.uncertain
+                delay = None if terminal else backoff_seconds(attempt, self.retry_rng)
+                self.trace({"kind": "model_failure", "agent": role, "cycle": cycle,
+                            "provider": "Anthropic Claude subscription via claude-sdk", "model": self.options.model,
+                            "error": str(failure), "limit_kind": category, "retry": not terminal, "delay_s": delay})
+                self.save()
+                if terminal:
+                    raise
+                await asyncio.sleep(delay)
+                if self.session.committed or self.pending_commit:
+                    return
+
+    async def _turn_once(self, role, task, cycle):
         if self.token_total() >= self.options.token_cap:
             raise CapReached("Session token cap reached")
         config = yaml.safe_load((Path(__file__).parent / "agents" / f"{role}.yaml").read_text())
-        model = self.options.analyst_model if role == "analyst" and self.options.analyst_model else self.options.model
-        executor = ClaudeSDKExecutor(cwd=self.workspace, model=model, skills_filter="none", os_env=None)
+        model = self.options.model
+        def observe(event):
+            record = {"agent": role, "cycle": cycle, "step": self.step, "observed_at": time.time(), "event": event}
+            with (self.output / "model-calls.jsonl").open("a") as stream:
+                stream.write(json.dumps(record) + "\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+        executor = ObservedExecutor(observer=observe, cwd=self.workspace, model=model, skills_filter="none", os_env=None)
         guard = role_policy(role, self.options.auto_approve, self.options.min_experiments)
         calls = 0
         measurement_tools = {"weigh", "drop", "launch"}
-        mutations = measurement_tools | {"set_laws", "nominate", "commit_mission"}
+        mutations = measurement_tools | {"set_laws", "preregister", "nominate", "commit_mission"}
 
-        async def dispatch(name, arguments):
+        dispatch_lock = asyncio.Lock()
+
+        async def dispatch_serial(name, arguments):
             nonlocal calls
             calls += 1
             self.dispatch_count += 1
@@ -186,7 +215,7 @@ class Runner:
                 else:
                     try:
                         if name in mutations:
-                            self.inflight = {"name": name, "key": key}
+                            self.inflight = {"name": name, "key": key, "arguments": arguments, "cycle": len(self.session.results), "ledger_count": len(self.entries())}
                             self.save()
                         result = await asyncio.to_thread(getattr(tool_functions, name), **arguments)
                         json.dumps(result, allow_nan=False)
@@ -212,6 +241,10 @@ class Runner:
             self.save()
             return result
 
+        async def dispatch(name, arguments):
+            async with dispatch_lock:
+                return await dispatch_serial(name, arguments)
+
         executor._tool_executor = dispatch
         prompt = task + "\n" + json.dumps(self.context(), allow_nan=False)
         transcript, turn_usage = [], None
@@ -223,9 +256,13 @@ class Runner:
                     if getattr(event, "usage", None):
                         turn_usage = event.usage
                     if isinstance(event, ExecutorError):
-                        raise RuntimeError(event.message)
+                        raise ModelFailure(event.message)
                     if isinstance(event, TextChunk):
                         transcript.append(event.text)
+            except Exception as failure:
+                if limit_kind(str(failure)):
+                    raise ModelFailure(str(failure)) from failure
+                raise
             finally:
                 await executor.close()
                 if turn_usage:
@@ -234,7 +271,7 @@ class Runner:
                                        if key in {"input_tokens", "output_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"} and isinstance(value, int)})
                 with (self.output / "conversation.jsonl").open("a") as stream:
                     stream.write(json.dumps({"agent": role, "cycle": cycle, "model": model,
-                                             "usage": turn_usage, "text": "".join(transcript)}) + "\n")
+                                             "usage": turn_usage, "resolved_model": (turn_usage or {}).get("model"), "text": "".join(transcript)}) + "\n")
                 if span:
                     span.set_outputs({"text": "".join(transcript), "usage": turn_usage})
                 self.save()
@@ -314,7 +351,21 @@ class Runner:
         entries = self.entries()
         conversation = self.output / "conversation.jsonl"
         turns = [json.loads(line) for line in conversation.read_text().splitlines()] if conversation.exists() else []
-        return {"status": status, "error": error, "session_id": self.session.info.session_id,
+        by_agent = {}
+        for turn in turns:
+            totals = by_agent.setdefault(turn["agent"], {"model_turn_attempts": 0, "tokens": 0, "usage_missing_turns": 0})
+            totals["model_turn_attempts"] += 1
+            totals["usage_missing_turns"] += not bool(turn.get("usage"))
+            totals["tokens"] += sum((turn.get("usage") or {}).get(key, 0) for key in
+                                     ("input_tokens", "output_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"))
+        observed = self.output / "model-calls.jsonl"
+        if observed.exists():
+            for line in observed.read_text().splitlines():
+                record = json.loads(line)
+                if record["event"]["type"] == "message_start":
+                    totals = by_agent.setdefault(record["agent"], {})
+                    totals["observed_model_calls"] = totals.get("observed_model_calls", 0) + 1
+        return {"by_agent": by_agent, "status": status, "error": error, "session_id": self.session.info.session_id,
                 "condition": self.session.condition, "cycles": len(self.session.results),
                 "budget_left": self.session.budget_left, "tool_calls": self.dispatch_count,
                 "stop_reason": "pi_chose_commit" if self.session.committed or self.pending_commit else status,
@@ -342,6 +393,24 @@ def resume_session(client, saved, output, auto_approve):
             saved["budget_left"] = later[0].budget_left
             saved["tentative"] = saved["pending"][0]["tentative_followup"]
             saved["pending"], saved["inflight"], saved["uncertain"] = None, None, False
+    intent = saved["inflight"]
+    if intent and "ledger_count" in intent:
+        ledger_path = Path(saved.get("ledger_path", output / saved["info"]["session_id"] / "ledger.jsonl"))
+        records = [json.loads(line) for line in ledger_path.read_text().splitlines()] if ledger_path.exists() else []
+        acknowledgements = records[intent["ledger_count"]:]
+        kind = {"preregister": "prediction_table", "set_laws": "law_set", "nominate": "nomination", "commit_mission": "commit"}.get(intent["name"])
+        matches = [item for item in acknowledgements if item["kind"] == kind]
+        if len(matches) == 1:
+            payload = matches[0]["payload"]
+            if kind == "prediction_table":
+                saved["pending"] = [PredictionsRequest.model_validate({key: value for key, value in payload.items()
+                                    if key != "prediction_table_id"}).model_dump(mode="json"), payload["prediction_table_id"]]
+            elif kind == "law_set":
+                saved["live_laws"], saved["pending"] = payload["laws"], None
+                saved["fits"], saved["fit_laws"] = {}, {}
+            elif kind == "commit":
+                saved["committed"], saved["pending_commit"] = True, None
+            saved["inflight"], saved["uncertain"] = None, False
     if saved["inflight"] or saved["uncertain"]:
         raise RuntimeError("Ambiguous mutation checkpoint: host reconciliation is required; no replay permitted")
     if str(client._http.base_url) != saved["origin"]:
@@ -384,6 +453,8 @@ def main():
     parser.add_argument("--no-tracing", action="store_true")
     parser.add_argument("--tracking-uri")
     options = parser.parse_args()
+    if options.analyst_model and options.analyst_model != options.model:
+        parser.error("All scientific roles and conditions must use one model")
     options.auto_approve = options.auto_approve or options.approval == "auto"
     if not options.session_info and not options.world:
         parser.error("Supply --world or --session-info")

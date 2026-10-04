@@ -83,6 +83,18 @@ SOLZERO_ADMIN_TOKEN=t .venv/bin/python -m world.loadtest --url http://127.0.0.1:
 
 ## Lane B: Omnigent and agents (Codex, branch `omnigent`)
 
+### B1 priority restart (2026-10-04 04:32 Europe/Berlin)
+
+B1 is the only active item. B2–B5 are held; the premature `lab-freeze-candidate` tag is unchanged and is not an acceptance marker. No fallback provider or second model is authorized or used.
+
+- **Exact observed limit:** Anthropic Claude subscription through Omnigent 0.16.0 `ClaudeSDKExecutor` / Claude Code, configured model alias `sonnet`. Exact error: `You've hit your session limit · resets 5:30am (Europe/Berlin)`. This is explicitly a subscription **session cap**. The error does not identify RPM, TPM, a daily allowance or a numeric quota; labelling it as one would be invented. Earlier logs: `runs/l1-l5/l1-budget12-resume.log`, `runs/l1-l5/lab8-resume.log`. At 04:30 the fresh single-session attempt began responding again; no claim that quota reset has been verified.
+- **Resolved model:** fresh raw response `message_start.message.model` is `claude-sonnet-5-5`; saved in `runs/b1/baseline/model-calls.jsonl`. All roles now require the same configured model; mismatched `--analyst-model` is rejected.
+- **Backoff:** every scientific Omnigent turn handles surfaced transient throttling/overload/timeouts with full-jitter exponential delays (ceilings 2, 4, 8, 16, 32 seconds; six attempts total). Subscription/quota caps stop with a checkpoint rather than hammering the provider. Omnigent/Claude Code owns internal HTTP retries; we do not claim visibility into failed internal requests. Raw model response boundaries give accepted call counts, and turn attempts/retries are counted separately.
+- **Resume safety:** serialized tool dispatch, exact pending-registration deduplication, durable registration recovery, measurement/commit memo and fail-closed ambiguous mutations. An acknowledged registration whose ledger write fails cannot be measured. No table is silently replaced to retry an uncertain experiment. Complete recovery from a lost response still needs the public server support requested below.
+- **Measurement before optimization:** `SOLZERO_WORLD_URL=http://127.0.0.1:8003 .venv/bin/python -m lab.run --world w_3c4adce51f85 --condition lab --seed 1000 --output runs/b1/baseline --model sonnet --auto-approve --max-wall-s 600 > runs/b1/baseline.log 2>&1`. One fresh session only; full-session results pending. Raw per-agent model calls and cumulative tokens are persisted. No transcript is passed between agents in the existing runner (only public structured records); context/Operator/candidate optimization follows this measurement.
+- **Concurrency:** one active scientific session is being measured. Highest sustainable concurrency and sessions/hour cannot be inferred from a subscription error without a published numeric allowance and a completed run. While the cap rejects calls, capacity is zero; do not mistake the earlier 16-process HTTP fixture for model capacity.
+
+
 **Current milestone (2026-10-04 02:27 Europe/Berlin):** both approved missions committed. Latest main merged; eval adapter implemented with the hard-token-cap gap disclosed below. L1–L5 remain partial. Live acceptance and the paired comparison are **blocked by the Claude subscription session limit**, which reports a reset at 05:30 Europe/Berlin. The candidate tag is a code-review checkpoint with incomplete scientific validation, not a test-seed freeze.
 
 ### Approved missions and why they stopped
@@ -374,6 +386,8 @@ Videos are in `runs/render/`, which is untracked. For the demo run on a test wor
 - Copy `video.mp4` into the viewer run directory, coordinated with the viewer lane.
 
 ## Requests (one lane asking the other, or the human, for something)
+
+- **B1 prerequisite, lane B → physics (server interface gap):** to satisfy resume *at any point*, provide idempotent `/experiment` request keys with replay of the original Result, or a public authenticated session/result status lookup, plus durable server session state. If the server consumes an experiment then its reply is lost before local fsync, current public endpoints cannot distinguish success from failure. Lab must stop rather than create another table/experiment, and must not use admin endpoints for recovery. Please land schema/SPEC changes first; no hidden-state recovery route has been added in lab.
 
 - **Lane B latest integration:** SPEC 5.6 flags and output adapter implemented in `lab.run`; adopted sessions never POST `/session`; `--approval auto` records provenance; flat `DIR/ledger.jsonl`; exit 0 when summary written. Remaining blocker: Claude SDK only exposes usage after a turn, so token cap is a between-turn guard and cannot yet satisfy the hard-cap contract. Keep agent comparison provisional until an isolated provider path with hard token accounting is available. Wall timeout stops new work but may wait for an in-flight thread to finish; host kill grace still applies.
 - **Lane B handoff:** latest main resolves expression-parser, full-law snapshot, five-shot validation and shared-sampler requests below. Historical rows retained. Host-only `eval/dev_batch.py`, `eval/report_dev.py`, `eval/replay_mock.py`, `eval/verify_parallel.py` were added under the earlier shared-path claim; hand these to the integrator under the new ownership table. `dev_batch` now uses `eval.sampler.random_specs` exactly; old interrupted schedules are historical and must not be silently reused for the final paired comparison.
