@@ -7,7 +7,8 @@ Scripted policies on 60 dev worlds (hit radius 2%, launcher 0.5% / 0.1 deg). Mea
 |   in-range targets | 0.970 [0.944, 0.989] | 0.988 [0.980, 0.994] | 0.018 [0.002, 0.042] | 60 |
 |   beyond-range targets | 0.845 [0.774, 0.909] | 0.926 [0.886, 0.960] | 0.081 [0.036, 0.138] | 60 |
 | Law-form recovery (SPEC 7 rule) | 0.900 [0.817, 0.967] | 0.967 [0.917, 1.000] | 0.067 [-0.017, 0.167] | 60 |
-| Control false discovery | 0.200 [0.000, 0.400] | 0.133 [0.000, 0.333] | -0.067 [-0.333, 0.200] | 15 |
+| Control false discovery, claim by selected form (as run) | 0.200 [0.000, 0.400] | 0.133 [0.000, 0.333] | -0.067 [-0.333, 0.200] | 15 |
+| Control false discovery, claim by 2-sd rule (regraded) | 0.133 [0.000, 0.333] | 0.067 [0.000, 0.200] | -0.067 [-0.267, 0.133] | 15 |
 
 {
  "run": "calibration/results/dev60",

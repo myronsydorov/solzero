@@ -197,7 +197,7 @@ def primary_table(run: Path) -> str:
     """SPEC 7 primary metrics for the scripted policies, with 95% bootstrap CIs and paired
     differences. Law recovery uses the eval/grade.py rule on the final fit."""
     from calibration.library import library
-    from eval.grade import law_dependence, law_recovered
+    from eval.lawform import claims_non_ordinary, law_dependence, law_recovered
     from schemas import FitResult
 
     _, B = load(run)
@@ -211,11 +211,18 @@ def primary_table(run: Path) -> str:
             "mission_hit_in_range": hits(b["mission_selected"], "in_range"),
             "mission_hit_beyond": hits(b["mission_selected"], "beyond"),
             "law_form_recovered": float(law_recovered(dep, b["truth"])["recovered"]),
-            "false_discovery": float(b["claims_non_ordinary"]) if b["truth"]["family"] == "F0" else None,
+            # As run: the claim stored in the raw file (form rule for runs before 2026-10-04 04:30).
+            "false_discovery_form_rule": (float(b.get("claims_non_ordinary_form_rule", b["claims_non_ordinary"]))
+                                          if b["truth"]["family"] == "F0" else None),
+            # Regraded: the SPEC 7 2-sd rule applied to the saved final fit, no rerun.
+            "false_discovery": float(claims_non_ordinary(dep)) if b["truth"]["family"] == "F0" else None,
+            "claims_any_2sd": float(claims_non_ordinary(dep)),
         }
     keys = [("probe_hit_beyond", "Beyond-range probe hit rate (after 12)"), ("mission_hit_rate", "Mission hit rate"),
             ("mission_hit_in_range", "  in-range targets"), ("mission_hit_beyond", "  beyond-range targets"),
-            ("law_form_recovered", "Law-form recovery (SPEC 7 rule)"), ("false_discovery", "Control false discovery")]
+            ("law_form_recovered", "Law-form recovery (SPEC 7 rule)"),
+            ("false_discovery_form_rule", "Control false discovery, claim by selected form (as run)"),
+            ("false_discovery", "Control false discovery, claim by 2-sd rule (regraded)")]
     seeds = sorted({sd for (_, sd) in rows})
     paired_seeds = [sd for sd in seeds if ("random", sd) in rows and ("greedy", sd) in rows]
 

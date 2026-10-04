@@ -16,68 +16,11 @@ from pathlib import Path
 import numpy as np
 
 from schemas import FitResult, Law
-from tools.analysis import compile_law
+
+from .lawform import law_dependence, law_recovered  # noqa: F401  (re-exported for callers)
 
 BUDGET = 12
 THRESHOLD = 0.8  # share of beyond-range probes within the hit radius
-DEP_TOL = 0.01  # a dependence counts when gravity changes by more than 1% over the range
-P_TOL = 0.3
-RHO_WAIVE = 0.05
-
-
-# --- law-form recovery ---------------------------------------------------------------
-
-
-def reduced_values(law: Law, fit: FitResult) -> dict[str, float]:
-    """Fitted values, with every parameter within 2 sd of zero set to zero."""
-    vals = {}
-    for k in law.params:
-        est = fit.params.get(k)
-        v, sd = (est.value, est.sd) if est else (law.params[k].init, 0.0)
-        vals[k] = 0.0 if abs(v) <= 2 * sd else v
-    return vals
-
-
-def law_dependence(law: Law, fit: FitResult) -> dict:
-    """Probe the reduced law: does gravity depend on mass, on height; drag exponent."""
-    cl = compile_law(law)
-    vals = reduced_values(law, fit)
-    P = [np.array([vals[k]]) for k in cl.param_names]
-
-    def static_g(m, z):
-        _, az = cl.accel(np.array([m]), np.array([z]), np.zeros(1), np.zeros(1), P)
-        return float(-az[0])
-
-    def drag_ax(v):
-        ax, _ = cl.accel(np.array([0.1]), np.zeros(1), np.array([v]), np.zeros(1), P)
-        return float(-ax[0])
-
-    g_ref = static_g(0.1, 0.0)
-    scale = max(abs(g_ref), 1e-9)
-    mass_dep = abs(static_g(0.02, 0.0) - static_g(0.8, 0.0)) / scale > DEP_TOL
-    height_dep = abs(static_g(0.1, 0.0) - static_g(0.1, 1.2)) / scale > DEP_TOL
-    a1, a4 = drag_ax(1.0), drag_ax(4.0)
-    if not (math.isfinite(a1) and math.isfinite(a4)) or (abs(a1) < 1e-9 and abs(a4) < 1e-9):
-        p = None
-    elif a1 <= 0 or a4 <= 0:
-        p = float("nan")  # not a drag (does not oppose motion)
-    else:
-        p = math.log(a4 / a1) / math.log(4.0)
-    return {"mass_dep": bool(mass_dep), "height_dep": bool(height_dep), "drag_p": p,
-            "g_ref": g_ref, "reduced_params": vals}
-
-
-def law_recovered(dep: dict, truth: dict) -> dict:
-    fam = truth["family"]
-    mass_ok = dep["mass_dep"] == (fam == "F2")
-    height_ok = dep["height_dep"] == (fam == "F3")
-    if truth["rho"] < RHO_WAIVE:
-        p_ok = True
-    else:
-        p = dep["drag_p"]
-        p_ok = p is not None and math.isfinite(p) and abs(p - truth["p"]) <= P_TOL
-    return {"mass_ok": mass_ok, "height_ok": height_ok, "drag_ok": p_ok,
-            "recovered": bool(mass_ok and height_ok and p_ok)}
 
 
 # --- ledger-derived secondary metrics ------------------------------------------------
@@ -168,7 +111,7 @@ def grade_run(run_dir: Path, label: str | None = None, seed: int | None = None) 
         "label": label, "seed": seed if seed is not None else truth.get("seed"), "world_id": score["world_id"],
         "condition": score["condition"], "family": truth["family"], "session_id": score["session_id"],
         "agent_status": summary.get("status"), "tokens_used": summary.get("tokens_used"),
-        "wall_s": summary.get("wall_s"), "n_experiments": used, "flags": flags,
+        "wall_s": summary.get("wall_s"), "n_experiments": used, "experiments_used": used, "flags": flags,
         # primary
         "probe_hit_beyond": probe_beyond,
         "mission_hit_rate": hit_rate(),
