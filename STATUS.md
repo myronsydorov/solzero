@@ -353,6 +353,8 @@ Videos are in `runs/render/`, which is untracked. For the demo run on a test wor
 | --- | --- | --- | --- |
 | 2026-10-03 | Claude Code | `FitResult.cov` (optional parameter covariance) added; `loo_error` defined as RMS in noise-sd units | `predict` needs correlated parameter draws; the units were undefined |
 | 2026-10-03 | Claude Code | `noise_sd` in `SessionInfo` and in launch `Result` gains `speed_frac` and `elevation_deg` (launcher actuation error) | Actuation error dominates launch noise; the fit must weight launches by it |
+| 2026-10-04 | integrator | SPEC 5.6: `--resume` flag; `rate_limited` status with `retry_after_s`; the runner pauses the batch on provider limits and resumes paused runs | Human instruction: a provider rate limit pauses the batch instead of failing runs. Lane B already has `--resume` |
+| 2026-10-04 | integrator | SPEC 7: experiments used is a secondary metric; scripted references claim non-ordinary physics by the 2-sd grading rule | Human instructions, 2026-10-04 |
 | 2026-10-04 | Claude Code | Law expressions limited to a whitelisted arithmetic grammar (`schemas.check_expr`), checked before sympy parses them | Lane B bug report: untrusted strings reached `sympy.parse_expr` (eval) over HTTP |
 | 2026-10-04 | Claude Code | `Condition` adds `textbook` and `oracle` (scripted references); `/commit` requires exactly one shot per target; prediction tables are pinned to full law content | Human instruction E1; lane B bug reports |
 | 2026-10-04 | Claude Code | SPEC 5.6: agent run CLI contract (`lab.run --session-info --condition --specs --max-tokens --max-wall-s --approval`, `summary.json`). Lane B to confirm or amend | E1 needs a fixed handoff between `eval/` and `lab/` |

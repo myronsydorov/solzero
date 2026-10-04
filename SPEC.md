@@ -241,14 +241,17 @@ The eval runner opens the session itself and hands it to the agent process:
 
 ```
 python -m lab.run --world-url URL --session-info FILE --condition {lab,single,random} --out DIR
-                  [--specs FILE] [--max-tokens N] [--max-wall-s S] [--approval {human,auto}]
+                  [--specs FILE] [--max-tokens N] [--max-wall-s S] [--approval {human,auto}] [--resume]
 ```
 
 - `--session-info` is the `SessionInfo` JSON returned by `POST /session`. The agent process never calls `/session`.
 - `--specs` (random condition only) is a JSON list of exactly `budget` ExperimentSpecs from the shared sampler (`eval.sampler`). The Operator runs them in order. The other agents still propose, fit, judge, nominate and commit.
 - `--max-tokens` and `--max-wall-s` are hard caps. The agent stops cleanly, and commits if it can, when a cap is reached. The runner also kills the process at `max-wall-s + 60`.
 - `--approval auto` approves the five-shot table automatically, for evaluation runs only. It is recorded in the ledger as `{"kind": "commit", "payload": {..., "approval": "auto"}}`. `human` keeps the section 6 gate.
-- On exit it writes `DIR/summary.json`: `{"session_id", "status": "committed" | "cap_reached" | "error" | "pending_approval", "tokens_used", "wall_s", "n_experiments", "error": str | null}`, plus `DIR/ledger.jsonl` (section 5.5).
+- On exit it writes `DIR/summary.json`: `{"session_id", "status": "committed" | "cap_reached" | "error" | "pending_approval" | "rate_limited", "tokens_used", "wall_s", "n_experiments", "error": str | null, "retry_after_s": float | null}`, plus `DIR/ledger.jsonl` (section 5.5).
+- `rate_limited` means the model provider refused service (rate or session limit). `retry_after_s` is set when the provider says when service resumes. The runner also treats an `error` whose text names a provider rate or session limit as `rate_limited`.
+- `--resume` continues the same session from `DIR` after a `rate_limited` stop, without repeating acknowledged experiments. The world server must still be running.
+- On `rate_limited`, the runner pauses the whole batch (no new runs start) until the provider is expected back, then resumes the paused runs. A rate-limited run is not counted as a crash.
 - Exit code 0 means `summary.json` was written. Any other code is a crash, and the runner retries the run once.
 
 ### 5.7 Viewer inputs
@@ -322,6 +325,7 @@ Rules that make the orchestration consequential:
 - **Matched budgets:** same model, 12 experiments, same tools, same token cap, same world seeds, compared pairwise.
 - **Dev worlds:** seeds 1000 to 1999, for calibration and prompt work.
 - **Test worlds:** 40 seeds (ten per family) drawn from 9000 to 9999 by `python -m world.freeze` and written to `world/test_seeds.lock` at the freeze, which only the human runs. No code path runs a test seed without the flag `--final-eval`.
+- **Claims by scripted references:** a scripted policy claims non-ordinary physics only if its final law, reduced by the 2-sd rule in "Grading" below, depends on mass or height or has a drag exponent more than 0.3 from 2. Ordinary means constant gravity with quadratic drag or no drag. This is the same rule the grader uses.
 - **References run through the same server:** textbook (no experiments, Earth physics) and oracle (greedy disagreement over the 12-form library) open sessions with conditions `textbook` and `oracle`. The scripted-random reference (shared sampler plus library fitting) uses condition `random`. All three reuse `calibration/`.
 - **Hidden scoring:** after each experiment the server scores the nominated best law on 40 hidden probe launches landing on the table, all with mixed samples: 20 in the tested range (1 to 4 m/s) and 20 beyond it (4 to 7 m/s). A probe counts as within the hit radius when the law's predicted landing point is within max(5 cm, 2% of the true landing distance) of the true one, with a perfect launcher. Agents never see these scores.
 
@@ -331,6 +335,7 @@ Rules that make the orchestration consequential:
 | **Mission hit rate (primary)** | Share of the five targets hit, split into in-range and beyond-range, with median miss as a fraction of target distance |
 | **Law-form recovery (primary)** | The final law has the right dependence (graded as below) |
 | **Control false discovery (primary)** | Share of control worlds where the run claims non-ordinary physics |
+| Experiments used (secondary) | Experiments run before the commit; the PI may commit before the budget is spent |
 | Experiments to threshold (secondary) | Experiments until at least 80% of beyond-range probes are within the hit radius. Report the whole curve. Also the median landing error over all 40 probes. |
 | Abstention | Share of worlds ending in "insufficient evidence", and accuracy on the rest |
 | Evidence-driven replanning | Share of cycles logged as "plan changed by evidence", and runs where the initial explanation was rejected |
