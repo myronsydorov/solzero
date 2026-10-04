@@ -1,10 +1,12 @@
 # Sol Zero
 
-A simulated robot lab that learns from experiments before committing five mission shots. An Omnigent lab proposes laws, chooses measurements, judges evidence and decides when to stop. Current code has four model-backed roles and a deterministic Operator. Every experiment leaves an auditable record of the prediction and result.
+**An AI science lab that has to learn unfamiliar physics before it acts.** A simulated robot lab is dropped into a world whose force law may differ from Earth's. It gets 12 experiments to learn it, and must pre-register a prediction before each one. Then it commits one firing table for five targets it has never measured, some beyond the range it tested. Five Omnigent roles (Theorist, Experimentalist, Operator, Analyst, PI) propose laws, choose measurements, judge evidence and decide when to stop. In the current code, four roles are model-backed and the Operator is deterministic. Every step is written to an auditable ledger.
+
+**Result in one line:** in a completed development run (dev world 1000), the lab stopped after 10 of 12 experiments and the server graded **5/5 mission shots as hits**, including all 3 beyond-range targets. This is one development run in simulation, not a held-out or comparative evaluation (see [Known limits](#known-limits)).
 
 **Watch:** [two-minute demo](docs/media/demo.mp4) · [two-minute technical walkthrough](docs/media/technical.mp4) · [narration and disclosures](docs/submission-scripts.md)
 
-**Explore:** [interactive replay viewer](https://viewer-delta-ten.vercel.app) — the deployed site currently shows **fixture data**, not the completed run below.
+**Explore:** [interactive replay viewer](https://viewer-delta-ten.vercel.app) — the deployed site currently shows **fixture data** (scripted, no-language-model oracle replays on dev worlds 1000 to 1003), not the completed lab run below. For the lab run, use the [run evidence](docs/evidence/lab-dev1000) and the videos.
 
 The videos are rendered replays of a development simulation, not a live physical robot. The lab connects to the actual project world server over HTTP; that server still implements simulated physics.
 
@@ -30,7 +32,7 @@ Development world 1000, session **`s_dce1ebea1d`**: the PI chose to stop after *
 - **Isolation:** scientific agents receive public observations through HTTP, without generator code or admin scores.
 - **Records:** a JSONL ledger captures laws, candidate choices, predictions, results, verdicts, changed decisions, nominations and the mission commit.
 
-The design is in [SPEC.md](SPEC.md), with measured results and development decisions in [STATUS.md](STATUS.md).
+The design is in [SPEC.md](SPEC.md), with measured results and development decisions in [STATUS.md](STATUS.md). SPEC.md is the original 24-hour plan. Where the submission differs from it (no frozen test-world run, no matched agent comparison yet), [Known limits](#known-limits) states what was actually done.
 
 ## Reproduce
 

@@ -6,14 +6,14 @@ Primary run: **`s_dce1ebea1d`, development world 1000, condition `lab`**. This i
 
 Use the immutable baseline replay and manifest prepared for submission. All robot footage is **rendered simulation replay of recorded decisions**, not a live physical robot or live agent execution. Keep “DEVELOPMENT SIMULATION · RECORDED RUN” visible throughout. The replay compresses time: recorded active runtime was **1,028.8 seconds, about 17.1 minutes**, with pauses and resumes. Observed usage is incomplete and must not be described as an exact token total.
 
-Evidence sources:
+Evidence sources (all in this repository, under [`docs/evidence/lab-dev1000/`](evidence/lab-dev1000)):
 
-- Ledger: `runs/b1/baseline/s_dce1ebea1d/ledger.jsonl` in the omnigent worktree.
-- Summary and limitations: `runs/b1/baseline/summary.json` and `measurement.json`.
-- Persisted server grade: `runs/l1-l5/server/s_dce1ebea1d/world_session.json`.
+- Ledger: [`ledger.jsonl`](evidence/lab-dev1000/ledger.jsonl).
+- Summary, token usage and limitations: [`measurement.json`](evidence/lab-dev1000/measurement.json) and [`manifest.json`](evidence/lab-dev1000/manifest.json) (with SHA-256 hashes of each file).
+- Persisted server grade: [`score.json`](evidence/lab-dev1000/score.json).
 - Each target was a hit. Miss distances: **t1 15.18 mm; t2 0.40 mm; t3 4.63 mm; t4 16.93 mm; t5 7.33 mm**. Preserve server grades when rendering; do not substitute freshly simulated mission outcomes.
 
-The older approved run `s_40ebae9470` is a fallback only: it stopped after five experiments and also hit five targets. Its finished assets are under `/Users/myronsydorov/solzero-sim/runs/demo/laneb_s_40ebae9470/`. Do not mix its footage or firing table with baseline captions.
+An older approved run, `s_40ebae9470`, was kept as a fallback only and is not part of this submission. It stopped after five experiments and also hit five targets. Its footage and firing table are not used in the videos.
 
 ## Demo narration — two minutes (120-second storyboard)
 
