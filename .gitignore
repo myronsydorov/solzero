@@ -1,7 +1,10 @@
 .venv/
 __pycache__/
-*.pyc
+*.py[cod]
 .pytest_cache/
+.env
+runs/
+*.pyc
 .vercel/
 viewer/.vercel/
 runs/
