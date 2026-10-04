@@ -1,0 +1,76 @@
+1
+00:00:00,250 --> 00:00:02,000
+The world stays hidden.
+
+2
+00:00:02,000 --> 00:00:06,263
+Omnigent agents reach it only through a public HTTP API,
+
+3
+00:00:06,263 --> 00:00:08,698
+and scoring stays with the host.
+
+4
+00:00:09,148 --> 00:00:11,108
+Each role owns one decision.
+
+5
+00:00:11,108 --> 00:00:15,027
+The Theorist fits laws, the Experimentalist ranks tests,
+
+6
+00:00:15,027 --> 00:00:17,967
+the Operator executes, the Analyst judges,
+
+7
+00:00:17,967 --> 00:00:21,607
+and the principal investigator decides when to stop.
+
+8
+00:00:22,057 --> 00:00:25,440
+Predictions must cover every live law before a run.
+
+9
+00:00:25,440 --> 00:00:28,691
+The server enforces the twelve-experiment budget.
+
+10
+00:00:29,141 --> 00:00:32,366
+Each verdict feeds the next choice of experiment.
+
+11
+00:00:32,366 --> 00:00:34,144
+Laws, predictions, results,
+
+12
+00:00:34,144 --> 00:00:37,632
+verdicts and decision diffs land in a durable ledger.
+
+13
+00:00:38,082 --> 00:00:42,229
+Today's Operator runs deterministically, with no model turn.
+
+14
+00:00:42,229 --> 00:00:44,717
+The recorded baseline predates that.
+
+15
+00:00:45,167 --> 00:00:49,043
+Shared planning tools produce one five-shot firing table.
+
+16
+00:00:49,043 --> 00:00:50,471
+The server graded it:
+
+17
+00:00:50,471 --> 00:00:51,695
+five of five hits.
+
+18
+00:00:52,145 --> 00:00:55,203
+A compressed replay of a development simulation.
+
+19
+00:00:55,203 --> 00:00:56,987
+The evidence is in the repo.
+
