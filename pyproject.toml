@@ -12,6 +12,8 @@ dependencies = [
     "fastapi>=0.100,<1",
     "uvicorn>=0.30,<1",
     "httpx>=0.27,<1",
+    "mujoco==3.14.0",
+    "mlflow-skinny==3.16.1",
 ]
 
 [dependency-groups]
