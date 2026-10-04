@@ -15,7 +15,7 @@ Evidence sources (all in this repository, under [`docs/evidence/lab-dev1000/`](e
 
 An older approved run, `s_40ebae9470`, was kept as a fallback only and is not part of this submission. It stopped after five experiments and also hit five targets. Its footage and firing table are not used in the videos.
 
-## Demo narration — two minutes (120-second storyboard)
+## Demo narration — 120-second master storyboard (the submission cut is in `submission-scripts-60s.md`)
 
 Record approximately 250 words at a measured pace; use the scene boundaries below and hold the final evidence card to reach exactly 2:00. All captions refer to the same baseline session.
 
@@ -29,7 +29,7 @@ Record approximately 250 words at a measured pace; use the scene boundaries belo
 | 85–102 s | Final predictive-only claim and evidence folder | “The lab's final claim was predictive only. We are not claiming that it discovered new physics. The ledger, firing table, and server grades are included with the project so the result can be checked.” | **Predictive-only claim · inspect the evidence** |
 | 102–120 s | End card; repository, runtime and limitations | “This is one completed standalone development run. It took about seventeen active minutes, compressed here into a replay. It does not prove that multiple agents outperform other methods. What it demonstrates is a working, auditable loop from prediction through experiment to action.” | **Recorded simulation · comparative validation pending** |
 
-## Technical narration — approximately two minutes
+## Technical narration — 120-second master (the submission cut is in `submission-scripts-60s.md`)
 
 | Time | Scene | Narration | On-screen callout |
 | --- | --- | --- | --- |

@@ -4,9 +4,9 @@
 
 **Result in one line:** in a completed development run (dev world 1000), the lab stopped after 10 of 12 experiments and the server graded **5/5 mission shots as hits**, including all 3 beyond-range targets. This is one development run in simulation, not a held-out or comparative evaluation (see [Known limits](#known-limits)).
 
-**Watch:** [two-minute demo](docs/media/demo.mp4) · [two-minute technical walkthrough](docs/media/technical.mp4) · [narration and disclosures](docs/submission-scripts.md)
+**Watch:** [demo, 57 s](docs/media/demo_60s.mp4) · [technical walkthrough, 57 s](docs/media/technical_60s.mp4) · [narration and disclosures](docs/submission-scripts-60s.md) (longer 120 s masters: [demo](docs/media/demo.mp4), [technical](docs/media/technical.mp4), [scripts](docs/submission-scripts.md))
 
-**Explore:** [interactive replay viewer](https://viewer-delta-ten.vercel.app) — the deployed site currently shows **fixture data** (scripted, no-language-model oracle replays on dev worlds 1000 to 1003), not the completed lab run below. For the lab run, use the [run evidence](docs/evidence/lab-dev1000) and the videos.
+**Explore:** [interactive replay viewer](https://solzero.vercel.app) — the deployed site currently shows **fixture data** (scripted, no-language-model oracle replays on dev worlds 1000 to 1003), not the completed lab run below. For the lab run, use the [run evidence](docs/evidence/lab-dev1000) and the videos.
 
 The videos are rendered replays of a development simulation, not a live physical robot. The lab connects to the actual project world server over HTTP; that server still implements simulated physics.
 
