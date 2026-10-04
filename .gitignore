@@ -3,9 +3,12 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .env
-runs/
-*.pyc
-.vercel/
-viewer/.vercel/
+.env.*
 runs/
 mlruns/
+*.db
+.vercel/
+viewer/.vercel/
+node_modules/
+.DS_Store
+.claude/

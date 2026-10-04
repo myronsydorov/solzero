@@ -1,0 +1,111 @@
+{
+  "observed_by_agent": {
+    "theorist": {
+      "calls": 44,
+      "tokens_observed": 555273,
+      "incomplete_responses": 1,
+      "models": [
+        "claude-sonnet-5-5"
+      ]
+    },
+    "experimentalist": {
+      "calls": 49,
+      "tokens_observed": 860901,
+      "incomplete_responses": 0,
+      "models": [
+        "claude-sonnet-5-5"
+      ]
+    },
+    "operator": {
+      "calls": 30,
+      "tokens_observed": 341821,
+      "incomplete_responses": 0,
+      "models": [
+        "claude-sonnet-5-5"
+      ]
+    },
+    "analyst": {
+      "calls": 41,
+      "tokens_observed": 567842,
+      "incomplete_responses": 0,
+      "models": [
+        "claude-sonnet-5-5"
+      ]
+    },
+    "pi": {
+      "calls": 13,
+      "tokens_observed": 170080,
+      "incomplete_responses": 0,
+      "models": [
+        "claude-sonnet-5-5"
+      ]
+    }
+  },
+  "by_agent": {
+    "theorist": {
+      "model_turn_attempts": 13,
+      "tokens": 495347,
+      "usage_missing_turns": 1,
+      "observed_model_calls": 44
+    },
+    "experimentalist": {
+      "model_turn_attempts": 10,
+      "tokens": 860901,
+      "usage_missing_turns": 0,
+      "observed_model_calls": 49
+    },
+    "operator": {
+      "model_turn_attempts": 10,
+      "tokens": 341821,
+      "usage_missing_turns": 0,
+      "observed_model_calls": 30
+    },
+    "analyst": {
+      "model_turn_attempts": 10,
+      "tokens": 567842,
+      "usage_missing_turns": 0,
+      "observed_model_calls": 41
+    },
+    "pi": {
+      "model_turn_attempts": 10,
+      "tokens": 170080,
+      "usage_missing_turns": 0,
+      "observed_model_calls": 13
+    }
+  },
+  "status": "committed",
+  "error": null,
+  "session_id": "s_dce1ebea1d",
+  "condition": "lab",
+  "cycles": 10,
+  "budget_left": 2,
+  "tool_calls": 159,
+  "stop_reason": "pi_chose_commit",
+  "wall_seconds": 1028.8163331659744,
+  "usage": {
+    "input_tokens": 346,
+    "output_tokens": 96071,
+    "cache_creation_input_tokens": 652269,
+    "cache_read_input_tokens": 1687305
+  },
+  "tokens_including_cache": 2435991,
+  "usage_turns": 52,
+  "token_cap": 4000000,
+  "usage_complete": false,
+  "ledger": "ledger.jsonl",
+  "record_counts": {
+    "law_set": 13,
+    "candidates": 10,
+    "decision_diff": 10,
+    "prediction_table": 10,
+    "result": 10,
+    "verdicts": 10,
+    "nomination": 10,
+    "commit": 1
+  },
+  "changed_decisions": 6,
+  "notes": [
+    "Same live session resumed after 600-second wall pause and 2M token guard; allowance extended to 4M.",
+    "One interrupted response has incomplete usage; observed tokens are a lower bound."
+  ]
+}

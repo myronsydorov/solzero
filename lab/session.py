@@ -58,8 +58,12 @@ class LabSession:
                 raise
             self.live_laws = {law.law_id: law for law in laws}
             self.pending = None
-            self.ledger.append(len(self.results), "theorist", "law_set",
-                               {"laws": [law.model_dump(mode="json") for law in laws]})
+            try:
+                self.ledger.append(len(self.results), "theorist", "law_set",
+                                   {"laws": [law.model_dump(mode="json") for law in laws]})
+            except Exception:
+                self.uncertain = True
+                raise
 
     def preregister(self, spec: ExperimentSpec, predictions: list[Prediction],
                     tentative_followup: ExperimentSpec | None, reason: str = "") -> str:
@@ -72,11 +76,25 @@ class LabSession:
                 raise ValueError("Empty predictions are allowed only in cycle zero")
             request = PredictionsRequest(session_id=self.info.session_id, spec=spec,
                                          predictions=predictions, tentative_followup=tentative_followup)
-            response = self.client.preregister(request)
+            if self.pending and self.pending[0] == request:
+                return self.pending[1]
+            try:
+                response = self.client.preregister(request)
+            except (httpx.TransportError, ValueError):
+                self.uncertain = True
+                raise
+            except httpx.HTTPStatusError as error:
+                if error.response.status_code >= 500:
+                    self.uncertain = True
+                raise
             self.pending = (request, response.prediction_table_id)
-            self.ledger.decision_diff(len(self.results) + 1, self.tentative, spec, reason)
-            self.ledger.append(len(self.results) + 1, "experimentalist", "prediction_table",
-                               {**request.model_dump(mode="json"), "prediction_table_id": response.prediction_table_id})
+            try:
+                self.ledger.decision_diff(len(self.results) + 1, self.tentative, spec, reason)
+                self.ledger.append(len(self.results) + 1, "experimentalist", "prediction_table",
+                                   {**request.model_dump(mode="json"), "prediction_table_id": response.prediction_table_id})
+            except Exception:
+                self.uncertain = True
+                raise
             return response.prediction_table_id
 
     def execute(self, spec: ExperimentSpec) -> Result:
@@ -120,8 +138,20 @@ class LabSession:
             if registered is None or registered.model_dump(exclude={"description"}) != law.model_dump(exclude={"description"}):
                 raise ValueError("Nominate a current live law")
             request = NominateRequest(session_id=self.info.session_id, law=registered, fit=fit)
-            response = self.client.nominate(request)
-            self.ledger.append(len(self.results), "analyst", "nomination", request)
+            try:
+                response = self.client.nominate(request)
+            except (httpx.TransportError, ValueError):
+                self.uncertain = True
+                raise
+            except httpx.HTTPStatusError as error:
+                if error.response.status_code >= 500:
+                    self.uncertain = True
+                raise
+            try:
+                self.ledger.append(len(self.results), "analyst", "nomination", request)
+            except Exception:
+                self.uncertain = True
+                raise
             return response
 
     def commit(self, record: Commit):

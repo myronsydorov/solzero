@@ -115,9 +115,9 @@ def test_repeated_model_measurement_returns_memo_without_second_http_run(session
             duplicate=await self._tool_executor('drop',{'sample_id':'ref_100','height_m':1})
             assert duplicate==first
             yield SimpleNamespace(usage=None)
-    monkeypatch.setattr('lab.run.ClaudeSDKExecutor',Executor)
+    monkeypatch.setattr('lab.run.ObservedExecutor',Executor)
     runner=Runner(session,tmp_path,'/tmp',options())
-    asyncio.run(runner.turn('operator','Execute once',1))
+    asyncio.run(runner.turn('single','Execute once',1))
     assert len(session.results)==1 and session.budget_left==11
     assert sum(entry['kind']=='result' for entry in runner.entries())==1
 
@@ -182,3 +182,161 @@ def test_eval_cli_zero_wall_cap_writes_summary_without_http(session, tmp_path):
     assert summary['n_experiments'] == summary['tokens_used'] == 0
     assert summary['session_id'] == session.info.session_id
     assert (output / 'ledger.jsonl').exists()
+
+
+def test_prediction_retry_reuses_pending_table(session, monkeypatch):
+    spec = parse_spec({'type': 'drop', 'sample_id': 'ref_100', 'height_m': 1})
+    identifier = session.preregister(spec, [], spec)
+    before = session.ledger.path.read_text()
+    def forbidden(*args):
+        raise AssertionError('duplicate registration')
+    monkeypatch.setattr(session.client, 'preregister', forbidden)
+    assert session.preregister(spec, [], spec) == identifier
+    assert session.ledger.path.read_text() == before
+
+
+def test_prediction_ledger_failure_blocks_measurement(session, monkeypatch):
+    spec = parse_spec({'type': 'drop', 'sample_id': 'ref_100', 'height_m': 1})
+    def fail(*args):
+        raise OSError('disk full')
+    monkeypatch.setattr(session.ledger, 'append', fail)
+    with pytest.raises(OSError): session.preregister(spec, [], None)
+    assert session.uncertain
+    with pytest.raises(RuntimeError): session.execute(spec)
+    assert session.budget_left == 12
+
+
+def test_prediction_ack_recovers_crash(session, tmp_path):
+    runner = Runner(session, tmp_path, '/tmp', options())
+    runner.inflight = {'name': 'preregister', 'ledger_count': 0}
+    runner.save()
+    saved = json.loads((tmp_path / 'checkpoint.json').read_text())
+    spec = parse_spec({'type': 'drop', 'sample_id': 'ref_100', 'height_m': 1})
+    identifier = session.preregister(spec, [], spec)
+    restored = resume_session(session.client, saved, tmp_path, True)
+    assert restored.pending[1] == identifier
+    restored.execute(spec)
+    assert restored.budget_left == 11
+
+
+def test_model_backoff_and_quota_stop(session, tmp_path, monkeypatch):
+    import asyncio
+    from lab.model_runtime import ModelFailure
+    runner = Runner(session, tmp_path, '/tmp', options())
+    attempts, delays = [], []
+    async def flaky(*args):
+        attempts.append(True)
+        if len(attempts) < 3: raise ModelFailure('429 rate limit')
+    async def sleep(delay): delays.append(delay)
+    monkeypatch.setattr(runner, '_turn_once', flaky)
+    monkeypatch.setattr('lab.run.asyncio.sleep', sleep)
+    asyncio.run(runner.turn('theorist', 'test', 0))
+    assert len(attempts) == 3 and len(delays) == 2
+    assert 0 <= delays[0] <= 2 and 0 <= delays[1] <= 4
+    async def quota(*args): raise ModelFailure("You've hit your session limit")
+    monkeypatch.setattr(runner, '_turn_once', quota)
+    with pytest.raises(ModelFailure): asyncio.run(runner.turn('theorist', 'test', 0))
+    assert len(delays) == 2
+
+
+def test_parallel_random_measurements_are_serialized(session, tmp_path, monkeypatch):
+    import asyncio
+    session = LabSession(session.client, 'mock-dev', 'random', runs_root=tmp_path / 'random')
+    functions.configure(session, seed=1000)
+    spec = {'type': 'drop', 'sample_id': 'ref_100', 'height_m': 1}
+    functions.record_candidates([spec, {**spec, 'height_m': .5}], spec)
+    class Executor:
+        def __init__(self, **kwargs): pass
+        async def close(self): pass
+        async def run_turn(self, *args):
+            outputs = await asyncio.gather(
+                self._tool_executor('drop', {'sample_id': 'ref_100', 'height_m': 1}),
+                self._tool_executor('drop', {'sample_id': 'ref_100', 'height_m': .5}))
+            assert sum(bool(item.get('blocked')) for item in outputs) == 1
+            if False: yield
+    monkeypatch.setattr('lab.run.ObservedExecutor', Executor)
+    runner = Runner(session, tmp_path, '/tmp', options())
+    asyncio.run(runner.turn('single', 'test', 1))
+    assert len(session.results) == 1 and session.budget_left == 11
+
+
+def test_model_retry_after_measurement_does_not_spend_twice(session, tmp_path, monkeypatch):
+    import asyncio
+    from omnigent import ExecutorError
+    spec = {'type': 'drop', 'sample_id': 'ref_100', 'height_m': 1}
+    functions.record_candidates([spec, {**spec, 'height_m': .5}], spec)
+    functions.preregister(spec, [], spec)
+    attempts = []
+    class Executor:
+        def __init__(self, **kwargs): pass
+        async def close(self): pass
+        async def run_turn(self, *args):
+            attempts.append(True)
+            result = await self._tool_executor('drop', {'sample_id': 'ref_100', 'height_m': 1})
+            assert result['index'] == 1
+            if len(attempts) == 1: yield ExecutorError(message='429 rate limit')
+    async def sleep(_): pass
+    monkeypatch.setattr('lab.run.ObservedExecutor', Executor)
+    monkeypatch.setattr('lab.run.asyncio.sleep', sleep)
+    runner = Runner(session, tmp_path, '/tmp', options())
+    asyncio.run(runner.turn('single', 'test', 1))
+    assert len(attempts) == 2 and len(session.results) == 1
+    assert sum(item['kind'] == 'result' for item in runner.entries()) == 1
+
+
+def test_usage_report_marks_partial_responses(tmp_path):
+    from lab.model_runtime import observed_usage
+    path = tmp_path / 'calls.jsonl'
+    events = [
+        {'type': 'message_start', 'message': {'model': 'test', 'usage': {'input_tokens': 4, 'output_tokens': 1}}},
+        {'type': 'message_delta', 'usage': {'output_tokens': 7}},
+        {'type': 'message_stop'},
+        {'type': 'message_start', 'message': {'model': 'test', 'usage': {'input_tokens': 3}}},
+    ]
+    path.write_text(''.join(json.dumps({'agent': 'theorist', 'event': event}) + '\n' for event in events))
+    report = observed_usage(path)['theorist']
+    assert report == {'calls': 2, 'tokens_observed': 14, 'incomplete_responses': 1, 'models': ['test']}
+
+
+def test_operator_executes_registered_record_without_model(session, tmp_path, monkeypatch):
+    import asyncio
+    spec = {'type': 'drop', 'sample_id': 'ref_100', 'height_m': 1}
+    functions.record_candidates([spec, {**spec, 'height_m': .5}], spec)
+    functions.preregister(spec, [], spec)
+    def forbidden(**kwargs): raise AssertionError('Operator must not construct a model executor')
+    monkeypatch.setattr('lab.run.ObservedExecutor', forbidden)
+    runner = Runner(session, tmp_path, '/tmp', options())
+    runner.options.token_cap = 0
+    asyncio.run(runner.turn('operator', 'execute', 1))
+    assert session.budget_left == 11 and session.pending is None
+    assert runner.token_total() == 0
+
+
+def test_candidate_cap_applies_across_calls_in_a_cycle(session):
+    specs = [{'type': 'drop', 'sample_id': 'ref_100', 'height_m': value} for value in (.2, .4, .6, .8)]
+    functions.record_candidates(specs[:2], specs[0])
+    functions.record_candidates(specs[1:3], specs[1])
+    with pytest.raises(ValueError, match='three'):
+        functions.record_candidates(specs[2:], specs[2])
+    with pytest.raises(ValueError, match='three'):
+        functions.record_candidates(specs, specs[0])
+
+
+def test_fit_cache_tracks_evidence_and_law(session, monkeypatch):
+    from schemas import FitResult
+    calls = []
+    def fit(law, results, samples, *, seed):
+        calls.append((law, len(results), seed))
+        return FitResult(law_id=law.law_id, params={}, chi2_dof=1, loo_error=.1,
+                         n_experiments=len(results), converged=True)
+    monkeypatch.setattr('tools.fit_law', fit)
+    law = {'law_id': 'test', 'ax': '0', 'az': '-9.8', 'params': {}}
+    functions.fit_law(law)
+    functions.fit_law(law)
+    assert len(calls) == 1
+    spec = parse_spec({'type': 'drop', 'sample_id': 'ref_100', 'height_m': 1})
+    session.preregister(spec, [], None)
+    session.execute(spec)
+    functions.fit_law(law)
+    functions.fit_law({**law, 'az': '-9.7'})
+    assert len(calls) == 3
