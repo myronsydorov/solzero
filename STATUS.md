@@ -414,21 +414,27 @@ Videos are in `runs/render/`, which is untracked. For the demo run on a test wor
   - Clip on t4 (beyond range): the textbook shot misses by 51.6 cm; the agents' law lands 2.0 cm off (radius 5.4 cm).
   - Both styles took 1 min 34 s. The first attempt took 14.5 min; demo workers now run BLAS single-threaded.
 
+- **Main check with `mujoco` in `pyproject.toml`** (main at `e3522db`, run in a temporary detached checkout with a fresh `uv sync`): **142 passed, 0 skipped**. That includes the 12 sim tests.
+  - `sim.fetch_assets` could not reach github.com (connection timeout; a network problem, not a code bug).
+  - It now has `--from <dir>`, which copies an existing Menagerie copy. The check used that, from this worktree.
+- **A watcher is running** (background, polls every 2 min):
+  - It looks under the main, physics and omnigent `runs/` for the first eval-runner session that meets all of these:
+    - a dev seed;
+    - status `committed`;
+    - an `admin_score.json`;
+    - a real agent command (not `eval.agent_stub` or `eval.scripted`).
+  - When one appears it runs `sim.demo --style both`. Output goes to `runs/demo/<label>_<seed>_<attempt>/`.
+
 **Next step**
 
-- Rerun the sim tests on main once `mujoco` is in `pyproject.toml` (still missing as of this update).
-- Render the first complete eval-runner session from lane B with `sim.demo` as soon as one exists. As of this update, every `lab`/`single` eval run is `eval.agent_stub`.
-
-
-- Render the demo run once the human freezes the test seeds and picks it (SPEC 10: the selection rule is fixed before results are seen).
-- Copy `video.mp4` into the viewer run directory, coordinated with the viewer lane.
+- Render lane B's first complete eval-runner session: automatic when the watcher fires. By hand: `sim.demo --run runs/<eval>/lab/<seed> --style both`.
 
 ## Requests (one lane asking the other, or the human, for something)
 
 - **Lane B latest integration:** SPEC 5.6 flags and output adapter implemented in `lab.run`; adopted sessions never POST `/session`; `--approval auto` records provenance; flat `DIR/ledger.jsonl`; exit 0 when summary written. Remaining blocker: Claude SDK only exposes usage after a turn, so token cap is a between-turn guard and cannot yet satisfy the hard-cap contract. Keep agent comparison provisional until an isolated provider path with hard token accounting is available. Wall timeout stops new work but may wait for an in-flight thread to finish; host kill grace still applies.
 - **Lane B handoff:** latest main resolves expression-parser, full-law snapshot, five-shot validation and shared-sampler requests below. Historical rows retained. Host-only `eval/dev_batch.py`, `eval/report_dev.py`, `eval/replay_mock.py`, `eval/verify_parallel.py` were added under the earlier shared-path claim; hand these to the integrator under the new ownership table. `dev_batch` now uses `eval.sampler.random_specs` exactly; old interrupted schedules are historical and must not be silently reused for the final paired comparison.
 
-- Lane sim to physics: please `uv add mujoco` (3.14 tested). Until then, `tests/test_sim.py` skips. Please also add `runs/` to `.gitignore`.
+- Lane sim to physics: `mujoco` is in `pyproject.toml` (thanks; verified on main: 142 passed). Still open: add `runs/` to `.gitignore`.
 - **Integrator to lane B (open, 2026-10-04):** please implement the agent CLI exactly as in SPEC 5.6, or amend 5.6 in a schema-and-SPEC commit:
   - `python -m lab.run --world-url --session-info FILE --condition {lab,single,random} --out DIR [--specs FILE] [--max-tokens N] [--max-wall-s S] [--approval {human,auto}]`.
   - The runner opens the session and passes its `SessionInfo`; `lab.run` must not call `/session`.
