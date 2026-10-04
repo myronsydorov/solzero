@@ -48,6 +48,34 @@ def test_terms_within_two_sd_are_dropped():
     assert law_recovered(dep, {"family": "F0", "p": 2, "rho": 0.4})["recovered"]
 
 
+def test_rate_limit_detection():
+    from eval.run import rate_limit_wait
+
+    assert rate_limit_wait({"status": "committed", "error": None}, "", 900) is None
+    assert rate_limit_wait({"status": "error", "error": "ValueError: bad law"}, "", 900) is None
+    assert rate_limit_wait({"status": "rate_limited", "retry_after_s": 5}, "", 900) == 5
+    assert rate_limit_wait({"status": "error", "error": "429 Too Many Requests"}, "", 900) == 900
+    w = rate_limit_wait({"status": "failed", "error": "RuntimeError: You've hit your session limit · resets "
+                         "5:30am (Europe/Berlin)"}, "", 900)
+    assert 120 <= w <= 24 * 3600 + 120
+    assert rate_limit_wait(None, "... session limit · resets 11pm (UTC)", 900) is not None
+
+
+def test_rate_limited_run_pauses_and_resumes(tmp_path):
+    """A provider limit pauses the batch and the run continues in the same session."""
+    import os
+
+    py = sys.executable
+    env = {**os.environ, "SOLZERO_STUB_RATE_LIMIT_AFTER": "3"}
+    subprocess.run([py, "-m", "eval.run", "--condition", "lab", "--agent-cmd", f"{py} -m eval.agent_stub",
+                    "--seeds", "1000", "--out", str(tmp_path), "--serve", "--max-concurrency", "2"],
+                   check=True, timeout=300, env=env)
+    state = json.loads((tmp_path / "lab" / "1000" / "state.json").read_text())
+    m = json.loads((tmp_path / "lab" / "1000" / "metrics.json").read_text())
+    assert state["status"] == "done" and state["attempts"] == 1 and state["rate_limit_pauses"] == 1
+    assert m["experiments_used"] == 12 and m["rate_limit_pauses"] == 1
+
+
 def test_pipeline_textbook_and_stub(tmp_path):
     """Runner, server, scripted reference, agent-CLI stub, grading and report on one dev world."""
     py = sys.executable

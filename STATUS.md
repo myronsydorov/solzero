@@ -77,13 +77,45 @@ Last updated: 2026-10-04 (integrator: E1 to E3). Each assistant edits only its o
 SOLZERO_ADMIN_TOKEN=t .venv/bin/python -m world.loadtest --url http://127.0.0.1:8000 --admin-token t --sessions 16 --out runs/loadtest
 ```
 
+**Update 2026-10-04 05:00 (integrator)**
+
+- Dependencies: `mujoco==3.14.0` (sim lane) and `mlflow-skinny==3.16.1` (lane B) are in `pyproject.toml`, and `runs/` is in `.gitignore`. Sim tests run on main once the assets are fetched with `python -m sim.fetch_assets`: 12 passed. Full suite after merging `omnigent`: 142 passed, about 13 min (sim renders).
+- Claim rule: scripted policies now claim non-ordinary physics by the 2-sd grading rule (`eval/lawform.py`). The 60-world results were regraded without rerunning. Control false discovery:
+
+  | Claim rule | Random | Greedy | Paired difference |
+  | --- | --- | --- | --- |
+  | Selected form (as run) | 3/15 | 2/15 | -0.07 [-0.33, +0.20] |
+  | 2-sd rule (regraded) | 2/15 | 1/15 | -0.07 [-0.27, +0.13] |
+
+  Full table: `calibration/results/dev60/primary_table.md`.
+- `experiments_used` is now in the per-run metrics and the report. `eval.run` has `--max-concurrency` and a comma-separated `--condition` list. A provider limit pauses the batch until the stated reset (plus 2 min), then resumes the run in the same session with `--resume` (SPEC 5.6). Tested with the stub.
+- Power (`python -m eval.power calibration/results/dev60`, realized shots redrawn from per-target hit probabilities; smallest detectable mission-hit difference at alpha 0.05 and 80% power):
+
+  | Test worlds | Detectable difference | Power at the dev-world gap (+5.6 points) |
+  | --- | --- | --- |
+  | 40 | 7.9 points | 61% |
+  | 20 | 11.2 points | 33% |
+  | 12 | 14.5 points | 17% |
+
+- **Pilot (running, partial):** `runs/pilot/`, dev 1000 to 1007. The references are done (textbook, oracle, scripted random). The lab, random and single batch was started with nohup at 04:51 (pid 72954), 4 at a time, with the placeholder caps.
+  - The provider session limit hit after about 4.5 min. The batch is paused until 06:52 and resumes on its own.
+  - First window: 4 sessions, 12 experiments, about 168k tokens and 91 s of wall time per experiment, including cache.
+  - At that rate a 12-experiment session uses about 2.0M tokens, right at the 2M placeholder cap. Pilot runs may stop at `cap_reached`, which would censor the token p95.
+  - Throughput is bound by the provider quota: about 12 experiments per quota window at 4-way concurrency.
+- **Provisional recommendation:** 20 test worlds, not 40. 40 worlds × 3 agent conditions × about 2M tokens is about 240M tokens. With the quota seen in the pilot, that is not achievable in the remaining build time; 20 already needs many quota windows. 12 worlds can only detect a 14.5-point difference, against an observed effect near 6. Confirm once the pilot reports sessions per hour.
+- **Left:**
+  - Finish the pilot.
+  - `eval.grade runs/pilot && eval.report runs/pilot`.
+  - Set caps at about twice the pilot's p95 tokens and minutes.
+  - Finalize the size recommendation with the measured sessions per hour.
+
 **Blockers:** none of my own. The agent conditions need lane B's CLI (see Requests).
 
 **Next step:** once lane B implements SPEC 5.6, run lab, single and random through the CLI on 3 dev worlds, then on the 60 dev worlds for a dev-world comparison. Then wait for the human freeze.
 
 ## Lane B: Omnigent and agents (Codex, branch `omnigent`)
 
-### B1 priority restart (2026-10-04 04:53 Europe/Berlin)
+### B1 priority restart (updated 2026-10-04 11:02 Europe/Berlin)
 
 **B1 only is active. B2–B5 have not started under the new priority order.** The premature `lab-freeze-candidate` remains unchanged at `32de1c0`, is not an acceptance marker, and will only be replaced at B5. No fallback provider or second model has been used.
 
@@ -111,7 +143,12 @@ SOLZERO_ADMIN_TOKEN=t .venv/bin/python -m world.loadtest --url http://127.0.0.1:
 
 **Waste changes after the measurement:** Operator now deterministically dispatches its already registered ExperimentSpec through the same guarded function-tool path with **zero model calls**. No transcript was ever passed between agents; the structured handoff now removes duplicated result/law ledger payloads and retains the latest candidate, prediction, verdict, nomination and decision-diff records alongside shared models. Candidates are capped at three distinct specs per cycle across calls. Exact-law/exact-evidence/seed fit caching removes identical numerical recomputation; baseline had **13 duplicate fits out of 39 fit calls**. Cache invalidation is tested on both law and new evidence. No hints, family menu, physics/noise/ranges changes, or second provider/model.
 
-**Validation in progress:** `.venv/bin/python -m pytest -q` before optimization: **139 passed, 1 skipped**, 204.08 s. After changes, targeted runner/leak tests: **25 passed**, 3.51 s; full suite after optimization: **143 passed, 1 skipped, 5 warnings**, 38.41 s. One further B1 dev session is running with `SOLZERO_WORLD_URL=http://127.0.0.1:8003 .venv/bin/python -m lab.run --world w_3c4adce51f85 --condition lab --seed 1000 --output runs/b1/optimized --model claude-sonnet-5-5 --auto-approve --max-wall-s 1800 --token-cap 4000000 > runs/b1/optimized.log 2>&1`. This is optimization validation, not B2 or the B4 pilot.
+**Validation:** `.venv/bin/python -m pytest -q` before optimization: **139 passed, 1 skipped**, 204.08 s. After changes, targeted runner/leak tests: **25 passed**, 3.51 s; full suite after optimization: **143 passed, 1 skipped, 5 warnings**, 38.41 s. The B1 optimization-validation session was launched with `SOLZERO_WORLD_URL=http://127.0.0.1:8003 .venv/bin/python -m lab.run --world w_3c4adce51f85 --condition lab --seed 1000 --output runs/b1/optimized --model claude-sonnet-5-5 --auto-approve --max-wall-s 1800 --token-cap 4000000 > runs/b1/optimized.log 2>&1`. This is optimization validation, not B2 or the B4 pilot. It stopped at two experiments with **27 model responses, 234,693 reported tokens, 217.99 active seconds**, and **zero Operator model calls/tokens**. Exact new error: `ModelFailure: You've hit your session limit · resets 6:50am (Europe/Berlin)`. Session `s_6521e9f1af` is checkpointed; `runs/b1/optimized/pause-provider-0650.json` preserves that outcome. This is provider-interrupted, not a PI stop. At **11:00**, after the advertised reset, the same command with `--resume` was started, logging to `runs/b1/optimized-resume.log`; outcome pending. No fallback was attempted.
+
+**Integration verification:** merged latest main with both `.gitignore` sets retained; `uv sync` now retains lane A's landed MLflow dependency and installs its MuJoCo dependencies. Root pyproject/lock were not edited by lane B. `.venv/bin/python -m pytest -q`: **145 passed, 1 skipped, 5 warnings in 44.67 s**. Raw result `runs/b1/tests-final-merged.log`.
+
+**Capacity-confounding note:** merged lane A STATUS reports an independently started four-way pilot at 04:51, overlapping this lane's optimized run, and a provider pause until 06:52. Therefore that failure is not a single-session load test, and cannot identify a numerical concurrency ceiling. The coding assistant has not started B2/B4 or stopped another lane's processes. Shared-quota coordination is requested below. Combined local evidence: `runs/b1/b1-report.json`; both local sessions have one unique prediction-table ID per unique experiment/result ID (baseline 10/10, interrupted optimization 2/2).
+
 
 **Remaining B1 blocker (server-interface design gap):** resumption after a lost successful experiment reply cannot be automatic with the current public API. It needs the lane A idempotency/public-result recovery request below; lab must not query admin to recover. Consequently “resumable at any point” and B1 acceptance are not yet satisfied, even though ordinary phase/ledger-boundary resumes are tested. B2–B5 remain held.
 
@@ -400,19 +437,46 @@ Videos are in `runs/render/`, which is untracked. For the demo run on a test wor
   - Shot zero's practice target t0 is drawn as a bin.
 - **The clip's textbook shot** uses the shared `plan_shot` with `textbook_law()`, plus a seeded actuation draw (stream `[seed, 88, k]`).
 
+**Update (2026-10-04, second session)**
+
+- **`python -m sim.demo --run <id | run dir | ledger> [--style normal|large|both]`** renders three assets into `runs/demo/<run>/`, in parallel, plus a `demo.json` manifest:
+  - `replay.mp4`, the full replay;
+  - `clip.mp4`, the side-by-side;
+  - `opener.mp4`, exactly 10 s of shot zero missing, with a zoom on the miss.
+- **Large-type variant (`--style large`):** overlays are drawn on a 1280x720 canvas and scaled up, so all type is 1.5x bigger. Panels use a relative layout.
+- **Run resolution:**
+  - Accepted layouts: eval runner (`attempt*/admin_score.json`, `truth.json`, `session_info.json`), viewer `metrics.json`, lane B's `admin-score-persisted.json`, oracle `world_session.json`.
+  - Mission hits come from the server's admin score whenever one is present; `demo.json` records which source was used.
+- **Lane B's real session `s_40ebae9470`** (dev 1000; the PI committed after 5 of 12 experiments) rendered with the server's admin score: **5/5 hits** (misses 0.1 to 2.0 cm).
+  - Clip on t4 (beyond range): the textbook shot misses by 51.6 cm; the agents' law lands 2.0 cm off (radius 5.4 cm).
+  - Both styles took 1 min 34 s. The first attempt took 14.5 min; demo workers now run BLAS single-threaded.
+
+- **Main check with `mujoco` in `pyproject.toml`** (main at `e3522db`, run in a temporary detached checkout with a fresh `uv sync`): **142 passed, 0 skipped**. That includes the 12 sim tests.
+  - `sim.fetch_assets` could not reach github.com (connection timeout; a network problem, not a code bug).
+  - It now has `--from <dir>`, which copies an existing Menagerie copy. The check used that, from this worktree.
+- **A watcher is running** (background, polls every 2 min):
+  - It looks under the main, physics and omnigent `runs/` for the first eval-runner session that meets all of these:
+    - a dev seed;
+    - status `committed`;
+    - an `admin_score.json`;
+    - a real agent command (not `eval.agent_stub` or `eval.scripted`).
+  - When one appears it runs `sim.demo --style both`. Output goes to `runs/demo/<label>_<seed>_<attempt>/`.
+
 **Next step**
 
-- Render the demo run once the human freezes the test seeds and picks it (SPEC 10: the selection rule is fixed before results are seen).
-- Copy `video.mp4` into the viewer run directory, coordinated with the viewer lane.
+- Render lane B's first complete eval-runner session: automatic when the watcher fires. By hand: `sim.demo --run runs/<eval>/lab/<seed> --style both`.
 
 ## Requests (one lane asking the other, or the human, for something)
+
+- **B1-first coordination:** the user's latest priority holds B2–B5 until B1 works. Lane A's separately launched four-way pilot overlaps lane B's capacity measurement and shares the Claude subscription cap. Please coordinate one active scientific session while B1 is measured, and address the public recovery prerequisite below before treating the pilot as acceptance. Lane B has not launched the B2 harness checks or B4 pilot and has not changed another lane's running processes.
+- **Resolved dependency request:** main now includes `mlflow-skinny==3.16.1`; inbound merge and `uv sync` succeeded. Older dependency-request rows are retained as history.
 
 - **B1 prerequisite, lane B → physics (server interface gap):** to satisfy resume *at any point*, provide idempotent `/experiment` request keys with replay of the original Result, or a public authenticated session/result status lookup, plus durable server session state. If the server consumes an experiment then its reply is lost before local fsync, current public endpoints cannot distinguish success from failure. Lab must stop rather than create another table/experiment, and must not use admin endpoints for recovery. Please land schema/SPEC changes first; no hidden-state recovery route has been added in lab.
 
 - **Lane B latest integration:** SPEC 5.6 flags and output adapter implemented in `lab.run`; adopted sessions never POST `/session`; `--approval auto` records provenance; flat `DIR/ledger.jsonl`; exit 0 when summary written. Remaining blocker: Claude SDK only exposes usage after a turn, so token cap is a between-turn guard and cannot yet satisfy the hard-cap contract. Keep agent comparison provisional until an isolated provider path with hard token accounting is available. Wall timeout stops new work but may wait for an in-flight thread to finish; host kill grace still applies.
 - **Lane B handoff:** latest main resolves expression-parser, full-law snapshot, five-shot validation and shared-sampler requests below. Historical rows retained. Host-only `eval/dev_batch.py`, `eval/report_dev.py`, `eval/replay_mock.py`, `eval/verify_parallel.py` were added under the earlier shared-path claim; hand these to the integrator under the new ownership table. `dev_batch` now uses `eval.sampler.random_specs` exactly; old interrupted schedules are historical and must not be silently reused for the final paired comparison.
 
-- Lane sim to physics: please `uv add mujoco` (3.14 tested). Until then, `tests/test_sim.py` skips. Please also add `runs/` to `.gitignore`.
+- Lane sim to physics: `mujoco` is in `pyproject.toml` (thanks; verified on main: 142 passed). Still open: add `runs/` to `.gitignore`.
 - **Integrator to lane B (open, 2026-10-04):** please implement the agent CLI exactly as in SPEC 5.6, or amend 5.6 in a schema-and-SPEC commit:
   - `python -m lab.run --world-url --session-info FILE --condition {lab,single,random} --out DIR [--specs FILE] [--max-tokens N] [--max-wall-s S] [--approval {human,auto}]`.
   - The runner opens the session and passes its `SessionInfo`; `lab.run` must not call `/session`.
@@ -459,6 +523,8 @@ Videos are in `runs/render/`, which is untracked. For the demo run on a test wor
 | --- | --- | --- | --- |
 | 2026-10-03 | Claude Code | `FitResult.cov` (optional parameter covariance) added; `loo_error` defined as RMS in noise-sd units | `predict` needs correlated parameter draws; the units were undefined |
 | 2026-10-03 | Claude Code | `noise_sd` in `SessionInfo` and in launch `Result` gains `speed_frac` and `elevation_deg` (launcher actuation error) | Actuation error dominates launch noise; the fit must weight launches by it |
+| 2026-10-04 | integrator | SPEC 5.6: `--resume` flag; `rate_limited` status with `retry_after_s`; the runner pauses the batch on provider limits and resumes paused runs | Human instruction: a provider rate limit pauses the batch instead of failing runs. Lane B already has `--resume` |
+| 2026-10-04 | integrator | SPEC 7: experiments used is a secondary metric; scripted references claim non-ordinary physics by the 2-sd grading rule | Human instructions, 2026-10-04 |
 | 2026-10-04 | Claude Code | Law expressions limited to a whitelisted arithmetic grammar (`schemas.check_expr`), checked before sympy parses them | Lane B bug report: untrusted strings reached `sympy.parse_expr` (eval) over HTTP |
 | 2026-10-04 | Claude Code | `Condition` adds `textbook` and `oracle` (scripted references); `/commit` requires exactly one shot per target; prediction tables are pinned to full law content | Human instruction E1; lane B bug reports |
 | 2026-10-04 | Claude Code | SPEC 5.6: agent run CLI contract (`lab.run --session-info --condition --specs --max-tokens --max-wall-s --approval`, `summary.json`). Lane B to confirm or amend | E1 needs a fixed handoff between `eval/` and `lab/` |

@@ -17,13 +17,14 @@ from pathlib import Path
 
 import numpy as np
 
-from calibration.library import is_ordinary, library
+from calibration.library import library
 from calibration.study import GREEDY_SEED_DESIGN, N_CANDIDATES, TOP_K, bic, fit_all
 from schemas import Commit, CommitRequest, LedgerEntry, Result, SessionInfo, Shot
 from tools.analysis import disagreement_many, plan_shot
 from world.generator import textbook_law
 
 from .client import WorldClient
+from .lawform import claim_for
 from .sampler import SAMPLER_SEED, random_spec, random_specs
 
 
@@ -103,7 +104,9 @@ def run_library_policy(client: WorldClient, info: SessionInfo, out: Path, *, pol
         sel, scores = best()
         client.nominate(info.session_id, laws[sel], fits[sel])
         ledger.write(i, "analyst", "nomination", {"law_id": sel, "bic": scores[sel]})
-    plan_and_commit(client, info, laws[sel], fits[sel], "law_identified", not is_ordinary(sel), ledger, info.budget)
+    # SPEC 7: scripted references claim non-ordinary physics by the 2-sd grading rule.
+    plan_and_commit(client, info, laws[sel], fits[sel], "law_identified", claim_for(laws[sel], fits[sel]),
+                    ledger, info.budget)
     return {"n_experiments": len(results) - 1, "final_form": sel}
 
 
