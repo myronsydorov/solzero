@@ -1,0 +1,68 @@
+1
+00:00:00,250 --> 00:00:02,380
+Robots assume Earth's physics.
+
+2
+00:00:02,380 --> 00:00:07,208
+Sol Zero drops one into a simulated world with an unknown force law.
+
+3
+00:00:07,208 --> 00:00:09,765
+Its Earth-physics first shot misses.
+
+4
+00:00:10,365 --> 00:00:13,546
+So an AI lab of specialist agents takes over.
+
+5
+00:00:13,546 --> 00:00:17,789
+It gets twelve experiments, and it chooses every one itself.
+
+6
+00:00:18,389 --> 00:00:23,522
+Before each measurement, it pre-registers predictions for every rival law.
+
+7
+00:00:23,522 --> 00:00:26,366
+One predicted two point three six metres.
+
+8
+00:00:26,366 --> 00:00:29,071
+The robot measured zero point five six.
+
+9
+00:00:29,071 --> 00:00:29,695
+Rejected.
+
+10
+00:00:30,295 --> 00:00:32,534
+Evidence changed the plan six times.
+
+11
+00:00:32,534 --> 00:00:36,823
+After ten experiments, the lab decided it knew enough, and committed.
+
+12
+00:00:37,423 --> 00:00:38,648
+One firing table.
+
+13
+00:00:38,648 --> 00:00:41,386
+Five untouched targets, one shot each.
+
+14
+00:00:41,386 --> 00:00:44,269
+The server graded five hits out of five,
+
+15
+00:00:44,269 --> 00:00:47,727
+including three beyond the range it ever tested.
+
+16
+00:00:48,327 --> 00:00:53,033
+Every prediction, measurement and decision is in an auditable ledger.
+
+17
+00:00:53,033 --> 00:00:56,647
+One recorded development run, replayed in simulation.
+
