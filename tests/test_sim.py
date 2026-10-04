@@ -87,3 +87,12 @@ def test_mission_shot_crosses_target_height(lab):
     ref = w.shot_x("mission_300", [plan.speed_mps], [plan.elevation_deg], t.z_m)[0, 0]
     assert math.isfinite(got) and abs(got - ref) < 0.2 * NOISE_SD["landing_x_m"]
     assert abs(got - t.x_m) < t.hit_radius_m
+
+
+def test_full_mode_equivalence_with_server_path():
+    """S3 in miniature: full mode vs World.run_experiment, same random stream."""
+    from sim.validate import equivalence_world
+
+    rows = equivalence_world((1002, 3))
+    assert all(r["status"] == ["ok", "ok"] for r in rows)
+    assert all(abs(v) < 0.2 for r in rows for v in r["diff_sd"].values())

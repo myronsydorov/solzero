@@ -128,7 +128,7 @@ class Lab:
         sc = self.sc
         if reset:
             sc.reset()
-            self.arm.held = None
+            self.arm.reset()
             self.events.clear()
             sc.step(int(0.05 / sc.model.opt.timestep))  # settle the tray
         if mode == "fast":
