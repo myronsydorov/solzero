@@ -428,17 +428,48 @@ Videos are in `runs/render/`, which is untracked. For the demo run on a test wor
   - Shot zero's practice target t0 is drawn as a bin.
 - **The clip's textbook shot** uses the shared `plan_shot` with `textbook_law()`, plus a seeded actuation draw (stream `[seed, 88, k]`).
 
+**Update (2026-10-04, second session)**
+
+- **`python -m sim.demo --run <id | run dir | ledger> [--style normal|large|both]`** renders three assets into `runs/demo/<run>/`, in parallel, plus a `demo.json` manifest:
+  - `replay.mp4`, the full replay;
+  - `clip.mp4`, the side-by-side;
+  - `opener.mp4`, exactly 10 s of shot zero missing, with a zoom on the miss.
+- **Large-type variant (`--style large`):** overlays are drawn on a 1280x720 canvas and scaled up, so all type is 1.5x bigger. Panels use a relative layout.
+- **Run resolution:**
+  - Accepted layouts: eval runner (`attempt*/admin_score.json`, `truth.json`, `session_info.json`), viewer `metrics.json`, lane B's `admin-score-persisted.json`, oracle `world_session.json`.
+  - Mission hits come from the server's admin score whenever one is present; `demo.json` records which source was used.
+- **Lane B's real session `s_40ebae9470`** (dev 1000; the PI committed after 5 of 12 experiments) rendered with the server's admin score: **5/5 hits** (misses 0.1 to 2.0 cm).
+  - Clip on t4 (beyond range): the textbook shot misses by 51.6 cm; the agents' law lands 2.0 cm off (radius 5.4 cm).
+  - Both styles took 1 min 34 s. The first attempt took 14.5 min; demo workers now run BLAS single-threaded.
+
+- **Main check with `mujoco` in `pyproject.toml`** (main at `e3522db`, run in a temporary detached checkout with a fresh `uv sync`): **142 passed, 0 skipped**. That includes the 12 sim tests.
+  - `sim.fetch_assets` could not reach github.com (connection timeout; a network problem, not a code bug).
+  - It now has `--from <dir>`, which copies an existing Menagerie copy. The check used that, from this worktree.
+- **A watcher is running** (background, polls every 2 min):
+  - It looks under the main, physics and omnigent `runs/` for the first eval-runner session that meets all of these:
+    - a dev seed;
+    - status `committed`;
+    - an `admin_score.json`;
+    - a real agent command (not `eval.agent_stub` or `eval.scripted`).
+  - When one appears it runs `sim.demo --style both`. Output goes to `runs/demo/<label>_<seed>_<attempt>/`.
+
+- **Lane B's first complete eval-runner session, rendered by the watcher:** `runs/pilot/random/1000/attempt1` in the physics worktree.
+  - Real `lab.run` agents, random condition, session `s_f8f370ebc1`. The PI committed after 11 experiments.
+  - Server admin score: **5/5 hits** (misses 0.1 to 3.1 cm). Clip on t4: textbook misses by 51.6 cm; the agents' law lands 3.1 cm off (radius 5.4 cm).
+  - Assets (both styles, 63.0 s replay) are in `runs/demo/random_1000_attempt1/`.
+  - The pilot's `lab` sessions on 1000 and 1001 stopped at the token cap after 9 experiments, without committing. There is no mission to render for them.
+- The watcher was restarted to wait for the first committed `lab`-condition session. The pilot batch is paused on a provider limit until 11:52.
+
 **Next step**
 
-- Render the demo run once the human freezes the test seeds and picks it (SPEC 10: the selection rule is fixed before results are seen).
-- Copy `video.mp4` into the viewer run directory, coordinated with the viewer lane.
+- Render the first committed `lab`-condition eval session: automatic when the watcher fires. By hand: `sim.demo --run runs/<eval>/lab/<seed> --style both`.
 
 ## Requests (one lane asking the other, or the human, for something)
 
 - **Lane B latest integration:** SPEC 5.6 flags and output adapter implemented in `lab.run`; adopted sessions never POST `/session`; `--approval auto` records provenance; flat `DIR/ledger.jsonl`; exit 0 when summary written. Remaining blocker: Claude SDK only exposes usage after a turn, so token cap is a between-turn guard and cannot yet satisfy the hard-cap contract. Keep agent comparison provisional until an isolated provider path with hard token accounting is available. Wall timeout stops new work but may wait for an in-flight thread to finish; host kill grace still applies.
 - **Lane B handoff:** latest main resolves expression-parser, full-law snapshot, five-shot validation and shared-sampler requests below. Historical rows retained. Host-only `eval/dev_batch.py`, `eval/report_dev.py`, `eval/replay_mock.py`, `eval/verify_parallel.py` were added under the earlier shared-path claim; hand these to the integrator under the new ownership table. `dev_batch` now uses `eval.sampler.random_specs` exactly; old interrupted schedules are historical and must not be silently reused for the final paired comparison.
 
-- Lane sim to physics: please `uv add mujoco` (3.14 tested). Until then, `tests/test_sim.py` skips. Please also add `runs/` to `.gitignore`.
+- Lane sim to physics: resolved. `mujoco==3.14.0` is in `pyproject.toml` and `runs/` is in `.gitignore` (integrator, 2026-10-04).
 - **Integrator to lane B (bug, pilot 2026-10-04 06:59):** `runs/pilot/single/1000/attempt1/agent/summary.json` ends with `status: error`, `RuntimeError: Cycle did not produce exactly one result`, after 10 experiments, 1.92M tokens and 707 s, with no commit. This is an orchestrator invariant failing mid-session, after a `--resume` from a provider limit. Per the fixed grading rules, a run without a commit misses all targets. Please make the orchestrator fall through to a PI commit, or report `cap_reached`, instead of failing. Evidence: `agent.log`, `agent.resume1.log`, `ledger.jsonl` in that directory (the CLI contract itself is done).
 - **Integrator to lane B (open, 2026-10-04):** please implement the agent CLI exactly as in SPEC 5.6, or amend 5.6 in a schema-and-SPEC commit:
   - `python -m lab.run --world-url --session-info FILE --condition {lab,single,random} --out DIR [--specs FILE] [--max-tokens N] [--max-wall-s S] [--approval {human,auto}]`.

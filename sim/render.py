@@ -69,33 +69,83 @@ class Run:
     graded_shots: dict = field(default_factory=dict)  # target_id -> server-graded shot dict
 
 
+RUN_ROOTS = (Path("runs"), Path("viewer/public/runs"))
+
+
+def find_ledger(run: str | Path, roots=RUN_ROOTS) -> Path:
+    """A ledger path from: a ledger file; a run directory (ledger.jsonl or agent/ledger.jsonl);
+    an eval directory <label>/<seed> (the attempt named in state.json, else the latest); or a
+    run id or session id searched for under `roots`."""
+    p = Path(run)
+    if p.is_file():
+        return p
+    if p.is_dir():
+        for cand in (p / "ledger.jsonl", p / "agent" / "ledger.jsonl"):
+            if cand.exists():
+                return cand
+        if (p / "state.json").exists():
+            att = json.loads((p / "state.json").read_text()).get("attempt_dir")
+            if att and (p / att / "agent" / "ledger.jsonl").exists():
+                return p / att / "agent" / "ledger.jsonl"
+        atts = sorted(p.glob("attempt*/agent/ledger.jsonl"))
+        if atts:
+            return atts[-1]
+        raise SystemExit(f"no ledger.jsonl in {p}")
+    hits = []
+    for root in roots:
+        for led in Path(root).rglob("ledger.jsonl") if Path(root).exists() else ():
+            names = {q.name for q in led.parents}
+            sid = _sidecar(led, "session_info.json")
+            if str(run) in names or (sid and json.loads(sid.read_text()).get("session_id") == str(run)):
+                hits.append(led)
+    if not hits:
+        raise SystemExit(f"no run {run!r} under {', '.join(map(str, roots))}")
+    return sorted(hits)[-1]
+
+
+def _sidecar(ledger_path: Path, name: str) -> Path | None:
+    """name in the ledger's directory or one of the two above it (eval: attempt/agent/ledger)."""
+    for d in (ledger_path.parent, ledger_path.parent.parent, ledger_path.parent.parent.parent):
+        if (d / name).exists():
+            return d / name
+    return None
+
+
 def load_run(ledger_path: Path, seed: int | None = None) -> Run:
-    d = ledger_path.parent
+    """Ledger plus what the renderer needs beside it. Accepted layouts:
+    - viewer (SPEC 5.7): metrics.json {session_info, score, truth};
+    - eval runner: attempt*/session_info.json, admin_score.json (GET /admin/score), truth.json;
+    - lane B's own runs: admin-score-persisted.json (the server's /admin/score record);
+    - sim.oracle_ledger: session_info.json, world_session.json;
+    - a bare ledger with --seed (SessionInfo is rebuilt from the world; no server grade)."""
+    ledger_path = Path(ledger_path)
     ledger = [json.loads(line) for line in ledger_path.read_text().splitlines() if line.strip()]
-    session = score = None
-    label = d.name
-    if (d / "metrics.json").exists():
-        m = json.loads((d / "metrics.json").read_text())
-        session, score = m["session_info"], m.get("score")
-        label = m.get("label", label)
-        if seed is None:
-            seed = m.get("truth", {}).get("seed")
-        world_id = (m.get("truth") or {}).get("world_id") or (score or {}).get("world_id")
-    else:
-        if (d / "session_info.json").exists():
-            session = json.loads((d / "session_info.json").read_text())
-        if (d / "world_session.json").exists():
-            score = json.loads((d / "world_session.json").read_text())
-        world_id = (score or {}).get("world_id")
+    read = lambda name: json.loads(f.read_text()) if (f := _sidecar(ledger_path, name)) else None
+    metrics = read("metrics.json") or {}
+    session = read("session_info.json") or metrics.get("session_info")
+    score = (read("admin_score.json") or read("admin-score-persisted.json") or read("admin-score.json")
+             or read("world_session.json") or metrics.get("score"))
+    truth = read("truth.json") or metrics.get("truth") or {}
+    label = metrics.get("label") or "/".join(ledger_path.parent.parts[-3:])
+    if seed is None:
+        seed = truth.get("seed", metrics.get("seed"))
+    world_id = truth.get("world_id") or (score or {}).get("world_id")
     if seed is None and world_id:
         hit = re.fullmatch(r"w(\d+)", world_id)
         seed = int(hit.group(1)) if hit else next((s for s in DEV_SEEDS if world_id_for(s) == world_id), None)
     if seed is None:
-        raise SystemExit("cannot find the world: put metrics.json next to the ledger, or pass --seed")
+        raise SystemExit("cannot find the world: no metrics.json, truth.json or world_session.json beside the "
+                         "ledger; pass --seed")
+    if not metrics.get("session_info") and metrics.get("condition"):  # eval runner metrics
+        where = "dev world" if int(seed) in DEV_SEEDS else "test world"
+        label = f"{metrics.get('label', metrics['condition'])} run on {where} {seed}"
+    if not metrics.get("label") and (score or {}).get("condition"):  # lane B / oracle run directories
+        where = "dev world" if int(seed) in DEV_SEEDS else "test world"
+        label = f"{score['condition']} session {score.get('session_id', '')} on {where} {seed}"
     if session is None:  # a bare ledger: SessionInfo is a deterministic function of the world
         session = _session_from_world(seed, ledger)
     graded = {s["target_id"]: s for s in ((score or {}).get("commit") or {}).get("shots", [])}
-    return Run(ledger, SessionInfo.model_validate(session), int(seed), label, graded)
+    return Run(ledger, SessionInfo.model_validate(session), int(seed), str(label), graded)
 
 
 def _session_from_world(seed: int, ledger: list[dict]) -> dict:
@@ -191,6 +241,47 @@ def panel(img: Image.Image, box, alpha: int = 190) -> None:
     ov = Image.new("RGBA", img.size, (0, 0, 0, 0))
     ImageDraw.Draw(ov).rounded_rectangle(box, radius=14, fill=(14, 14, 18, alpha))
     img.alpha_composite(ov)
+
+
+def block(img: Image.Image, x: float, y: float, w: float, items, alpha: int = 190, pad: int = 20,
+          gap: int = 6) -> float:
+    """A panel at (x, y) of width w holding wrapped lines; returns its bottom edge.
+
+    items: (text, font, fill) or (text, font, fill, right_text, right_fill); right_text is
+    right-aligned on the same line. A None item is a small vertical gap."""
+    dr = ImageDraw.Draw(img)
+    lines = []
+    for it in items:
+        if it is None:
+            lines.append(None)
+            continue
+        text, fnt, fill = it[:3]
+        right = it[3] if len(it) > 3 else None
+        avail = w - 2 * pad - (dr.textlength(right, font=fnt) + 16 if right else 0)
+        for k, ln in enumerate(wrap(dr, text, fnt, avail) or [""]):
+            lines.append((ln, fnt, fill, right if k == 0 else None, it[4] if right and k == 0 else None))
+    h = 2 * pad - gap + sum((round(ln[1].size * 1.25) + gap) if ln else 10 for ln in lines)
+    panel(img, (x, y, x + w, y + h), alpha)
+    yy = y + pad
+    for ln in lines:
+        if ln is None:
+            yy += 10
+            continue
+        text, fnt, fill, right, rfill = ln
+        dr.text((x + pad, yy), text, font=fnt, fill=fill)
+        if right:
+            dr.text((x + w - pad - dr.textlength(right, font=fnt), yy), right, font=fnt, fill=rfill)
+        yy += round(fnt.size * 1.25) + gap
+    return y + h
+
+
+def layout(img: Image.Image) -> dict:
+    """Panel geometry for an overlay canvas (1920 wide normally, 1280 for large type)."""
+    cw, ch = img.size
+    side = round(0.3125 * cw)  # predictions panel
+    board = round(0.24 * cw)  # mission scoreboard
+    return {"cw": cw, "ch": ch, "m": 30, "side": side, "board": board,
+            "head_w": cw - side - 90, "head_w_board": cw - board - 90}
 
 
 # --- cameras and projection ------------------------------------------------------------------
@@ -309,8 +400,11 @@ def hold(state, seconds: float) -> list:
 
 class Renderer:
     def __init__(self, run: Run, out: Path, final_eval: bool = False, width: int = W, height: int = H,
-                 arm_seconds: float = 2.2, result_seconds: float = 1.2):
+                 arm_seconds: float = 2.2, result_seconds: float = 1.2, style: str = "normal"):
         self.run = run
+        # Overlays are drawn on this canvas and scaled to the frame: "large" draws on 1280x720,
+        # so every overlay element comes out 1.5 times bigger (readable when the video is small).
+        self.canvas = {"normal": (W, H), "large": (1280, 720)}[style]
         self.world = make_world(run.seed, final_eval=final_eval)
         self.out = out
         self.w, self.h = width, height
@@ -356,24 +450,34 @@ class Renderer:
             img = Image.fromarray(np.ascontiguousarray(pix)).convert("RGBA")
             MIRROR[0] = mirror
             if shot.overlay:
-                shot.overlay(img, self.mr.scene, sim_t)
+                layer = Image.new("RGBA", self.canvas, (0, 0, 0, 0))
+                shot.overlay(layer, self.mr.scene, sim_t)
+                if layer.size != img.size:
+                    layer = layer.resize(img.size, Image.LANCZOS)
+                img.alpha_composite(layer)
             if img.size != (self.w, self.h):
                 img = img.resize((self.w, self.h), Image.LANCZOS)
             self.ff.stdin.write(np.asarray(img.convert("RGB")).tobytes())
             self.n_frames += 1
 
-    def card(self, draw_fn, seconds: float, camera=LAB_CAM) -> None:
+    def card(self, draw_fn, seconds: float, camera=None) -> None:
+        camera = camera or LAB_CAM
         state = (self.lab.sc.data.time, self.lab.sc.data.qpos.copy())
         self.emit(Shot(hold(state, seconds), camera, lambda img, sc, t: draw_fn(img)))
 
     # --- pieces -------------------------------------------------------------------------
 
-    def header(self, img, title: str, sub: str = "") -> None:
-        panel(img, (30, 26, 1250, 120 if sub else 90))
-        dr = ImageDraw.Draw(img)
-        dr.text((52, 36), title, font=F_H, fill=ACCENT)
-        if sub:
-            dr.text((52, 78), sub, font=F_B, fill=INK)
+    def header(self, img, title: str, sub: str = "", extra=(), board: bool = False) -> float:
+        L = layout(img)
+        items = [(title, F_H, ACCENT)] + ([(sub, F_B, INK)] if sub else []) + list(extra)
+        return block(img, L["m"], 26, L["head_w_board" if board else "head_w"], items)
+
+    def footer(self, img, items) -> None:
+        """A panel anchored to the bottom-left corner."""
+        L = layout(img)
+        probe = Image.new("RGBA", img.size)
+        h = block(probe, 0, 0, min(L["cw"] - 2 * L["m"], 1000), items)
+        block(img, L["m"], L["ch"] - 30 - h, min(L["cw"] - 2 * L["m"], 1000), items)
 
     def flight_launch(self, spec: LaunchSpec, x_target: float | None, z_stop: float = 0.0,
                       dv: float = 0.0, de: float = 0.0, aim_seconds: float = 0.7, max_seconds: float = 1.6):
@@ -389,7 +493,7 @@ class Renderer:
         t_f = sc.data.time
         fire(sc, sid, spec.speed_mps * (1 + dv), spec.elevation_deg + de)
         f = fly(sc, sid, z_stop, self.rec, tail=0.25)
-        raw = self.rec.take()
+        raw = self.flight_raw = self.rec.take()
         dur = (f.t if math.isfinite(f.t) else 2.0) + 0.25
         fl_states = resample(raw, t_f, t_f + dur, min(max_seconds, max(0.6, dur)))
         return aim_states, fl_states, f, t_f
@@ -417,13 +521,12 @@ class Renderer:
         self.lab.arm.reset()
 
         def title(img):
-            panel(img, (30, 26, 1250, 200))
-            dr = ImageDraw.Draw(img)
-            dr.text((52, 40), "SOL ZERO", font=F_TITLE, fill=ACCENT)
-            dr.text((52, 96), "A robot lab must find an unfamiliar force law in 12 experiments,",
-                    font=F_B, fill=INK)
-            dr.text((52, 130), "then hit five untouched targets, one shot each.", font=F_B, fill=INK)
-            dr.text((52, 166), run.label, font=F_S, fill=DIM)
+            L = layout(img)
+            block(img, L["m"], 26, L["head_w"], [
+                ("SOL ZERO", F_TITLE, ACCENT),
+                ("A robot lab must find an unfamiliar force law in 12 experiments, "
+                 "then hit five untouched targets, one shot each.", F_B, INK),
+                (run.label, F_S, DIM)])
 
         self.card(title, 2.2)
         spec = sz.spec
@@ -443,9 +546,8 @@ class Renderer:
                 dr.line([(p[0], p[1] - 70), (p[0], p[1] - 8)], fill=ACCENT, width=4)
                 dr.text((p[0] - 20, p[1] - 105), "t0", font=F_H, fill=ACCENT)
             if t - t_f >= t_land:
-                panel(img, (30, 950, 1000, 1040))
-                dr.text((52, 970), f"Landed at {sz.landing_x_m:.3f} m: missed by {sz.miss_m * 100:.1f} cm. "
-                        "Physics here is not Earth's.", font=F_B, fill=BAD)
+                self.footer(img, [(f"Landed at {sz.landing_x_m:.3f} m: missed by {sz.miss_m * 100:.1f} cm. "
+                                   "Physics here is not Earth's.", F_B, BAD)])
 
         fp = until_landing(f)
         trails = lambda t: [(fp[fp[:, 0] <= t - t_f, 1:4], (1.0, 0.45, 0.2, 1.0))] if t >= t_f else []
@@ -505,47 +607,49 @@ class Renderer:
         obs = res.get("observables", {})
 
         def overlay(img, scene, t):
+            L = layout(img)
             dr = ImageDraw.Draw(img)
-            self.header(img, f"Experiment {idx} of {n_total}", spec_text(spec))
+            extra = []
             if diff and diff.get("tentative") is not None:
-                changed = diff.get("changed")
-                panel(img, (30, 132, 1250, 176))
-                txt = ("PLAN CHANGED BY EVIDENCE: tentative was " + spec_text(diff["tentative"])
-                       if changed else "Plan kept: this was the tentative follow-up")
-                dr.text((52, 140), txt, font=F_S, fill=ACCENT if changed else DIM)
-            # predictions table
-            x0, y0 = 1290, 26
-            rows = max(1, len(preds))
-            h = 110 + 74 * rows + (60 if t >= t_meas else 0)
-            panel(img, (x0, y0, 1890, y0 + h))
-            dr.text((x0 + 20, y0 + 14), "Pre-registered predictions", font=F_H, fill=INK)
-            y = y0 + 60
+                extra = [None, ("PLAN CHANGED BY EVIDENCE: tentative was " + spec_text(diff["tentative"]), F_S, ACCENT)
+                         if diff.get("changed") else ("Plan kept: this was the tentative follow-up", F_S, DIM)]
+            self.header(img, f"Experiment {idx} of {n_total}", spec_text(spec), extra)
+            narrow = L["side"] < 500
+            items = [("Pre-registered predictions", F_H, INK)]
             if not preds:
-                dr.text((x0 + 20, y), "no live laws yet: nothing to predict", font=F_S, fill=DIM)
+                items.append(("no live laws yet: nothing to predict", F_S, DIM))
             for p in preds:
                 v = verdicts.get(p["law_id"]) if t >= t_meas else None
-                dr.text((x0 + 20, y), p["law_id"][:22], font=F_M, fill=INK)
+                right, rcol = None, None
                 if v:
-                    col = VERDICT_RGB.get(v["verdict"], DIM)
-                    tag = {"supported": "supported", "rejected": "REJECTED",
-                           "insufficient_evidence": "unclear"}.get(v["verdict"], v["verdict"])
-                    dr.text((x0 + 330, y), f"{tag}  z={v['z']:+.1f}", font=F_M, fill=col)
+                    rcol = VERDICT_RGB.get(v["verdict"], DIM)
+                    tag = ({"supported": "✓", "rejected": "✗", "insufficient_evidence": "?"} if narrow else
+                           {"supported": "supported", "rejected": "REJECTED", "insufficient_evidence": "unclear"}
+                           ).get(v["verdict"], v["verdict"])
+                    right = f"{tag} z={v['z']:+.1f}"
                 parts = [f"{UNITS.get(k, (k,))[0]} {e['mean']:.3f}±{e['sd']:.3f}"
                          for k, e in p["observables"].items()
                          if e.get("mean") is not None and math.isfinite(e["mean"])]
-                dr.text((x0 + 36, y + 30), "   ".join(parts) or "no landing predicted", font=F_MS, fill=DIM)
-                y += 74
+                items += [None, (p["law_id"][:22], F_M, INK, right, rcol),
+                          ("   ".join(parts) or "no landing predicted", F_MS, DIM)]
             if t >= t_meas:
                 meas = "   ".join(obs_text(k, v) for k, v in obs.items())
                 if res.get("status") == "failed" or failed:
                     meas = "run failed"
-                dr.text((x0 + 20, y + 8), "Measured: " + meas, font=F_B, fill=ACCENT)
+                if narrow and not (res.get("status") == "failed" or failed):
+                    items += [None, ("Measured", F_B, ACCENT)] + [(obs_text(k, v), F_B, ACCENT) for k, v in obs.items()]
+                else:
+                    items += [None, ("Measured: " + meas, F_B, ACCENT)]
+            block(img, L["cw"] - L["m"] - L["side"], 26, L["side"], items)
             # budget bar
-            bx, by = 30, 1030
+            step = 34 if L["cw"] >= 1600 else 26
+            bx, by = L["m"], L["ch"] - 50
+            label = f"budget: {n_total - idx} left"
+            panel(img, (bx - 12, by - 12, bx + n_total * step + 24 + dr.textlength(label, font=F_S), by + 30))
             for k in range(n_total):
                 col = ACCENT if k < idx else (60, 60, 66)
-                dr.rectangle((bx + k * 34, by, bx + k * 34 + 26, by + 18), fill=col)
-            dr.text((bx + n_total * 34 + 10, by - 4), f"budget: {n_total - idx} left", font=F_S, fill=DIM)
+                dr.rectangle((bx + k * step, by, bx + k * step + step - 8, by + 18), fill=col)
+            dr.text((bx + n_total * step + 10, by - 4), label, font=F_S, fill=INK)
 
         self.emit(Shot(states, camera, overlay, trails))
 
@@ -590,8 +694,8 @@ class Renderer:
             def overlay(img, scene, tt, k=k, t=t, spec=spec, hit=hit, miss=miss, t_f=t_f, t_land=t_land):
                 self.header(img, f"Mission shot {k + 1} of {len(shots)}: target {t.target_id} "
                                  f"({kind.get(t.target_id, '').replace('_', ' ')})",
-                            f"mission_300 at {spec.speed_mps:.2f} m/s, {spec.elevation_deg:.1f}°, "
-                            f"untested sample, one shot, no retries")
+                            f"mission_300 at {spec.speed_mps:.2f} m/s, {spec.elevation_deg:.1f}°: "
+                            f"untested sample, one shot", board=True)
                 self.scoreboard(img, scene, results[:k] + ([results[k]] if tt - t_f >= t_land else []),
                                 targets)
             self.emit(Shot(aim + fl + hold(fl[-1], 0.5), camera, overlay, trails))
@@ -600,26 +704,25 @@ class Renderer:
         self.mission_trails = done
         return results
 
-    def scoreboard(self, img, scene, results, targets) -> None:
+    def scoreboard(self, img, scene, results, targets) -> float:
+        """Target labels in the scene plus the hit/miss panel; returns the panel's bottom edge."""
         dr = ImageDraw.Draw(img)
-        for t in targets.values():
+        for t in (targets.values() if scene is not None else ()):
             p = project(scene, [t.x_m, 0, t.z_m], *img.size)
             if p:
                 dr.text((p[0] - 14, p[1] + 14), t.target_id, font=F_S, fill=INK)
-        x0, y0 = 1440, 26
-        panel(img, (x0, y0, 1890, y0 + 70 + 44 * len(targets)))
-        dr.text((x0 + 20, y0 + 14), "Targets", font=F_H, fill=INK)
-        dr.text((x0 + 150, y0 + 22), "graded by the world server" if self.run.graded_shots
-                else "simulated here: no server grade", font=F_S, fill=DIM)
+        L = layout(img)
         by = {r["target_id"]: r for r in results}
-        for j, t in enumerate(targets.values()):
+        items = [("Targets", F_H, INK), ("graded by the world server" if self.run.graded_shots
+                                          else "simulated here: no server grade", F_S, DIM), None]
+        for t in targets.values():
             r = by.get(t.target_id)
-            y = y0 + 62 + 44 * j
-            dr.text((x0 + 20, y), f"{t.target_id}  {t.x_m:5.2f} m", font=F_M, fill=DIM)
+            right = rcol = None
             if r:
                 miss = "∞" if not math.isfinite(r["miss_m"]) else f"{r['miss_m'] * 100:.1f} cm"
-                dr.text((x0 + 220, y), ("HIT " if r["hit"] else "MISS ") + miss, font=F_M,
-                        fill=GOOD if r["hit"] else BAD)
+                right, rcol = ("HIT " if r["hit"] else "MISS ") + miss, GOOD if r["hit"] else BAD
+            items.append((f"{t.target_id} {t.x_m:5.2f} m", F_M, DIM, right, rcol))
+        return block(img, L["cw"] - L["m"] - L["board"], 26, L["board"], items)
 
     def reveal(self, results) -> None:
         c = commit_entry(self.run.ledger) or {}
@@ -638,29 +741,100 @@ class Renderer:
                   "F2": "gravity depends on mass", "F3": "gravity depends on height"}[w.family]
 
         def draw(img):
-            dr = ImageDraw.Draw(img)
-            self.scoreboard(img, self.mr.scene, results, targets)
-            panel(img, (30, 600, 1890, 1050), 215)
-            dr.text((60, 620), f"Mission: {n_hit} of {len(results)} targets hit.   Claim: "
-                    f"{c.get('claim', 'n/a').replace('_', ' ')}"
-                    + ("  (non-ordinary physics)" if c.get("claims_non_ordinary") else ""),
-                    font=F_H, fill=ACCENT)
-            dr.text((60, 690), f"Hidden law  ({family})", font=F_H, fill=INK)
-            dr.text((80, 735), "a_x = " + tax, font=F_M, fill=DIM)
-            dr.text((80, 768), "a_z = " + taz, font=F_M, fill=DIM)
-            dr.text((60, 830), f"Discovered law  ({c.get('law_id', 'none')})", font=F_H, fill=INK)
+            L = layout(img)
+            items = [(f"Mission: {n_hit} of {len(results)} targets hit.   Claim: "
+                      f"{c.get('claim', 'n/a').replace('_', ' ')}"
+                      + ("  (non-ordinary physics)" if c.get("claims_non_ordinary") else ""), F_H, ACCENT), None,
+                     (f"Hidden law  ({family})", F_H, INK), ("a_x = " + tax, F_M, DIM), ("a_z = " + taz, F_M, DIM),
+                     None, (f"Discovered law  ({c.get('law_id', 'none')})", F_H, INK)]
             if law:
-                dr.text((80, 875), "a_x = " + dax, font=F_M, fill=DIM)
-                dr.text((80, 908), "a_z = " + daz, font=F_M, fill=DIM)
-                if law.get("description"):
-                    dr.text((80, 950), law["description"][:120], font=F_S, fill=DIM)
+                items += [("a_x = " + dax, F_M, DIM), ("a_z = " + daz, F_M, DIM)]
+                if law.get("description") and L["cw"] >= 1600:
+                    items.append((law["description"][:160], F_S, DIM))
             else:
-                dr.text((80, 875), "no law committed", font=F_M, fill=DIM)
+                items.append(("no law committed", F_M, DIM))
+            probe = Image.new("RGBA", img.size)
+            h = block(probe, 0, 0, L["cw"] - 2 * L["m"], items, 215)
+            if self.scoreboard(probe, None, results, targets) < L["ch"] - 40 - h:  # only when it fits
+                self.scoreboard(img, self.mr.scene, results, targets)
+            block(img, L["m"], L["ch"] - 30 - h, L["cw"] - 2 * L["m"], items, 215)
 
         trails = self.mission_trails if hasattr(self, "mission_trails") else []
         state = (self.lab.sc.data.time, self.lab.sc.data.qpos.copy())
         camera = getattr(self, "mission_camera", LAB_CAM)
         self.emit(Shot(hold(state, 6.0), camera, lambda img, sc, t: draw(img), lambda t: trails))
+
+    def opener(self, seconds: float = 10.0) -> dict:
+        """Shot zero missing, as a stand-alone opener of exactly `seconds`: title, the textbook
+        shot in slow motion, the miss measured against the practice target, a closing line."""
+        sz = self.run.session.shot_zero
+        start = self.n_frames
+        self.lab.sc.reset()
+        self.lab.arm.reset()
+        spec = sz.spec
+        dv = self.steer(spec, 0.0, sz.landing_x_m)
+        self.lab.sc.reset()
+        aim, _, f, t_f = self.flight_launch(spec, 1.2, 0.0, dv, aim_seconds=0.8)
+        fl = resample(self.flight_raw, t_f, t_f + f.t + 0.05, 2.6)  # slow motion
+        x_land = sz.landing_x_m
+        camera = side_cam(-0.3, max(1.6, x_land + 0.4), 0.8)
+        fp = until_landing(f)
+        trails = lambda t: [(fp[fp[:, 0] <= t - t_f, 1:4], (1.0, 0.45, 0.2, 1.0))] if t >= t_f else []
+
+        def title(img):
+            L = layout(img)
+            block(img, L["m"], 26, L["head_w"], [
+                ("SOL ZERO", F_TITLE, ACCENT),
+                ("Unknown physics. 12 experiments. Five targets, one shot each.", F_B, INK)])
+
+        def overlay(img, scene, t):
+            L = layout(img)
+            slow = t_f <= t < t_f + f.t
+            self.header(img, "Shot zero: aimed with Earth's physics",
+                        "g = 9.81 m/s², Earth air drag" + ("   (slow motion)" if slow else ""))
+            dr = ImageDraw.Draw(img)
+            p0 = project(scene, [1.2, 0, 0.0], *img.size)
+            if p0:
+                dr.line([(p0[0], p0[1] - 70), (p0[0], p0[1] - 8)], fill=ACCENT, width=4)
+                dr.text((p0[0] - 20, p0[1] - 105), "t0", font=F_H, fill=ACCENT)
+            if t - t_f >= f.t:
+                p1 = project(scene, [x_land, 0, 0.0], *img.size)
+                if p0 and p1:
+                    y = max(p0[1], p1[1]) + 24
+                    dr.line([(p0[0], y), (p1[0], y)], fill=BAD, width=4)
+                    for px in (p0[0], p1[0]):
+                        dr.line([(px, y - 10), (px, y + 10)], fill=BAD, width=4)
+                    dr.text(((p0[0] + p1[0]) / 2 - 40, y + 12), f"{sz.miss_m * 100:.1f} cm", font=F_H, fill=BAD)
+                self.footer(img, [(f"Missed by {sz.miss_m * 100:.1f} cm. Physics here is not Earth's.", F_H, BAD),
+                                  ("The lab has 12 experiments to find out why.", F_B, INK)])
+
+        # After the landing the camera eases in on t0 so the miss is visible. Held frames get
+        # tiny distinct times so the camera can move while the scene stands still.
+        close = side_cam(min(x_land, 1.2) - 0.45, max(x_land, 1.2) + 0.45, 0.35)
+        close.lookat[2] = 0.02  # the table plane sits mid-frame, clear of the footer
+        n_total = int(round(seconds * FPS))
+        n_title = int(round(2.4 * FPS))
+        self.card(title, n_title / FPS, camera)
+        body = aim + fl
+        rest = max(0, n_total - n_title - len(body))
+        t_end, q_end = body[-1]
+        tail = [(t_end + 1e-3 * (k + 1), q_end) for k in range(rest)]
+        n_zoom = int(0.8 * FPS)
+
+        def cam_at(t):
+            if t <= t_end:
+                return camera
+            a = min(1.0, (t - t_end) / 1e-3 / n_zoom)
+            a = a * a * (3 - 2 * a)
+            c = Cam()
+            c.lookat[:] = (1 - a) * np.array(camera.lookat) + a * np.array(close.lookat)
+            c.distance = (1 - a) * camera.distance + a * close.distance
+            c.azimuth, c.elevation, c.mirror = camera.azimuth, camera.elevation, camera.mirror
+            return c
+
+        self.emit(Shot((body + tail)[:n_total - n_title], cam_at, overlay, trails))
+        return {"frames": self.n_frames - start, "seconds": (self.n_frames - start) / FPS,
+                "miss_m": sz.miss_m}
 
     def render(self) -> dict:
         cys = cycles(self.run.ledger)
@@ -676,22 +850,24 @@ class Renderer:
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--ledger", required=True, type=Path)
+    ap.add_argument("--ledger", required=True, help="ledger.jsonl, a run directory, or a run/session id")
     ap.add_argument("--out", required=True, type=Path)
     ap.add_argument("--seed", type=int, help="world seed, when the run directory does not name it")
     ap.add_argument("--final-eval", action="store_true", help="allow a frozen test world (demo run only)")
     ap.add_argument("--arm-seconds", type=float, default=2.2, help="output seconds per arm sequence")
     ap.add_argument("--max-experiments", type=int, default=None, help="render only the first N (previews)")
     ap.add_argument("--scale", type=float, default=1.0, help="resolution scale (1.0 = 1920x1080)")
+    ap.add_argument("--style", choices=("normal", "large"), default="normal",
+                    help="large: overlay type 1.5 times bigger, for small playback")
     args = ap.parse_args()
-    run = load_run(args.ledger, args.seed)
+    run = load_run(find_ledger(args.ledger), args.seed)
     if args.max_experiments is not None:
         keep = {c["cycle"] for c in cycles(run.ledger)[:args.max_experiments]}
         last = max(keep) if keep else 0
         run.ledger = [e for e in run.ledger if e["cycle"] <= last or e["kind"] == "commit"]
     args.out.parent.mkdir(parents=True, exist_ok=True)
     w, h = int(W * args.scale) // 2 * 2, int(H * args.scale) // 2 * 2
-    with Renderer(run, args.out, args.final_eval, w, h, args.arm_seconds) as r:
+    with Renderer(run, args.out, args.final_eval, w, h, args.arm_seconds, style=args.style) as r:
         info = r.render()
     info["out"] = str(args.out)
     print(json.dumps(info, indent=1, default=float))
