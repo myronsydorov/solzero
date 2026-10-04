@@ -152,7 +152,8 @@ Admin endpoints (never exposed to agent tools; protected by `SOLZERO_ADMIN_TOKEN
 // weigh observables: {"force_n": ...}; drop observables: {"fall_time_s": ...}
 // launch noise_sd also carries the launcher actuation error (speed_frac, elevation_deg),
 // which fit_law propagates into the effective measurement sd
-// status is "ok" or "failed"; a failed run still consumes budget
+// status is "ok" or "failed"; a failed run still consumes budget and has empty observables {}
+// (for example a launch that never comes back down); observables are always finite numbers
 
 // SessionInfo
 {"session_id": "s_ab12", "budget": 12,
