@@ -75,6 +75,13 @@ export function lineChart(container, opts) {
   svg.append(cross);
   const hit = el("rect", { x: m.l, y: m.t, width: iw, height: ih, fill: "transparent" });
   svg.append(hit);
+  if (series.length >= 2) {
+    const lg = document.createElement("div");
+    lg.className = "legend";
+    lg.style.margin = "0 0 6px";
+    lg.innerHTML = series.map((s) => `<span><i style="background:${s.color};border-radius:2px;height:3px;width:14px;vertical-align:3px"></i>${esc(s.label)}</span>`).join("");
+    container.append(lg);
+  }
   container.append(svg);
   const tip = document.createElement("div");
   tip.className = "tooltip";

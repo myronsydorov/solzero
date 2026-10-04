@@ -195,9 +195,23 @@ cd viewer && npx vercel deploy --temporary --prod --yes  # redeploy (no login)
 - **Law-card status:** a law is "live" while it is in the current law set, even if its last verdict was "rejected". The oracle keeps the best three by BIC, so this happens, and both badges are shown. It is "rejected" if it left the set after a rejection, and "retired" otherwise.
 - **Hidden law:** revealed only at the last step, or with a "Reveal now" button, matching the demo order.
 
+**Eval importer (2026-10-04, after V3)**
+
+- `viewer.import_eval` converts `eval/run.py` output straight into the viewer layout, so eval does not need to change its format:
+  - per run: `session_info.json`, `admin_score.json`, `truth.json` and `agent/ledger.jsonl` become `runs/<label>_<seed>/`;
+  - `all_metrics.jsonl` becomes `eval/aggregate.json`.
+- Mission hit counts are rates × 2 in-range and × 3 beyond-range targets.
+- Checked on the physics lane's dry run (`runs/eval-dryrun-dev3`, 18 sessions, 6 labels, dev worlds 1000 to 1002) in a scratch copy of the site. Every replay and the results page rendered, with no console errors.
+- That dry run's lab, random and single rows come from the stub agent (0 tokens, about 1 s), so they are **not** deployed. The site still shows the oracle fixtures.
+- `tests/test_viewer_import.py` covers the conversion.
+- Supporting changes:
+  - The viewer knows the `random-scripted` label (scripted-random reference), in its own colour slot. The six-colour palette passed the dataviz validator in light and dark modes.
+  - Charts now have a legend whenever there are two or more series.
+  - The results page adds the pairs oracle − scripted random and random − scripted random.
+
 **Next step**
 
-- Load the first real lab, random and single-agent runs as soon as `eval/` produces `metrics.json` and `aggregate.json` (requests below).
+- When the real eval run finishes: `.venv/bin/python -m viewer.import_eval runs/eval --title "..." --remove-fixtures`, then redeploy.
 - Add the demo video when the sim lane renders it.
 
 ## Lane sim: MuJoCo (Claude Code, branch `sim`)
@@ -325,7 +339,6 @@ Videos are in `runs/render/`, which is untracked. For the demo run on a test wor
 - Lane A to human: should the wrong-form check exclude forms that contain the true law? See the lane A Blockers.
 - Lane A to lane B: the real server is in `world/server.py`, with the same contract as `mock/` plus `POST /laws` and `Target.hit_radius_m`. The mock needs `/laws` and the live-set check to stay faithful to 5.2.
 - Viewer to lane B: please add `disagreements` (one `Disagreement` per candidate, from the `disagreement` tool) to the `candidates` ledger payload (SPEC 5.5). The replay shows it as the disagreement table; without it the viewer can only derive gaps for the chosen spec.
-- Viewer to physics/eval: after each session, write `metrics.json` (SPEC 5.7: SessionInfo + admin score + admin truth) beside the ledger, and write `aggregate.json` rows in the 5.7 format, so runs can be dropped into `viewer/public/runs/` unchanged.
 - Viewer to physics, a design observation from the fixtures (dev seed 1003, F3, kappa = -0.481):
   - Gravity g0 * (1 + kappa * z) reaches zero at z = 1/|kappa| = 2.08 m.
   - Steep launches of heavy samples at about 3.2 to 3.6 m/s and 62 to 69 degrees climb past that height and never land. `World.shot_x` returns NaN, and the run is reported `failed`.
@@ -349,6 +362,7 @@ Videos are in `runs/render/`, which is untracked. For the demo run on a test wor
 | 2026-10-04 | Claude Code | Admin `GET /admin/worlds` (dev seed to opaque world id) | Eval runners need world ids; ids are hashes so agents cannot read the seed |
 | 2026-10-04 | Claude Code (viewer) | SPEC 5.5: `candidates` payload documented, with optional `disagreements` (one Disagreement per candidate). New SPEC 5.7 (numbered 5.6 before the merge with main): viewer inputs (`runs/index.json`, per-run `ledger.jsonl` + `metrics.json` + optional `video.mp4`, `eval/aggregate.json`) | The replay site needs SessionInfo, admin score and truth beside the ledger, and a flat per-world eval format |
 | 2026-10-04 | Claude Code (viewer) | SPEC 5.7 aggregate rows gain `mission_hits_in_range` and optional `median_miss_frac_in_range` / `median_miss_frac_beyond`; the viewer reports the section 7 primary metrics | Section 7 primary metrics (merged from main) split mission hits into in-range and beyond-range with median miss fraction |
+| 2026-10-04 | Claude Code (viewer) | SPEC 5.7: aggregate `condition` is the eval label, adding `random-scripted`; `viewer.import_eval` converts `eval/run.py` output | eval writes the scripted-random reference under its own label beside the agent random condition |
 | 2026-10-03 | Claude Code | SPEC 5.4: analysis tools take keyword-only extras (`samples`, `noise_sd`, `seed`, `n_draws`); added `predict_many` and `disagreement_many` | Explicit seeds; batched candidate scoring |
 
 ## Design changes from calibration (dev worlds only)

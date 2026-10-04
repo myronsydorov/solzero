@@ -7,7 +7,16 @@ A static replay site for recorded runs. It reads files only and never calls the 
 
 No build tooling: plain HTML, CSS and ES modules. KaTeX and math.js load from cdnjs.
 
-## Add a real run
+## Load eval results (the normal path)
+
+```
+.venv/bin/python -m viewer.import_eval runs/eval --title "test worlds, agents frozen at <tag>" --remove-fixtures
+cd viewer && npx vercel deploy --prod
+```
+
+This reads `eval/run.py` output (per run: `session_info.json`, `admin_score.json`, `truth.json`, `agent/ledger.jsonl`, optional `agent/video.mp4`; plus `all_metrics.jsonl`), writes `public/runs/<label>_<seed>/` and `public/eval/aggregate.json`, and rebuilds the run index. `--labels lab,random` limits what is imported; `--no-runs` writes only the aggregate.
+
+## Add a single run by hand
 
 ```
 mkdir viewer/public/runs/<run_id>

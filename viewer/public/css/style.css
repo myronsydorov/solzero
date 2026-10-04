@@ -11,12 +11,13 @@
   --border: rgba(11, 11, 11, 0.10);
   --accent: #2a78d6;
   --accent-wash: rgba(42, 120, 214, 0.10);
-  /* categorical slots, fixed per condition (lab, random, single, oracle, textbook) */
+  /* categorical slots, fixed per condition (lab, random, single, oracle, textbook, random-scripted) */
   --series-1: #2a78d6;
   --series-2: #eb6834;
   --series-3: #1baf7a;
   --series-4: #4a3aa7;
   --series-5: #e87ba4;
+  --series-6: #008300;
   /* status, reserved: always paired with an icon and a label */
   --good: #0ca30c;
   --good-text: #006300;
@@ -45,6 +46,8 @@
     --series-3: #199e70;
     --series-4: #9085e9;
     --series-5: #d55181;
+  --series-6: #008300;
+    --series-6: #008300;
     --good-text: #0ca30c;
   }
 }
@@ -66,6 +69,7 @@
   --series-3: #199e70;
   --series-4: #9085e9;
   --series-5: #d55181;
+  --series-6: #008300;
   --good-text: #0ca30c;
 }
 

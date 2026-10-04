@@ -280,7 +280,7 @@ viewer/public/eval/aggregate.json        // see below
            "median_miss_frac_in_range": 0.006, "median_miss_frac_beyond": 0.007}]}
 ```
 
-`condition` in aggregate rows is one of `lab`, `random`, `single`, `textbook`, `oracle`. The viewer computes the section 7 primary metrics (final `within_beyond`, mission hit rate, law-form recovery, control false discovery from F0 rows), experiments to threshold (first index with `within_beyond >= 0.8`, budget + 1 if never) and the paired differences from the rows. `law_recovered` is graded by `eval/grade.py`. The `median_miss_frac_*` fields are optional.
+`condition` in aggregate rows is the eval label: `lab`, `random`, `single`, `textbook`, `oracle`, or `random-scripted` (the scripted-random reference, which opens `random` sessions). `python -m viewer.import_eval <eval root>` converts `eval/run.py` output (per-run `session_info.json`, `admin_score.json`, `truth.json`, `agent/ledger.jsonl`, and `all_metrics.jsonl`) into this layout. The viewer computes the section 7 primary metrics (final `within_beyond`, mission hit rate, law-form recovery, control false discovery from F0 rows), experiments to threshold (first index with `within_beyond >= 0.8`, budget + 1 if never) and the paired differences from the rows. `law_recovered` is graded by `eval/grade.py`. The `median_miss_frac_*` fields are optional.
 
 ## 6. Agents and Omnigent
 
