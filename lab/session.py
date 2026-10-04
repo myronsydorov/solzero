@@ -21,6 +21,7 @@ class LabSession:
         if existing.exists() and existing.stat().st_size:
             raise FileExistsError("Session ledger already exists; use a fresh runs directory")
         self.ledger = Ledger(self.info.session_id, runs_root)
+        self.ledger.actor_override = "single" if condition == "single" else None
         self.budget_left = self.info.budget
         self.results: list[Result] = []
         self.live_laws: dict[str, Law] = {}

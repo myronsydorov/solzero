@@ -1,4 +1,4 @@
-# Lane B: transport and tool scaffolding
+# Scientific session runner
 
 Python 3.12. Run from the repository root. Shared models and dependencies are
 integrated from main; dependencies belong in the root `pyproject.toml`, owned
@@ -50,8 +50,8 @@ it with `lab.tool_functions.configure(session, seed=...)` **inside the same
 runner process that executes Python tools**. Do not expose `configure` as a tool.
 Use one session per process. Separate subprocesses do not share this binding.
 
-The five role YAMLs under `lab/agents/` retain brief role stubs. `lab.run` supplies
-record-format and role-task instructions, then executes each role through
+The role YAMLs under `lab/agents/` define each decision, inputs, required output
+records, and valid uncertainty. `lab.run` executes each role through
 Omnigent's Claude SDK executor with narrow Python function tools and the role
 policy. The host sequences roles; scientific choices come from the models. The
 first cycle may begin with no laws, in which case the Theorist proposes the first
@@ -89,11 +89,11 @@ wrappers, and saves raw responses, the ledger, server output, and a summary.
 Test fixtures live under `mock/tests/`; the leak and import-isolation checks live
 in the shared test directory. The transport fixture does not provide scientific hypotheses. `lab.run` saves
 public model text, tool inputs/outputs and policy decisions alongside the ledger.
-MLflow integration remains a subsequent milestone.
+MLflow records nested role and tool spans alongside the raw JSONL audit.
 
 ```sh
 SOLZERO_WORLD_URL=http://127.0.0.1:8000 .venv/bin/python -m lab.run \
-  --world-id mock-dev --seed 1000 --cycles 12 --output runs/dev-loop-new
+  --world mock-dev --condition lab --seed 1000 --cycles 12 --auto-approve --output runs/dev-loop-new
 ```
 
 Use `--cycles 1` for a single complete evidence/revision cycle. This cap does not
@@ -119,3 +119,10 @@ sending the request and refuses every replay, including after a lost response.
 An unknown outcome needs host reconciliation with the server. A successful
 response appends the commit to the same session ledger and saves a receipt;
 it exposes no mission hit or miss feedback to agents.
+
+The default interactive mode requests mission approval. Use `--auto-approve`
+for every dev/batch run under the standing human authorization. `--resume`
+restores a checkpoint against the same live server; ambiguous mutations fail
+closed. `--min-experiments 12` selects fixed-budget verification while the
+default allows a PI stop. See `docs/agents.md` for all conditions, exit codes,
+tracing, token accounting, safe retries and the host batch command.

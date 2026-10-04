@@ -1,6 +1,7 @@
 """Typed, fixed-route HTTP access to the experiment service."""
 from __future__ import annotations
 import os
+import time
 
 import httpx
 from schemas import (CommitRequest, CommitResponse, ExperimentRequest, NominateRequest,
@@ -29,7 +30,14 @@ class WorldClient:
         self.close()
 
     def _post(self, path, request, response_type):
-        response = self._http.post(path, json=request.model_dump(mode="json"))
+        for attempt in range(3):
+            try:
+                response = self._http.post(path, json=request.model_dump(mode="json"))
+                break
+            except (httpx.ConnectError, httpx.ConnectTimeout):
+                if attempt == 2:
+                    raise
+                time.sleep(0.1 * (2 ** attempt))
         response.raise_for_status()
         return response_type.model_validate(response.json())
 

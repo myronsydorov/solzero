@@ -8,11 +8,12 @@ ROLE_TOOLS = {
     "theorist": {"fit_law", "set_laws"},
     "experimentalist": {"predict", "disagreement", "preregister", "record_candidates"},
     "operator": {"weigh", "drop", "launch"},
-    "analyst": {"fit_law", "predict", "nominate", "record_verdicts"},
+    "analyst": {"fit_law", "predict", "nominate", "record_verdicts", "coverage"},
 }
+ROLE_TOOLS["single"] = set().union(*ROLE_TOOLS.values())
 
 
-def role_policy(role: str):
+def role_policy(role: str, auto_approve: bool = False, min_experiments: int = 0):
     allowed = ROLE_TOOLS[role]
 
     def check(event: dict) -> dict:
@@ -39,6 +40,8 @@ def role_policy(role: str):
                 if not isinstance(value, (int, float)) or not math.isfinite(value) or not lower <= value <= upper:
                     return {"result": "DENY", "reason": "Experiment setting outside safe envelope"}
         if name == "commit_mission":
+            if len(session.results) < min_experiments:
+                return {"result": "DENY", "reason": "The host's minimum experiment count has not been reached"}
             from schemas import Commit
             try:
                 record = Commit.model_validate(event["data"]["arguments"]["commit"])
@@ -50,7 +53,8 @@ def role_policy(role: str):
                             raise ValueError("Launcher setting outside safe envelope")
             except (ValueError, KeyError, TypeError) as error:
                 return {"result": "DENY", "reason": str(error)}
-            return {"result": "ASK", "reason": "Human approval is required for this five-shot firing table"}
+            return {"result": "ALLOW" if auto_approve else "ASK",
+                    "reason": "Host dev/batch approval" if auto_approve else "Human approval is required for this five-shot firing table"}
         return {"result": "ALLOW"}
 
     return check

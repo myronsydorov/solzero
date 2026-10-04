@@ -1,31 +1,38 @@
-"""Run the specialist cycle through Omnigent with a process-local tool binding."""
+"""Isolated scientific sessions with checkpoints, traces and explicit run outcomes."""
 from __future__ import annotations
 import argparse
 import asyncio
+from collections import Counter
+from contextlib import contextmanager
+import fcntl
+import hashlib
 import inspect
 import json
 import os
 from pathlib import Path
 import tempfile
+import time
 from typing import get_type_hints
 
 from omnigent import ClaudeSDKExecutor, ExecutorConfig, ExecutorError, TextChunk
 from pydantic import create_model
 import yaml
-from schemas import Commit, ExperimentSpec, FitResult, Law, Prediction, Verdict
-
+from schemas import (Commit, ExperimentSpec, FitResult, Law, Prediction, Verdict,
+                     SessionInfo, Result, PredictionsRequest, parse_spec)
 from lab.client import WorldClient
 from lab.policies import ROLE_TOOLS, role_policy
 from lab.session import LabSession
+from lab.ledger import Ledger
 from lab import tool_functions
 
-TASKS = {
-    "theorist": "Review the available observations and verdicts. Propose, revise, or retain up to four laws, using only evidence available here. Call set_laws with the complete live set. Fit proposed laws with fit_law when data permit. Before any experiment you may register an empty live set; do not invent a fitted result. A law has law_id, description, ax and az arithmetic expression strings, and params mapping each chosen parameter name to init, lo and hi. Expressions can use m, z, vx, vz, speed and the named parameters. There is no supplied menu of laws. Return a concise account of uncertainty.",
-    "experimentalist": "Select the next experiment. Compare at least two distinct candidates and call record_candidates. Use predict for every live law with its current fit; disagreement is available. Call preregister with the chosen spec, one complete prediction per live law, a tentative_followup spec, and the reason for this choice. Do not execute a measurement. Experiment types are weigh and drop with sample_id and height_m, or launch with sample_id, speed_mps, elevation_deg. Use the supplied instrument limits.",
-    "operator": "Execute exactly the pending pre-registered experiment using its matching measurement tool, once. Return the Result. Do not choose or modify its settings.",
-    "analyst": "Compare the latest result with its pre-registered predictions. Refit current live laws using fit_law. Call record_verdicts once with one verdict per live law: law_id, experiment_id, z, verdict (supported, rejected, or insufficient_evidence), and note. Describe confounding or insufficient evidence candidly. Call nominate with the current best live law and its updated FitResult. Return uncertainty and suggested questions for the next revision; do not change the law set.",
-    "pi": "Decide whether more experiments are needed within the remaining budget. If continuing, say continue. If stopping or the budget is exhausted, use plan_shot for each of the five supplied targets with your selected current fitted law and mission sample. Call commit_mission with law_id, claim (law_identified, predictive_only, or insufficient_evidence), claims_non_ordinary, and exactly five shots containing target_id, speed_mps and elevation_deg. A human must approve the resulting firing table; if approval_required is returned, stop. Do not claim that shots have fired before confirmation.",
-}
+
+def atomic_json(path, value):
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    with temporary.open("w") as stream:
+        json.dump(value, stream, allow_nan=False, indent=2)
+        stream.flush()
+        os.fsync(stream.fileno())
+    temporary.replace(path)
 
 
 def tool_schema(name):
@@ -60,147 +67,334 @@ def tool_schema(name):
 
 
 class Runner:
-    def __init__(self, session, output: Path, workspace: str, model: str):
-        self.session, self.output, self.workspace, self.model = session, output, workspace, model
-        self.fits = {}
-        self.fit_laws = {}
+    def __init__(self, session, output, workspace, options):
+        self.session, self.output, self.workspace, self.options = session, output, workspace, options
+        self.fits, self.fit_laws, self.memo = {}, {}, {}
         self.pending_commit = None
+        self.step = 0
+        self.inflight = None
         self.dispatch_count = 0
+        self.usage = Counter()
+        self.usage_turns = 0
+        self.wall_seconds = 0.0
+        self.started = time.monotonic()
+        self.schedule = json.loads(Path(options.schedule).read_text()) if options.schedule else None
+        self.trace_enabled = not options.no_tracing
+        if self.trace_enabled:
+            import mlflow
+            mlflow.set_tracking_uri(options.tracking_uri or f"sqlite:///{output / 'mlflow.db'}")
+            mlflow.set_experiment("scientific-sessions")
+        if not options.resume:
+            self.save()
+
+    @contextmanager
+    def span(self, name, inputs):
+        if not self.trace_enabled:
+            yield None
+            return
+        import mlflow
+        with mlflow.start_span(name=name, span_type="AGENT" if name in ROLE_TOOLS else "TOOL") as span:
+            span.set_inputs(inputs)
+            yield span
 
     def trace(self, record):
         with (self.output / "tools.jsonl").open("a") as stream:
             stream.write(json.dumps(record, allow_nan=False) + "\n")
             stream.flush()
+            os.fsync(stream.fileno())
+
+    def save(self):
+        session = self.session
+        atomic_json(self.output / "checkpoint.json", {
+            "options": vars(self.options), "origin": str(session.client._http.base_url),
+            "info": session.info.model_dump(mode="json"), "condition": session.condition,
+            "results": [result.model_dump(mode="json") for result in session.results],
+            "live_laws": [law.model_dump(mode="json") for law in session.live_laws.values()],
+            "pending": [session.pending[0].model_dump(mode="json"), session.pending[1]] if session.pending else None,
+            "tentative": session.tentative.model_dump(mode="json") if session.tentative else None,
+            "budget_left": session.budget_left, "committed": session.committed, "uncertain": session.uncertain,
+            "step": self.step, "inflight": self.inflight, "fits": self.fits,
+            "fit_laws": {key: value.model_dump(mode="json") for key, value in self.fit_laws.items()},
+            "memo": self.memo, "pending_commit": self.pending_commit,
+            "tool_calls": self.dispatch_count, "usage": dict(self.usage), "usage_turns": self.usage_turns,
+            "wall_seconds": self.wall_seconds + time.monotonic() - self.started})
 
     def context(self):
         session = self.session
-        ledger = [json.loads(line) for line in session.ledger.path.read_text().splitlines()] if session.ledger.path.exists() else []
+        entries = self.entries()
         return {"session": session.info.model_dump(mode="json"), "budget_left": session.budget_left,
+                "minimum_experiments": self.options.min_experiments,
                 "results": [result.model_dump(mode="json") for result in session.results],
                 "live_laws": [law.model_dump(mode="json") for law in session.live_laws.values()],
-                "fits": self.fits, "recent_ledger": ledger[-12:],
-                "pending": self.session.pending[0].model_dump(mode="json") if self.session.pending else None}
+                "fits": self.fits, "coverage": tool_functions.coverage(), "recent_ledger": entries[-12:],
+                "pending": session.pending[0].model_dump(mode="json") if session.pending else None}
 
-    async def turn(self, role, *, revision_only=False):
+    def entries(self):
+        return [json.loads(line) for line in self.session.ledger.path.read_text().splitlines()] if self.session.ledger.path.exists() else []
+
+    def has_record(self, kind, cycle):
+        return any(item['kind'] == kind and item['cycle'] == cycle for item in self.entries())
+
+    def token_total(self):
+        return sum(self.usage[key] for key in ("input_tokens", "output_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"))
+
+    async def turn(self, role, task, cycle):
+        if self.token_total() >= self.options.token_cap:
+            raise RuntimeError("Session token cap reached")
         config = yaml.safe_load((Path(__file__).parent / "agents" / f"{role}.yaml").read_text())
-        executor = ClaudeSDKExecutor(cwd=self.workspace, model=self.model, skills_filter="none", os_env=None)
-        guard = role_policy(role)
+        model = self.options.analyst_model if role == "analyst" and self.options.analyst_model else self.options.model
+        executor = ClaudeSDKExecutor(cwd=self.workspace, model=model, skills_filter="none", os_env=None)
+        guard = role_policy(role, self.options.auto_approve, self.options.min_experiments)
         calls = 0
+        measurement_tools = {"weigh", "drop", "launch"}
+        mutations = measurement_tools | {"set_laws", "nominate", "commit_mission"}
 
         async def dispatch(name, arguments):
             nonlocal calls
             calls += 1
             self.dispatch_count += 1
             if calls > 32:
-                return {"error": "Per-turn tool limit reached; stop and report uncertainty"}
-            event = {"type": "tool_call", "target": name, "data": {"arguments": arguments}}
-            decision = guard(event)
-            if decision["result"] == "DENY":
-                result = {"blocked": True, "reason": decision["reason"]}
-            elif decision["result"] == "ASK":
-                if self.pending_commit is None:
+                return {"error": "Per-turn tool limit reached"}
+            key = hashlib.sha256(json.dumps([self.step, name, arguments], sort_keys=True).encode()).hexdigest()
+            if key in self.memo:
+                return self.memo[key]
+            decision = guard({"type": "tool_call", "target": name, "data": {"arguments": arguments}})
+            if name in measurement_tools and len(self.session.results) >= cycle:
+                decision = {"result": "DENY", "reason": "Exactly one measurement is allowed in this evidence cycle"}
+            if name in measurement_tools and not self.has_record("candidates", cycle):
+                decision = {"result": "DENY", "reason": "Record the candidate comparison before executing"}
+            if name == "commit_mission" and not self.has_record("nomination", len(self.session.results)):
+                decision = {"result": "DENY", "reason": "Complete the current evidence assessment and nomination first"}
+            with self.span(name, arguments) as span:
+                if decision["result"] == "DENY":
+                    result = {"blocked": True, "reason": decision["reason"]}
+                elif decision["result"] == "ASK":
                     self.pending_commit = arguments["commit"]
-                    (self.output / "pending-commit.json").write_text(json.dumps({
-                        "session_id": self.session.info.session_id, "base_url": str(self.session.client._http.base_url),
-                        "commit": self.pending_commit}, indent=2) + "\n")
-                result = {"approval_required": True, "message": "Firing table saved for human review; no shots fired"}
-            else:
-                try:
-                    result = await asyncio.to_thread(getattr(tool_functions, name), **arguments)
-                    json.dumps(result, allow_nan=False)
-                    if name == "set_laws":
-                        self.fits = {identifier: fit for identifier, fit in self.fits.items()
-                                     if identifier in self.session.live_laws and
-                                     self.fit_laws[identifier].model_dump(exclude={"description"}) ==
-                                     self.session.live_laws[identifier].model_dump(exclude={"description"})}
-                    if name == "fit_law":
-                        self.fits[result["law_id"]] = result
-                        self.fit_laws[result["law_id"]] = tool_functions.validated_law(arguments["law"])
-                except Exception as error:
-                    result = {"error": f"{type(error).__name__}: {error}"}
+                    atomic_json(self.output / "pending-commit.json", {
+                        "session_id": self.session.info.session_id,
+                        "base_url": str(self.session.client._http.base_url), "commit": self.pending_commit})
+                    result = {"approval_required": True, "message": "Firing table saved; no shots fired"}
+                else:
+                    try:
+                        if name in mutations:
+                            self.inflight = {"name": name, "key": key}
+                            self.save()
+                        result = await asyncio.to_thread(getattr(tool_functions, name), **arguments)
+                        json.dumps(result, allow_nan=False)
+                        if name == "set_laws":
+                            self.fits = {identifier: fit for identifier, fit in self.fits.items()
+                                         if identifier in self.session.live_laws and
+                                         self.fit_laws[identifier].model_dump(exclude={"description"}) ==
+                                         self.session.live_laws[identifier].model_dump(exclude={"description"})}
+                        if name == "fit_law":
+                            self.fits[result["law_id"]] = result
+                            self.fit_laws[result["law_id"]] = tool_functions.validated_law(arguments["law"])
+                        self.memo[key] = result
+                        self.inflight = None
+                    except Exception as error:
+                        result = {"error": f"{type(error).__name__}: {error}"}
+                        if not self.session.uncertain:
+                            self.inflight = None
+                if span:
+                    span.set_outputs(result)
             self.trace({"cycle": len(self.session.results), "agent": role, "tool": name,
                         "arguments": arguments, "policy": decision, "result": result})
+            self.save()
             return result
 
-        # Omnigent 0.16's ExecutorAdapter uses this same callback binding.
         executor._tool_executor = dispatch
-        prompt = TASKS[role]
-        if revision_only:
-            prompt += " This turn completes the evidence/revision cycle. Do not perform another experiment."
-        prompt += "\nPhysics may differ from Earth's. Insufficient evidence is an acceptable conclusion.\n"
-        prompt += json.dumps(self.context(), allow_nan=False)
-        transcript = []
-        try:
-            async for event in executor.run_turn([{"role": "user", "content": prompt}],
-                    [tool_schema(name) for name in sorted(ROLE_TOOLS[role])], config["prompt"],
-                    ExecutorConfig(model=self.model, extra={"max_turns": 16})):
-                if isinstance(event, ExecutorError):
-                    raise RuntimeError(event.message)
-                if isinstance(event, TextChunk):
-                    transcript.append(event.text)
-        finally:
-            await executor.close()
-            with (self.output / "conversation.jsonl").open("a") as stream:
-                stream.write(json.dumps({"agent": role, "cycle": len(self.session.results),
-                                         "text": "".join(transcript)}) + "\n")
+        prompt = task + "\n" + json.dumps(self.context(), allow_nan=False)
+        transcript, turn_usage = [], None
+        with self.span(role, {"cycle": cycle, "task": task, "model": model}) as span:
+            try:
+                async for event in executor.run_turn([{"role": "user", "content": prompt}],
+                        [tool_schema(name) for name in sorted(ROLE_TOOLS[role])], config["prompt"],
+                        ExecutorConfig(model=model, max_tokens=4096, extra={"max_turns": 20})):
+                    if getattr(event, "usage", None):
+                        turn_usage = event.usage
+                    if isinstance(event, ExecutorError):
+                        raise RuntimeError(event.message)
+                    if isinstance(event, TextChunk):
+                        transcript.append(event.text)
+            finally:
+                await executor.close()
+                if turn_usage:
+                    self.usage_turns += 1
+                    self.usage.update({key: value for key, value in turn_usage.items()
+                                       if key in {"input_tokens", "output_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"} and isinstance(value, int)})
+                with (self.output / "conversation.jsonl").open("a") as stream:
+                    stream.write(json.dumps({"agent": role, "cycle": cycle, "model": model,
+                                             "usage": turn_usage, "text": "".join(transcript)}) + "\n")
+                if span:
+                    span.set_outputs({"text": "".join(transcript), "usage": turn_usage})
+                self.save()
         print(json.dumps({"agent": role, "experiments": len(self.session.results),
                           "budget_left": self.session.budget_left, "tool_calls": calls}), flush=True)
 
-    async def run(self, cycles):
-        await self.turn("theorist")
-        for _ in range(cycles):
-            previous = len(self.session.results)
-            await self.turn("experimentalist")
-            if self.session.pending is None:
-                raise RuntimeError("Experimentalist did not complete pre-registration")
-            await self.turn("operator")
-            if len(self.session.results) != previous + 1:
-                raise RuntimeError("Operator did not return exactly one result")
-            if not self.session.live_laws:
-                # Cycle zero permits no laws. Only the Theorist may propose the first set.
-                await self.turn("theorist")
-            await self.turn("analyst")
-            latest = [json.loads(line) for line in self.session.ledger.path.read_text().splitlines()]
-            for required in ("verdicts", "nomination"):
-                if not any(entry["kind"] == required and entry["cycle"] == len(self.session.results) for entry in latest):
-                    raise RuntimeError(f"Analyst did not record {required} after this result")
-            await self.turn("theorist", revision_only=True)
-            await self.turn("pi")
-            if self.pending_commit is not None or self.session.budget_left == 0:
-                break
-        return {"session_id": self.session.info.session_id, "cycles": len(self.session.results),
+    async def random_choice(self, cycle):
+        if not self.schedule or len(self.schedule) < cycle:
+            raise ValueError("The random condition requires a host-supplied shared-sampler schedule")
+        pair = self.schedule[cycle - 1]
+        chosen = pair["chosen"]
+        tool_functions.record_candidates(pair["candidates"], chosen)
+        forecasts = []
+        for identifier, law in self.session.live_laws.items():
+            if identifier not in self.fits:
+                raise RuntimeError("A retained live law has no current fit")
+            forecasts.append(tool_functions.predict(law.model_dump(mode="json"), self.fits[identifier], chosen))
+        tool_functions.preregister(chosen, forecasts, pair["tentative_followup"], "Host shared sampler selected this experiment")
+        self.save()
+
+    async def run(self):
+        # Persisted phase index makes a completed phase immune to replay on resume.
+        steps = [("theorist", "Review initial information and register the initial live set, which may be empty.", 0)]
+        if self.session.condition == "single":
+            steps = [("single", "Complete exactly one full evidence/revision cycle. Then decide whether to continue or commit.", index)
+                     for index in range(1, self.options.cycles + 1)]
+        else:
+            for index in range(1, self.options.cycles + 1):
+                steps += [("random" if self.session.condition == "random" else "experimentalist", "Choose and pre-register the next experiment.", index),
+                          ("operator", "Execute the pending pre-registered experiment once.", index),
+                          ("bootstrap", "Propose the initial live laws from the observation and fit them.", index),
+                          ("analyst", "Assess the latest result, record verdicts and nominate the best live fit.", index),
+                          ("theorist", "Revise or retain the live set after the evidence; fit retained proposals. Do not measure.", index),
+                          ("pi", "Decide whether to continue or commit. If the budget is exhausted, plan and commit now.", index)]
+        while self.step < len(steps) and not self.session.committed and self.pending_commit is None:
+            role, task, cycle = steps[self.step]
+            if role == "bootstrap" and self.session.live_laws:
+                pass
+            elif role == "random":
+                if self.session.pending is None:
+                    await self.random_choice(cycle)
+            elif role == "operator" and len(self.session.results) >= cycle:
+                pass
+            else:
+                await self.turn("theorist" if role == "bootstrap" else role, task, cycle)
+            if role in {"experimentalist", "random"} and self.session.pending is None:
+                raise RuntimeError("Experiment choice did not complete pre-registration")
+            if role in {"operator", "single"} and len(self.session.results) != cycle:
+                raise RuntimeError("Cycle did not produce exactly one result")
+            if role in {"analyst", "single"}:
+                for kind in ("verdicts", "nomination"):
+                    if not self.has_record(kind, cycle):
+                        raise RuntimeError(f"Missing {kind} after the result")
+            self.step += 1
+            self.save()
+        if self.session.committed:
+            return "committed"
+        if self.pending_commit is not None:
+            return "awaiting_approval"
+        return "cycle_limit"
+
+    def summary(self, status, error=None):
+        entries = self.entries()
+        conversation = self.output / "conversation.jsonl"
+        turns = [json.loads(line) for line in conversation.read_text().splitlines()] if conversation.exists() else []
+        return {"status": status, "error": error, "session_id": self.session.info.session_id,
+                "condition": self.session.condition, "cycles": len(self.session.results),
                 "budget_left": self.session.budget_left, "tool_calls": self.dispatch_count,
-                "status": "awaiting_approval" if self.pending_commit is not None else "cycle_limit",
-                "pending_commit": str(self.output / "pending-commit.json") if self.pending_commit else None}
+                "stop_reason": "pi_chose_commit" if self.session.committed or self.pending_commit else status,
+                "wall_seconds": self.wall_seconds + time.monotonic() - self.started,
+                "usage": dict(self.usage), "tokens_including_cache": self.token_total(),
+                "usage_turns": self.usage_turns, "token_cap": self.options.token_cap,
+                "usage_complete": bool(turns) and all(item.get("usage") for item in turns) and status != "failed",
+                "ledger": str(self.session.ledger.path), "record_counts": dict(Counter(item['kind'] for item in entries)),
+                "changed_decisions": sum(item['kind']=='decision_diff' and item['payload']['changed'] for item in entries)}
+
+
+def resume_session(client, saved, output, auto_approve):
+    from threading import RLock
+    # A durable result closes the window between ledger fsync and checkpoint save.
+    # Without that acknowledgement, an in-flight measurement must never be replayed.
+    if saved["inflight"] and saved["inflight"]["name"] in {"weigh", "drop", "launch"} and saved["pending"]:
+        ledger_path = output / saved["info"]["session_id"] / "ledger.jsonl"
+        records = [json.loads(line) for line in ledger_path.read_text().splitlines()] if ledger_path.exists() else []
+        later = [Result.model_validate(item["payload"]) for item in records
+                 if item["kind"] == "result" and item["cycle"] > len(saved["results"])]
+        if (len(later) == 1 and later[0].index == len(saved["results"]) + 1
+                and later[0].spec == parse_spec(saved["pending"][0]["spec"])
+                and later[0].budget_left == saved["budget_left"] - 1):
+            saved["results"].append(later[0].model_dump(mode="json"))
+            saved["budget_left"] = later[0].budget_left
+            saved["tentative"] = saved["pending"][0]["tentative_followup"]
+            saved["pending"], saved["inflight"], saved["uncertain"] = None, None, False
+    if saved["inflight"] or saved["uncertain"]:
+        raise RuntimeError("Ambiguous mutation checkpoint: host reconciliation is required; no replay permitted")
+    if str(client._http.base_url) != saved["origin"]:
+        raise ValueError("Resume requires the original service origin and live server")
+    session = LabSession.__new__(LabSession)
+    session.client, session.condition = client, saved["condition"]
+    session.info = SessionInfo.model_validate(saved["info"])
+    session.ledger = Ledger(session.info.session_id, output)
+    session.ledger.actor_override = "single" if session.condition == "single" else None
+    session.results = [Result.model_validate(item) for item in saved["results"]]
+    session.live_laws = {item["law_id"]: Law.model_validate(item) for item in saved["live_laws"]}
+    session.pending = (PredictionsRequest.model_validate(saved["pending"][0]), saved["pending"][1]) if saved["pending"] else None
+    session.tentative = parse_spec(saved["tentative"]) if saved["tentative"] else None
+    session.budget_left, session.committed, session.uncertain = saved["budget_left"], saved["committed"], False
+    session._approve_commit = (lambda _: True) if auto_approve else None
+    session._lock = RLock()
+    return session
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--world-id", required=True)
-    parser.add_argument("--seed", type=int, required=True)
-    parser.add_argument("--output", required=True)
+    parser.add_argument("--world", "--world-id", dest="world", required=True)
+    parser.add_argument("--condition", choices=["lab", "random", "single"], default="lab")
+    parser.add_argument("--seed", type=int, default=1000)
+    parser.add_argument("--output", default=None)
     parser.add_argument("--model", default="sonnet")
+    parser.add_argument("--analyst-model")
     parser.add_argument("--cycles", type=int, default=12)
-    args = parser.parse_args()
-    if not 1000 <= args.seed <= 1999 or not 1 <= args.cycles <= 12:
-        parser.error("Use a dev seed and one to twelve cycles")
-    output = Path(args.output).resolve()
-    output.mkdir(parents=True, exist_ok=False)
+    parser.add_argument("--min-experiments", type=int, default=0)
+    parser.add_argument("--token-cap", type=int, default=2000000)
+    parser.add_argument("--auto-approve", action="store_true")
+    parser.add_argument("--schedule", help="Public experiment schedule prepared by the host shared sampler")
+    parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--no-tracing", action="store_true")
+    parser.add_argument("--tracking-uri")
+    options = parser.parse_args()
+    if not 1000 <= options.seed <= 1999 or not 1 <= options.cycles <= 12 or not 0 <= options.min_experiments <= 12:
+        parser.error("Use a dev seed and valid experiment limits")
+    if options.condition == "random" and not options.schedule:
+        parser.error("The random condition needs --schedule from the host shared sampler")
+    output = Path(options.output or f"runs/session-{time.time_ns()}").resolve()
+    output.mkdir(parents=True, exist_ok=options.resume)
     os.environ["OMNIGENT_DISABLE_TELEMETRY"] = "true"
-    with tempfile.TemporaryDirectory(prefix="solzero-scientists-") as workspace, WorldClient() as client:
-        session = LabSession(client, args.world_id, runs_root=output)
-        tool_functions.configure(session, seed=args.seed)
-        runner = Runner(session, output, workspace, args.model)
-        summary = {"status": "interrupted", "session_id": session.info.session_id}
-        try:
-            summary = asyncio.run(runner.run(args.cycles))
-        except Exception as error:
-            summary = {"status": "failed", "session_id": session.info.session_id,
-                       "cycles": len(session.results), "error": f"{type(error).__name__}: {error}"}
-            raise
-        finally:
-            (output / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
-            print(json.dumps(summary, indent=2), flush=True)
+    os.environ["CLAUDE_CODE_MAX_OUTPUT_TOKENS"] = "4096"
+    with (output / ".runner.lock").open("w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        with tempfile.TemporaryDirectory(prefix="solzero-scientists-") as workspace, WorldClient() as client:
+            saved = json.loads((output / "checkpoint.json").read_text()) if options.resume else None
+            if saved and any(saved['options'][key] != getattr(options, key) for key in ('world','condition','seed','model','min_experiments','token_cap')):
+                raise ValueError("Resume must preserve the run configuration")
+            session = resume_session(client, saved, output, options.auto_approve) if saved else LabSession(
+                client, options.world, options.condition, runs_root=output,
+                approve_commit=(lambda _: True) if options.auto_approve else None)
+            tool_functions.configure(session, seed=options.seed)
+            runner = Runner(session, output, workspace, options)
+            if saved:
+                for attribute, key in (("step","step"),("memo","memo"),("inflight","inflight"),("fits","fits"),
+                                       ("pending_commit","pending_commit"),("dispatch_count","tool_calls"),
+                                       ("usage_turns","usage_turns"),("wall_seconds","wall_seconds")):
+                    setattr(runner, attribute, saved[key])
+                runner.usage = Counter(saved['usage'])
+                runner.fit_laws = {key: Law.model_validate(value) for key,value in saved['fit_laws'].items()}
+                runner.save()
+            status, error = "interrupted", None
+            try:
+                status = asyncio.run(runner.run())
+            except Exception as failure:
+                status, error = "failed", f"{type(failure).__name__}: {failure}"
+            finally:
+                runner.save()
+                if runner.trace_enabled:
+                    import mlflow
+                    mlflow.flush_trace_async_logging()
+                summary = runner.summary(status, error)
+                atomic_json(output / "summary.json", summary)
+                print(json.dumps(summary, indent=2), flush=True)
+            raise SystemExit({"committed":0,"awaiting_approval":3,"cycle_limit":5}.get(status,4))
 
 
 if __name__ == "__main__":

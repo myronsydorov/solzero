@@ -17,6 +17,7 @@ class Ledger:
         if not re.fullmatch(r"[A-Za-z0-9_-]+", session_id):
             raise ValueError("Invalid session identifier")
         self.path = Path(root) / session_id / "ledger.jsonl"
+        self.actor_override: str | None = None
         self.path.parent.mkdir(parents=True, exist_ok=True)
 
     def append(self, cycle: int, agent: str, kind: LedgerKind, payload: dict | BaseModel) -> LedgerEntry:
@@ -27,7 +28,7 @@ class Ledger:
         # Reject nonfinite values before JSON-mode model dumping can turn them into null.
         json.dumps(payload, allow_nan=False)
         entry = LedgerEntry(ts=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-                            cycle=cycle, agent=agent, kind=kind, payload=payload)
+                            cycle=cycle, agent=self.actor_override or agent, kind=kind, payload=payload)
         encoded = json.dumps(entry.model_dump(mode="json"), allow_nan=False, separators=(",", ":")) + "\n"
         with self.path.open("a", encoding="utf-8") as stream:
             fcntl.flock(stream, fcntl.LOCK_EX)

@@ -228,12 +228,14 @@ def test_client_only_accepts_service_origins_and_does_not_follow_redirects(monke
     assert len(requests) == 1
 
 
-def test_stub_yamls_limit_robot_tools_to_operator():
+def test_scientific_yamls_limit_robot_tools_to_operator():
     from pathlib import Path
     import yaml
     for role in ("pi", "theorist", "experimentalist", "operator", "analyst"):
         config = yaml.safe_load((Path(__file__).resolve().parents[2] / "lab/agents" / f"{role}.yaml").read_text())
-        assert "stub" in config["prompt"] and config["skills"] == "none" and "os_env" not in config
+        assert "Inputs:" in config["prompt"] and "Output schema" in config["prompt"]
+        assert '"insufficient evidence" is valid' in config["prompt"]
+        assert config["skills"] == "none" and "os_env" not in config
         assert bool({"weigh", "drop", "launch"} & set(config["tools"])) == (role == "operator")
 
 

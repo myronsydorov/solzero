@@ -118,7 +118,7 @@ def record_candidates(candidates: list[dict], chosen: dict) -> dict:
     """Record at least two candidate experiments and the selected one."""
     parsed = [parse_spec(spec) for spec in candidates]
     actual = parse_spec(chosen)
-    if len(parsed) < 2 or actual not in parsed:
+    if len({item.model_dump_json() for item in parsed}) < 2 or actual not in parsed:
         raise ValueError("Choose from at least two candidates")
     current().ledger.append(len(current().results) + 1, "experimentalist", "candidates",
                             {"candidates": [spec.model_dump(mode="json") for spec in parsed],
@@ -143,3 +143,13 @@ def record_verdicts(verdicts: list[dict], confound_note: str = "") -> dict:
 def commit_mission(commit: dict) -> dict:
     """Submit a reviewed five-shot firing table after human approval."""
     return current().commit(Commit.model_validate(commit)).model_dump(mode="json")
+
+
+def coverage() -> dict:
+    """Summarize which samples and instrument settings have actually been tested."""
+    session = current()
+    return {"experiments": len(session.results), "budget_left": session.budget_left,
+            "by_sample": {sample.sample_id: [
+                {"index": result.index, "status": result.status, **result.spec.model_dump(mode="json")}
+                for result in session.results if result.spec.sample_id == sample.sample_id]
+                for sample in session.info.samples}}

@@ -105,53 +105,85 @@ SOLZERO_ADMIN_TOKEN=... .venv/bin/python -m world.server --port 8000
 
 ## Lane B: Omnigent and agents (Codex, branch `omnigent`)
 
-**Current milestone (2026-10-03 22:47 UTC):** main integrated; shared-schema mock, wrappers, ledger and five-role host runner verified. Full model-driven sessions reached the human approval gate on both servers: mock after six experiments, real dev seed 1000 after five. No model-run mission fired. Final suite: 85 passed.
+**Current milestone (2026-10-04 02:00 Europe/Berlin):** both approved missions committed. L1–L5 implementation advanced; **94 tests pass**. Live acceptance and the paired comparison are **blocked by the Claude subscription session limit**, which reports a reset at 05:30 Europe/Berlin. The candidate tag is a code-review checkpoint with incomplete scientific validation, not a test-seed freeze.
 
-**Done**
+### Approved missions and why they stopped
 
-- Installed open-source Omnigent 0.16.0 on Python 3.12.10; read upstream `docs/AGENT_YAML_SPEC.md` at release v0.16.0 (`82a7447`). Bundled hello-world returned `SOLZERO_CONNECTION_OK` via the existing Claude subscription login (`claude-sdk`, `sonnet`). Source-main's web build needed a newer Node; the release wheel resolved that missing dependency without a Node upgrade.
-- Verified orchestrator plus two declared agents passing ExperimentSpec and Result through Python functions. Working handoff: `type: agent` via `sys_session_send`, JSON in child messages/tool arguments/results. Audit: spec 1, result 1, received 1, policy denial 1, blocked body executions 0. Raw evidence: `runs/omnigent-smoke/{bundled-example.log,handoff.log,handoff.jsonl,summary.json}`.
-- Ran `git merge main` twice, first `36bc1be` (merge `e126556`), then updated `c64d2fa`. Conflict resolutions: `.gitignore` union, lane A from main and lane B from this branch, both Requests/Interface rows, lane B leak test. Removed `lab/requirements.txt`; `uv sync` now uses main's root dependencies. No local changes to root pyproject, lockfile or schemas relative to main.
-- Mock implements the six public routes with Earth ballistics, explicit dev seed, atomic budget, failed-run charging, pre-registration and one-use/spec/ownership checks, exact live-law coverage and replacement invalidation, including same-ID expression changes. It mirrors public target radii and launcher noise defaults. Admin scoring uses 40 probes and shared numerical tools; this fixture supports engineering checks, not scientific claims.
-- Every domain record imports from `schemas/`; no copied models. The Theorist wrapper sends `/laws` on live-set updates. Covariance and noise-unit LOO values pass through shared analysis unchanged. Same pure `fit_law`, `predict`, `disagreement`, `plan_shot` tools remain available to all conditions.
-- Typed HTTP adapters, fail-closed ambiguous mutation handling, role/budget/envelope policies, and fsynced JSONL ledger implemented. Repaired bugs found during integration: nonfinite ledger values becoming null, direct SDK message shape, and nomination descriptions unnecessarily invalidating an otherwise identical registered law.
-- Five YAML role prompts remain stubs. `lab.run` supplies generic role/record instructions and sequences Omnigent SDK executors with Python tools in one process; it supplies no scientific laws, bounds or experiment sequence. Only the Operator measures. Empty temporary cwd, no OS tools, no skills, public HTTP metadata/observations and own-session ledger isolate model context. All six YAML files load through Omnigent.
-- Safe five-shot requests pause with `pending-commit.json`; `lab.approve` accepts the hash of a human-reviewed file and blocks replays after both successful and ambiguous submission. No model can call this host command. No mission has fired in the model-driven runs.
-- No test seeds generated, run or inspected. No lane B calibration tuning. The leak test uses SPEC section 2 terms and checks forbidden imports/admin routes; it passes. An additional check caught a generated schema display title derived from `claims_non_ordinary` matching a forbidden family term. Generated display titles are now omitted without changing fields; all 13 tool schemas pass the new regression test. The longer real run began before this display-title fix; raw evidence is retained and it is not a frozen evaluation. Its early `disagreement` calls exposed an underspecified pair shape; generated input schemas now explicitly compose shared `Law` and `FitResult`, with regression coverage. The running session was not restarted.
+Both exact approved tables were submitted once with `python -m lab.approve <pending-file> --approved-sha256 <reviewed-hash>`. Receipts are `runs/session-{mock,real}-1000/pending-commit.attempt.json`; ledgers now contain `commit`. **The previous real five-cycle run and mock six-cycle run stopped because the PI chose to commit, not because they were cut short.** Both chose `predictive_only` and `claims_non_ordinary=false`.
 
-**Commands and measured results**
+| Target | Mock outcome | Mock miss, mm | Real dev outcome | Real miss, mm |
+| --- | --- | ---: | --- | ---: |
+| t1 | hit | 8.7 | hit | 2.3 |
+| t2 | hit | 14.0 | hit | 1.2 |
+| t3 | hit | 42.5 | hit | 17.5 |
+| t4 | hit | 47.2 | hit | 20.4 |
+| t5 | miss | 111.8 | hit | 5.6 |
+
+Evidence caveat: the old servers were started without an admin token. Their original HTTP score endpoints return 401/403. The real numbers come from the persisted payload written by the same admin score routine (`runs/session-real-1000/admin-score-persisted.json`). The mock numbers come from a fresh deterministic replay through the admin endpoint, after **all six original observations and budgets matched exactly** (`runs/session-mock-1000/admin-score-replay.json`); these are explicitly labelled replay results. Combined report: `runs/l1-l5/approved-mission-report.json`. The new server on port 8003 has host-only admin access configured.
+
+### L1–L5 implementation and verification
+
+- **L1 implemented, live 12-experiment acceptance incomplete.** Five real prompts now state decision ownership, inputs, output schemas and that insufficient evidence is valid. Theorist registers/revises/retires via `/laws`; Experimentalist compares candidates and registers complete predictions/tentative follow-up; Operator executes once; Analyst records coverage, prior-prediction z-scores/confounds and nominates; PI plans and commits. All eight ledger kinds are supported. Shared models and tools only; source and generated-tool-schema leak checks pass.
+- **Approval:** explicit `--auto-approve` is used by every dev/batch command under the user's standing authorization. The default interactive/demo command still pauses for human approval. Automatic approval does not bypass envelope, five-target or budget checks. `--min-experiments 12` is a disclosed fixed-budget verification setting; the normal default 0 leaves early stopping to the PI. No physics/noise/ranges/thresholds were tuned.
+- **L2 implemented, model verification interrupted.** `--condition lab|random|single`; random uses host schedules generated by lane A's existing sampler and the same Theorist/Analyst/PI. One single-condition agent gets every scientific tool. All conditions share model, experiment ceiling and token ceiling. CLI contract is published under Requests and in `docs/agents.md`. Direct safe-module sampler export remains a lane A request; lab never imports calibration.
+- **L3 partial.** Host selected seeds 1000–1007 (two per family) via admin endpoints; no family/seed metadata is sent in model context. Added Analyst `coverage` with per-sample actual specs/status and budget. Eight lab sessions started; each completed one measurement before the model limit. Tool audit found **zero wrapper/tool exceptions** in those sessions; longer-run law retirement, confounds and stop quality cannot yet be assessed. Initial model-driven runs before prompt expansion stopped at mock 6 / real 5; after expansion and fixed-budget verification, the new real acceptance run was interrupted at 2, not a PI stop. No before/after scientific performance claim is made.
+- **L4 implemented with explicit limits.** Nested MLflow agent/tool spans persist inputs/outputs; tests read them back. SDK token usage and wall time are saved. Three connection-establishment attempts maximum; no retry after a read timeout/unknown mutation. Durable phase checkpoints, successful-call memo, runner lock and ledger recovery prevent acknowledged experiments being replayed. A crash after ledger fsync and before checkpoint save recovers from the durable result. Unknown outcomes without that result still need host reconciliation; server-restart recovery needs lane A snapshot/idempotency support.
+- **Parallel verification:** 16 isolated subprocesses completed **192 HTTP experiments**, each with its own session, budget 0 and thirteenth request 409; engineering fixture elapsed **0.687 s**. Saved `runs/l1-l5/parallel16-engineering/summary.json`. This is a real process/HTTP test, **not** sixteen successful model sessions.
+- **Second Analyst model:** the one-line `--analyst-model haiku` option was exercised in a random-condition diagnostic, but the shared subscription limit interrupted it before Analyst ran. Compatibility is unproven; no success claim.
+- **L5 candidate only.** `docs/agents.md` documents prompts, policies, CLI, usage, tracing and resume limits. `lab-freeze-candidate` marks tested code with unresolved live-validation gates. The same-world 24-cell report contains **0 completed paired sessions**, 8 interrupted lab sessions and 16 unrun random/single cells; it does not treat unrun cells as zero hits. `scientific_freeze_ready=false` in `runs/l1-l5/paired-dev8/all-conditions-report.json` and `.md`. No test seeds generated, inspected or run.
+
+### Measurements and exact commands
+
+- Final `.venv/bin/python -m pytest -q`: **94 passed**, 6.37 s, three upstream deprecation warnings. Includes generated-schema vocabulary, role/envelope/auto-approval, retries, duplicate measurement suppression, checkpoint recovery, coverage and MLflow persistence.
+- `uv pip install mlflow-skinny`: installed 3.16.1 for the explicitly requested tracing work. Root pyproject/lock remain untouched by lane B; integration request below. A fresh `uv sync` will remove this extra until lane A lands it.
+- Initial tracing bug: `start_span(inputs=...)` is not supported by installed MLflow; fixed to `span.set_inputs`. It failed before **any experiments**. Resumed the original sessions after the fix rather than creating replacement measurements. Trace test also now flushes the asynchronous exporter before querying.
+- Full-budget acceptance `runs/l1-l5/l1-budget12`: **2 experiments**, 143.8 s, **312,274 reported tokens including cache**, provider-interrupted. Not twelve-experiment completion.
+- Single diagnostic: **1 experiment**, 13.0 s, **45,006 reported tokens**, provider-interrupted before completing the cycle. Random/Haiku diagnostic: **0 experiments**, 11.3 s, **17,494 reported tokens**, provider-interrupted. Raw logs and summaries retained. Usage on failed turns may be partial.
+
+Eight-world lab attempt (all provider-interrupted at one experiment; tokens include cache and may omit unfinished-turn usage):
+
+| Dev seed | Wall seconds | Reported tokens |
+| --- | ---: | ---: |
+| 1000 | 53.5 | 117883 |
+| 1001 | 57.5 | 119782 |
+| 1002 | 49.3 | 107177 |
+| 1003 | 55.0 | 113546 |
+| 1004 | 50.8 | 97581 |
+| 1005 | 45.5 | 75631 |
+| 1006 | 52.4 | 106870 |
+| 1007 | 53.4 | 97772 |
 
 ```sh
-uv sync
-.venv/bin/python -m pytest -q --junitxml=runs/merge-integration/final-tests.xml
-.venv/bin/python -m mock.check --seed 1000 --output runs/mock-check-final
-.venv/bin/python -m mock.server --seed 1000 --port 8002
-SOLZERO_RUNS_DIR=runs/real-server-dev .venv/bin/python -m world.server --port 8001
-SOLZERO_WORLD_URL=http://127.0.0.1:8002 .venv/bin/python -m lab.run --world-id mock-dev --seed 1000 --cycles 12 --output runs/session-mock-1000
-SOLZERO_WORLD_URL=http://127.0.0.1:8001 .venv/bin/python -m lab.run --world-id w_3c4adce51f85 --seed 1000 --cycles 1 --output runs/full-loop-real-1000
-SOLZERO_WORLD_URL=http://127.0.0.1:8001 .venv/bin/python -m lab.run --world-id w_3c4adce51f85 --seed 1000 --cycles 12 --output runs/session-real-1000
+# Current server: dev only; token read by host, never by scientific tools.
+SOLZERO_ADMIN_TOKEN="$(cat runs/l1-l5/admin-token)" SOLZERO_RUNS_DIR=runs/l1-l5/server .venv/bin/python -m world.server --port 8003
+# Resume the original real acceptance session after model capacity is restored.
+SOLZERO_WORLD_URL=http://127.0.0.1:8003 .venv/bin/python -m lab.run --world w_3c4adce51f85 --condition lab --seed 1000 --min-experiments 12 --auto-approve --resume --output runs/l1-l5/l1-budget12
+# Resume the same eight lab sessions; do not restart the in-memory server.
+.venv/bin/python -m eval.dev_batch --base-url http://127.0.0.1:8003 --token-file runs/l1-l5/admin-token --output runs/l1-l5/paired-dev8 --conditions lab --jobs 8 --resume
+# Then the same eight worlds under the other two conditions, up to 16 processes.
+.venv/bin/python -m eval.dev_batch --base-url http://127.0.0.1:8003 --token-file runs/l1-l5/admin-token --output runs/l1-l5/paired-dev8 --conditions random single --jobs 16
+.venv/bin/python -m eval.report_dev runs/l1-l5/paired-dev8
+.venv/bin/python -m eval.verify_parallel --output runs/parallel-check-new
+.venv/bin/python -m pytest -q
 ```
 
-- `uv sync`: 111 resolved, 105 installed packages checked. Full root suite at merge: **84 passed**, one upstream Starlette/httpx deprecation warning, 4.50 s; XML saved above. Final `.venv/bin/python -m pytest -q` after the generated-schema regression test: **85 passed**, 4.19 s (including explicit law/fit-pair tool schemas).
-- Fresh HTTP mock fixture: **12 experiments, budget 0, missing pre-registration 422, thirteenth experiment 409**. Raw responses, ledger and admin-only engineering score saved in `runs/mock-check-final/`.
-- Model mock session `s_mock_0001`: **6 complete evidence/revision cycles, 6 budget left, 62 calls**, PI chose `predictive_only`, no non-ordinary claim, five shots pending approval. Raw tools, policies, public transcript, ledger and summary in `runs/session-mock-1000/`. This process started before the final structured-tool-schema/description-cache fixes; its unmodified trace is retained.
-- Real dev seed 1000, opaque world `w_3c4adce51f85`, session `s_ad8db5fe92`: **1 complete evidence/revision cycle, 11 budget left, 11 calls**, Analyst nominated a fit and recorded insufficient evidence; PI continued. Raw outputs in `runs/full-loop-real-1000/`. A one-cycle check is not a completed mission. Longer real session `s_40ebae9470` completed **5 evidence/revision cycles, 7 budget left, 65 calls**, then PI chose `predictive_only` with no non-ordinary claim. All 5 experiments have verdicts and nominations; 4 decision diffs changed the tentative follow-up (mock: 0 of 6). Raw evidence: `runs/session-real-1000/`, combined audit `runs/merge-integration/model-run-audit.json`. Five shots are pending approval, not fired.
-- Initial SDK message bug failed before any experiment in `runs/full-loop-mock-1000/`; corrected one-cycle mock check in `runs/full-loop-mock-1000-v2/` completed 1 experiment/11 calls. Pre-integration missing-schema collection errors and raw evidence are retained, superseded by the passing full suite.
+### Blockers and next step
 
-**Blockers and limits**
+1. **Missing model capacity:** Claude reports reset at 05:30 Europe/Berlin. No Anthropic/OpenAI API key or Databricks endpoint is configured. Checked the authenticated Codex alternative: GPT-5.5 completed a transport probe, but native filesystem and connected-app tools exceeded the lab allowlist, so it was **not used for scientific runs**. Probe logs retained. A user preference question about alternate capacity is pending; no automatic future run was scheduled.
+2. **Missing shared dependency/API support:** lane A must integrate `mlflow-skinny`; safe sampler export and public idempotency/snapshot support remain requests. Current resume supports the same live server and acknowledged outcomes, not arbitrary server restart or lost-response reconciliation.
+3. After capacity returns, run the exact resume commands, assess all eight completed lab ledgers, fix only demonstrated orchestration failures, then run the same worlds under random/single and update the candidate. The current incomplete matrix supports no comparative result and does not establish the under-ten-minute target.
 
-- Setup/schema and live-law contract blockers are resolved by main. Remaining mission pause is SPEC section 6's human approval gate for the exact five-shot table; model-run shots have not fired.
-- Real-server direct-client validation gaps are requested below; current lab wrappers independently enforce them. No changes made to lane A files.
-- MLflow tracing and comparison-condition runners remain later milestones. Current raw tool/policy JSONL and ledger are saved. The model service exposes no sampling seed through this harness; explicit numerical seeds and raw decisions support audit, not bitwise model regeneration.
-- Original two-hour box: 20:56–22:56 UTC, including dependency wait. Stop and record partial evidence at the deadline.
-
-**Next step**
-
-1. Both model sessions reached approval within the time box (22:47 UTC); integration commits `81ecf9a`, `e1f2212`, `e17c3a0` are on `omnigent`, not pushed to main.
-2. Obtain the human's approval of each exact pending firing table before the host submission command; keep the corresponding in-memory server alive meanwhile (real port 8001/PID 85971, mock port 8002/PID 85972). Save the receipt and commit ledger entry. Pending mock hash: `b205390c555482254efcf7ced88abe1babbf08f0baa6a4fe71bfb7e02183334f`; pending real hash: `a01863dbb97671e9288d9dfcb91d6e2b4726c3152ef70510390e3052bf8c52b2`. Exact files are `runs/session-mock-1000/pending-commit.json` and `runs/session-real-1000/pending-commit.json`.
-3. Human integrates this tested branch to main. Lane A addresses its server requests; tracing/comparison runners follow in the next milestone.
+**Earlier verified milestones:** Omnigent 0.16.0/Python 3.12.10; upstream YAML spec read at tag `82a7447`; bundled hello succeeded. Orchestrator plus two agents used declared `type: agent` / `sys_session_send` handoffs with JSON ExperimentSpec/Result; policy denied one call with zero body executions. Main integration commits `e126556`, `81ecf9a`; source/schema follow-ups `e1f2212`, `e17c3a0`; prior status `f4d72f0`. Initial 12-call HTTP fixture passed budget/pre-registration checks. All raw evidence remains under `runs/omnigent-smoke/`, `runs/mock-check-final/` and `runs/merge-integration/`.
 
 ## Requests (one lane asking the other, or the human, for something)
+
+- **Lane B CLI contract for eval:** `SOLZERO_WORLD_URL=<origin> python -m lab.run --world <id> --condition lab|random|single --seed <dev-seed> --output <fresh-dir> --auto-approve`. Random additionally needs `--schedule <public-json>` from host shared sampler. `--min-experiments 12` selects fixed-budget verification; default 0 preserves PI early stop. Exit 0 committed, 2 CLI, 3 approval, 4 failure, 5 cycle cap. Ledger `<output>/<session_id>/ledger.jsonl`; summary contains wall seconds, SDK token use including caches, budget, stop reason and ledger path. Same model, 2M token ceiling checked between turns, 4096 output-token limit and 12-experiment cap across conditions. `--resume` requires same live service and output; ambiguous requests fail closed. `docs/agents.md` is the full contract.
+
+- Lane B claims `eval/` for host-only dev manifests, batch launch and score reporting (L2–L5, user request). `docs/agents.md` authorized explicitly by user. No scientific agent receives host admin data.
+- Lane B dependency request: add `mlflow-skinny==3.16.1` to root pyproject/lock (user explicitly requested MLflow). Installed with `uv pip install mlflow-skinny` for verification; root ownership preserved.
+- Lane B sampler request: expose lane A `calibration.study.random_spec` from a safe shared `tools/` module. Until then, the host-only eval preparation step generates public schedules with that existing sampler; lab reads the supplied schedule and never imports calibration.
+- Lane B robustness request: public session snapshot and idempotent experiment keys are needed for automatic recovery after a lost mutation response or server restart. Until supplied, client checkpoints resume against a live server and fail closed on ambiguous mutations, never replaying an experiment blindly.
+- User authorization (2026-10-03 23:28 UTC): both pending firing tables approved and committed. Automatically approve subsequent dev/batch commits; preserve approval as default for interactive demo sessions. The real 5-cycle and mock 6-cycle runs stopped because PI chose to commit, not because the host cut them short. L1–L5 replaces the earlier prompt-stub scope.
 
 - Lane B resolution (2026-10-03 22:43 UTC): all earlier schema/dependency/pytest-path and `/laws` integration requests below are resolved by main `c64d2fa`; historical rows are retained as requested. `lab/requirements.txt` is deleted.
 - Lane B → lane A (bugs, direct HTTP clients): `world/server.py` stores only law IDs in prediction tables, so replacing an expression under the same ID does not invalidate a table; track a law revision/snapshot. `/commit` also accepts fewer than five target shots; require exactly one per target. Mock and lab already enforce both.

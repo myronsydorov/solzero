@@ -40,6 +40,11 @@ def submit(path: Path, approved_sha256: str):
     ledger.append(cycle, "pi", "commit", request)
     record.update(status=response.status)
     marker.write_text(json.dumps(record, indent=2) + "\n")
+    summary_path = path.parent / "summary.json"
+    if summary_path.exists():
+        summary = json.loads(summary_path.read_text())
+        summary.update(status=response.status, stop_reason="pi_chose_commit", approval_receipt=str(marker))
+        summary_path.write_text(json.dumps(summary, indent=2) + "\n")
     return record
 
 
