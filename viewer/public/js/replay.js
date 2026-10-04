@@ -9,6 +9,7 @@ const $ = (s) => document.querySelector(s);
 const state = { runs: [], run: null, ledger: [], metrics: null, steps: [], pos: 0, timer: null, revealed: false };
 
 initTheme($("#theme"));
+renderHero().catch((e) => console.warn("hero data unavailable", e));  // static fallback numbers stay in the HTML
 boot().catch(fail);
 
 async function boot() {
@@ -163,7 +164,8 @@ function renderTimeline() {
       <span class="n">${esc(title)}</span><span class="ty">${esc(sub)}</span><span class="marks">${marks.join("")}</span></button>`;
   }).join("");
   t.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { stop(); go(+b.dataset.i); }));
-  t.querySelector(".current")?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  const cur = t.querySelector(".current");  // keep the current cycle visible without scrolling the page
+  if (cur && t.scrollWidth > t.clientWidth) t.scrollLeft = cur.offsetLeft - (t.clientWidth - cur.clientWidth) / 2;
   $("#pos").textContent = `Step ${state.pos + 1} of ${state.steps.length}`;
 }
 
@@ -226,6 +228,7 @@ function renderMission(snap) {
   }
   svg += `</svg>`;
   const hits = fired ? fired.shots.filter((s) => s.hit).length : null;
+  $("#mission-h").closest(".panel").classList.toggle("fired", !!fired && hits === fired.shots.length);
   const rows = info.targets.map((t) => {
     const s = shots[t.target_id], p = planned[t.target_id] || s;
     const outcome = s ? (s.hit ? badge("hit", "hit") : badge("miss", "miss")) : '<span class="muted">not fired</span>';
@@ -238,7 +241,7 @@ function renderMission(snap) {
     <div class="secondary" style="font-size:13px;margin-bottom:6px">Five untouched targets, one shot each with the 300 g mission sample. ${sz ? `Shot zero, fired with textbook physics, missed by <b>${fmt(100 * sz.miss_m, 3)} cm</b>.` : ""}</div>
     ${svg}
     <div class="legend"><span><i style="background:var(--series-1)"></i>target in tested range</span><span><i style="background:var(--series-4)"></i>beyond tested range</span><span class="muted">bar width = hit zone · vertical scale exaggerated</span></div>
-    ${fired ? `<div class="mission-result ${hits === fired.shots.length ? "all" : "some"}"><b>${hits === fired.shots.length ? "HIT" : "RESULT"}</b><span class="big">${hits} of ${fired.shots.length}</span><span class="secondary">targets hit in this replay</span></div>
+    ${fired ? `<div class="mission-result ${hits === fired.shots.length ? "all" : "some"}"><div class="mr-label"><i></i>${hits === fired.shots.length ? "MISSION COMPLETE" : "MISSION RESULT"}</div><div class="mr-big">${hits} / ${fired.shots.length}</div><div class="mr-sub">TARGETS HIT &middot; THIS REPLAY</div><div class="mr-chips">${fired.shots.map((s) => `<div class="mr-chip ${s.hit ? "hit" : "miss"}"><b>${esc(s.target_id.toUpperCase())} ${s.hit ? "HIT" : "MISS"}</b><small>${kinds[s.target_id] === "beyond" ? "beyond range" : "in range"}</small><small>${fmt(100 * s.miss_m, 2)} cm off</small></div>`).join("")}</div></div>
     <p style="margin:10px 0 4px"><b>${hits} of ${fired.shots.length} hit</b> <span class="secondary">· law ${esc(fired.law_id)} · claim ${esc(fired.claim.replace(/_/g, " "))}${fired.claims_non_ordinary ? " · claims non-ordinary physics" : ""}</span></p>` : snap.step.commit ? "" : `<p class="muted" style="margin:10px 0 4px;font-size:12px">Shots are fired at the final step, after the PI commits.</p>`}
     <div class="table-wrap"><table><thead><tr><th>Target</th><th>Kind</th><th class="num">x (m)</th><th class="num">z (m)</th><th class="num">Radius</th><th class="num">Shot</th><th class="num">Miss</th><th>Result</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
@@ -429,4 +432,33 @@ function renderReveal(snap) {
       refLines: [{ y: 0.8, label: "80% threshold" }], height: 220, tipTitle: (x) => `after ${x} experiment${x === 1 ? "" : "s"}`,
     });
   } else $("#probe-chart").innerHTML = '<p class="muted">No nominations recorded.</p>';
+}
+
+
+// Hero instrument: the recorded lab run's real targets, firing table, landing points and hits.
+async function renderHero() {
+  const d = await fetchJSON("media/lab-dev1000-mission.json");
+  const W = 560, H = 236, L = 30, R = 22, T = 30, B = 40;
+  const xmax = Math.max(...d.targets.map((t) => t.x_m + t.hit_radius_m)) * 1.07;
+  const sx = (x) => L + (x / xmax) * (W - L - R), sz = (z) => H - B - (z / 0.55) * (H - T - B);
+  const shot = Object.fromEntries(d.shots.map((s) => [s.target_id, s]));
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Side view: five targets and where the committed shots landed">`;
+  for (let x = 0; x <= xmax; x += 0.5) svg += `<line x1="${sx(x)}" x2="${sx(x)}" y1="${T - 8}" y2="${sz(0)}" stroke="var(--grid)"/><text x="${sx(x)}" y="${H - 20}" text-anchor="middle" fill="var(--text-muted)" font-size="9" font-family="var(--mono)">${x.toFixed(1)}m</text>`;
+  svg += `<line x1="${L}" x2="${W - R}" y1="${sz(0)}" y2="${sz(0)}" stroke="var(--axis)" stroke-width="1.5"/>`;
+  svg += `<rect x="${sx(0) - 4}" y="${sz(0.2)}" width="8" height="${sz(0) - sz(0.2)}" fill="var(--axis)"/><circle cx="${sx(0)}" cy="${sz(0.2)}" r="4.5" fill="var(--text-secondary)"/><text x="${sx(0) + 10}" y="${sz(0.2) - 8}" fill="var(--text-muted)" font-size="9" font-family="var(--mono)">LAUNCHER</text>`;
+  for (const t of d.targets) {
+    const s = shot[t.target_id], beyond = t.kind === "beyond", col = beyond ? "var(--series-4)" : "var(--series-1)";
+    const x0 = sx(t.x_m - t.hit_radius_m), x1 = sx(t.x_m + t.hit_radius_m), y = sz(t.z_m);
+    if (t.z_m > 0.005) svg += `<rect x="${x0 - 3}" y="${y}" width="${x1 - x0 + 6}" height="${sz(0) - y}" fill="rgba(140,160,205,.07)" stroke="var(--border)"/>`;
+    svg += `<rect x="${x0}" y="${y - 3}" width="${Math.max(4, x1 - x0)}" height="5" rx="1" fill="${col}"/>`;
+    if (s) svg += `<g class="impact"><circle cx="${sx(s.x_m)}" cy="${y - 1}" r="6.5" fill="none" stroke="${s.hit ? "var(--good)" : "var(--critical)"}" stroke-width="1.8"/><circle cx="${sx(s.x_m)}" cy="${y - 1}" r="2" fill="${s.hit ? "var(--good)" : "var(--critical)"}"/></g>`;
+    svg += `<text x="${sx(t.x_m)}" y="${y - 16}" text-anchor="middle" fill="var(--text-primary)" font-size="11" font-weight="600" font-family="var(--mono)">${esc(t.target_id.toUpperCase())}</text>`;
+    if (s && beyond) svg += `<text x="${sx(t.x_m)}" y="${y - 27}" text-anchor="middle" fill="var(--text-muted)" font-size="8.5" font-family="var(--mono)">${s.speed_mps.toFixed(1)} m/s</text>`;
+  }
+  svg += `<g font-size="9" font-family="var(--mono)" fill="var(--text-muted)"><rect x="${L}" y="${H - 8}" width="8" height="3" fill="var(--series-1)"/><text x="${L + 13}" y="${H - 4}">TESTED RANGE</text><rect x="${L + 112}" y="${H - 8}" width="8" height="3" fill="var(--series-4)"/><text x="${L + 125}" y="${H - 4}">BEYOND TESTED RANGE</text><circle cx="${L + 262}" cy="${H - 6.5}" r="3.5" fill="none" stroke="var(--good)" stroke-width="1.5"/><text x="${L + 272}" y="${H - 4}">IMPACT</text></g></svg>`;
+  $("#inst-scene").innerHTML = svg;
+  const hits = d.shots.filter((s) => s.hit).length, beyond = d.shots.filter((s) => s.kind === "beyond");
+  $("#st-hit").textContent = `${hits} / ${d.shots.length}`;
+  $("#st-used").textContent = `${d.used} / ${d.budget}`;
+  $("#st-beyond").textContent = `${beyond.filter((s) => s.hit).length} / ${beyond.length}`;
 }

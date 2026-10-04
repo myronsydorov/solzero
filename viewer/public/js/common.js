@@ -160,15 +160,15 @@ export function initTheme(button) {
   const root = document.documentElement;
   let saved = null;
   try { saved = localStorage.getItem("solzero-theme"); } catch { /* storage unavailable */ }
-  if (saved) root.dataset.theme = saved;
+  root.dataset.theme = saved || root.dataset.theme || "dark";  // dark is the default
   const label = () => {
-    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    const dark = root.dataset.theme === "dark";
     button.textContent = dark ? "Light" : "Dark";
     button.setAttribute("aria-label", dark ? "Switch to light theme" : "Switch to dark theme");
   };
   label();
   button.addEventListener("click", () => {
-    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    const dark = root.dataset.theme === "dark";
     root.dataset.theme = dark ? "light" : "dark";
     try { localStorage.setItem("solzero-theme", root.dataset.theme); } catch { /* ignore */ }
     label();

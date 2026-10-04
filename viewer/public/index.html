@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
+  <script>try{var t=localStorage.getItem("solzero-theme");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
   <link rel="stylesheet" href="css/style.css">
   <script type="module" src="js/replay.js"></script>
 </head>
@@ -22,30 +23,49 @@
   </div>
   <main id="app">
     <section class="hero" aria-labelledby="hero-h">
-      <p class="hero-tag">Recorded development run &middot; world 1000</p>
-      <h2 id="hero-h" class="hero-title">Sol Zero <span>Discover the physics. Then commit.</span></h2>
-      <p class="hero-lead">An AI lab investigates an unknown physical world, chooses its own experiments, updates its hypotheses, then commits to a mission plan.</p>
-      <div class="hero-stats" role="list">
-        <div role="listitem"><b>10 / 12</b><span>experiments used</span></div>
-        <div role="listitem"><b>5 / 5</b><span>mission targets hit</span></div>
-        <div role="listitem"><b>3 / 3</b><span>beyond tested range hit</span></div>
+      <div class="hero-copy">
+        <p class="eyebrow"><i class="dot"></i>SOL ZERO <span>/</span> DEVELOPMENT RUN 001</p>
+        <h2 id="hero-h" class="hero-title">Discover the physics.<br><em>Then commit.</em></h2>
+        <p class="hero-lead">An autonomous AI lab gets 12 experiments to understand an unknown world &mdash; then it must stop learning and act.</p>
+        <div class="hero-cta">
+          <button id="cta-play" type="button" class="primary">Play the discovery</button>
+          <button id="cta-mission" type="button">View final mission</button>
+        </div>
+        <a class="hero-link" href="media/demo_60s.mp4" target="_blank" rel="noopener">Watch 57s demo &rarr;</a>
       </div>
-      <div class="hero-cta">
-        <button id="cta-play" type="button" class="primary">Play discovery</button>
-        <button id="cta-mission" type="button">View mission result</button>
-        <a class="btn" href="media/demo_60s.mp4" target="_blank" rel="noopener">Watch 57&nbsp;s demo</a>
+
+      <div class="instrument" id="instrument" aria-label="Mission result for the recorded development run">
+        <i class="tick tl"></i><i class="tick tr"></i><i class="tick bl"></i><i class="tick br"></i>
+        <div class="inst-head"><span class="mono-label">MISSION RESULT</span><span class="status"><i></i>MISSION COMPLETE</span></div>
+        <div class="inst-scene" id="inst-scene"></div>
+        <div class="inst-stats">
+          <div><b id="st-hit">5 / 5</b><span>TARGETS HIT</span></div>
+          <div><b id="st-used">10 / 12</b><span>EXPERIMENTS USED</span></div>
+          <div><b id="st-beyond">3 / 3</b><span>EXTRAPOLATION HITS</span></div>
+        </div>
+        <p class="inst-foot">Recorded development run &middot; world 1000 &middot; unknown to the agents &middot; one run, not a baseline comparison &middot; <a href="https://github.com/myronsydorov/solzero/tree/main/docs/evidence/lab-dev1000" target="_blank" rel="noopener">run evidence &#8599;</a></p>
       </div>
-      <p class="hero-note">One run on a development world that was unknown to the agents. It shows the workflow; it is not a comparison with random or single-agent baselines, and not a held-out test result. Evidence: <a href="https://github.com/myronsydorov/solzero/tree/main/docs/evidence/lab-dev1000" target="_blank" rel="noopener">run ledger and server score</a>.</p>
     </section>
 
-    <div class="fixture-badge" role="note"><b>Interactive fixture replay</b><span>The timeline below uses deterministic replay data to demonstrate the interface. Recorded run evidence is in the repository.</span></div>
+    <ol class="telemetry" aria-label="How the run unfolds">
+      <li><small>01</small>UNKNOWN WORLD</li>
+      <li><small>02</small>12 EXPERIMENT BUDGET</li>
+      <li><small>03</small>HYPOTHESES UPDATED</li>
+      <li><small>04</small>COMMIT</li>
+      <li class="win"><small>05</small>5/5 HITS</li>
+    </ol>
 
+    <p class="replay-mode"><span><i></i>REPLAY MODE &middot; deterministic interface fixture</span><a href="https://github.com/myronsydorov/solzero/tree/main/docs/evidence/lab-dev1000" target="_blank" rel="noopener">Recorded AI run evidence &#8599;</a></p>
+
+    <details class="run-details"><summary>REPLAY DATA &middot; choose run, session and policy</summary>
     <div class="runbar">
       <label for="run" class="secondary">Run</label>
       <select id="run"></select>
       <span class="meta" id="runmeta"></span>
     </div>
     <p class="muted" id="policy" style="margin:-8px 0 12px;font-size:12px"></p>
+
+    </details>
 
     <section class="panel" style="margin-bottom:16px" aria-labelledby="tl-h">
       <header><h2 id="tl-h">Timeline</h2><span class="hint">each cycle: Theorist → Experimentalist → Operator → Analyst · ← → to step, space to play</span></header>

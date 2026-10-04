@@ -1,0 +1,97 @@
+{
+ "source": "docs/evidence/lab-dev1000/score.json",
+ "session_id": "s_dce1ebea1d",
+ "world": "1000",
+ "budget": 12,
+ "used": 10,
+ "claim": "predictive_only",
+ "targets": [
+  {
+   "target_id": "t1",
+   "x_m": 1.059,
+   "z_m": 0.102,
+   "hit_radius_m": 0.05,
+   "kind": "in_range"
+  },
+  {
+   "target_id": "t2",
+   "x_m": 0.864,
+   "z_m": 0.096,
+   "hit_radius_m": 0.05,
+   "kind": "in_range"
+  },
+  {
+   "target_id": "t3",
+   "x_m": 2.332,
+   "z_m": 0.377,
+   "hit_radius_m": 0.05,
+   "kind": "beyond"
+  },
+  {
+   "target_id": "t4",
+   "x_m": 2.691,
+   "z_m": 0.432,
+   "hit_radius_m": 0.0538,
+   "kind": "beyond"
+  },
+  {
+   "target_id": "t5",
+   "x_m": 1.993,
+   "z_m": 0.124,
+   "hit_radius_m": 0.05,
+   "kind": "beyond"
+  }
+ ],
+ "shots": [
+  {
+   "target_id": "t1",
+   "kind": "in_range",
+   "speed_mps": 3.289647329071204,
+   "elevation_deg": 27.5,
+   "x_m": 1.0741768222131542,
+   "miss_m": 0.015176822213154306,
+   "hit_radius_m": 0.05,
+   "hit": true
+  },
+  {
+   "target_id": "t2",
+   "kind": "in_range",
+   "speed_mps": 3.3835376355306774,
+   "elevation_deg": 15.0,
+   "x_m": 0.8635972636215143,
+   "miss_m": 0.00040273637848564636,
+   "hit_radius_m": 0.05,
+   "hit": true
+  },
+  {
+   "target_id": "t3",
+   "kind": "beyond",
+   "speed_mps": 5.887795706431957,
+   "elevation_deg": 57.5,
+   "x_m": 2.32737374491278,
+   "miss_m": 0.0046262550872198105,
+   "hit_radius_m": 0.05,
+   "hit": true
+  },
+  {
+   "target_id": "t4",
+   "kind": "beyond",
+   "speed_mps": 6.78567932759097,
+   "elevation_deg": 60.0,
+   "x_m": 2.70793286489327,
+   "miss_m": 0.01693286489327006,
+   "hit_radius_m": 0.0538,
+   "hit": true
+  },
+  {
+   "target_id": "t5",
+   "kind": "beyond",
+   "speed_mps": 4.737465907550026,
+   "elevation_deg": 35.0,
+   "x_m": 2.0003262284461654,
+   "miss_m": 0.007326228446165262,
+   "hit_radius_m": 0.05,
+   "hit": true
+  }
+ ]
+}
