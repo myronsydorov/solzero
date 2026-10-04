@@ -1,17 +1,21 @@
 """Small JSON function adapters; configure one session in each isolated runner."""
 from __future__ import annotations
+import hashlib
+import json
 
 from schemas import Commit, FitResult, Law, Prediction, Verdict, parse_spec
 from lab.session import LabSession
 
 _session: LabSession | None = None
 _seed: int | None = None
+_fit_cache: dict[str, str] = {}
 
 
 def configure(session: LabSession, *, seed: int) -> None:
     """Host-only binding. Never expose this function as an agent tool."""
     global _session, _seed
     _session, _seed = session, seed
+    _fit_cache.clear()
 
 
 def current() -> LabSession:
@@ -60,7 +64,14 @@ def fit_law(law: dict) -> dict:
     """Fit a proposed expression to this session's observed results."""
     from tools import fit_law as fit_function
     session = current()
-    return fit_function(validated_law(law), session.results, session.info.samples, seed=_seed).model_dump(mode="json")
+    proposal = validated_law(law)
+    key = hashlib.sha256(json.dumps({"law": proposal.model_dump(mode="json"), "seed": _seed,
+                         "results": [item.model_dump(mode="json") for item in session.results]},
+                         sort_keys=True, allow_nan=False).encode()).hexdigest()
+    if key not in _fit_cache:
+        fitted = fit_function(proposal, session.results, session.info.samples, seed=_seed)
+        _fit_cache[key] = fitted.model_dump_json()
+    return json.loads(_fit_cache[key])
 
 
 def predict(law: dict, fit: dict, spec: dict, n_draws: int = 200) -> dict:
@@ -98,11 +109,19 @@ def nominate(law: dict, fit: dict) -> dict:
 
 
 def record_candidates(candidates: list[dict], chosen: dict) -> dict:
-    """Record at least two candidate experiments and the selected one."""
+    """Record two or three candidate experiments and the selected one."""
     parsed = [parse_spec(spec) for spec in candidates]
     actual = parse_spec(chosen)
-    if len({item.model_dump_json() for item in parsed}) < 2 or actual not in parsed:
-        raise ValueError("Choose from at least two candidates")
+    if not 2 <= len(parsed) <= 3 or len({item.model_dump_json() for item in parsed}) < 2 or actual not in parsed:
+        raise ValueError("Choose from two or three distinct candidates")
+    seen = {item.model_dump_json() for item in parsed}
+    if current().ledger.path.exists():
+        for line in current().ledger.path.read_text().splitlines():
+            entry = json.loads(line)
+            if entry["kind"] == "candidates" and entry["cycle"] == len(current().results) + 1:
+                seen.update(parse_spec(item).model_dump_json() for item in entry["payload"]["candidates"])
+    if len(seen) > 3:
+        raise ValueError("At most three distinct candidates are allowed per cycle")
     current().ledger.append(len(current().results) + 1, "experimentalist", "candidates",
                             {"candidates": [spec.model_dump(mode="json") for spec in parsed],
                              "chosen": actual.model_dump(mode="json")})

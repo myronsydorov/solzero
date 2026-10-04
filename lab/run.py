@@ -15,7 +15,7 @@ import tempfile
 import time
 from typing import get_type_hints
 
-from omnigent import ClaudeSDKExecutor, ExecutorConfig, ExecutorError, TextChunk
+from omnigent import ExecutorConfig, ExecutorError, TextChunk
 from pydantic import create_model
 import yaml
 from schemas import (Commit, ExperimentSpec, FitResult, Law, Prediction, Verdict,
@@ -25,7 +25,7 @@ from lab.policies import ROLE_TOOLS, role_policy
 from lab.session import LabSession
 from lab.ledger import Ledger
 from lab import tool_functions
-from lab.model_runtime import ObservedExecutor, ModelFailure, limit_kind, backoff_seconds
+from lab.model_runtime import ObservedExecutor, ModelFailure, limit_kind, backoff_seconds, observed_usage
 
 
 def atomic_json(path, value):
@@ -134,11 +134,15 @@ class Runner:
     def context(self):
         session = self.session
         entries = self.entries()
+        evidence = {}
+        for entry in entries:
+            if entry["kind"] in {"prediction_table", "verdicts", "nomination", "decision_diff", "candidates"}:
+                evidence[entry["kind"]] = {"cycle": entry["cycle"], "record": entry["payload"]}
         return {"session": session.info.model_dump(mode="json"), "budget_left": session.budget_left,
                 "minimum_experiments": self.options.min_experiments,
                 "results": [result.model_dump(mode="json") for result in session.results],
                 "live_laws": [law.model_dump(mode="json") for law in session.live_laws.values()],
-                "fits": self.fits, "coverage": tool_functions.coverage(), "recent_ledger": entries[-12:],
+                "fits": self.fits, "coverage": tool_functions.coverage(), "evidence": evidence,
                 "pending": session.pending[0].model_dump(mode="json") if session.pending else None}
 
     def entries(self):
@@ -169,7 +173,7 @@ class Runner:
                     return
 
     async def _turn_once(self, role, task, cycle):
-        if self.token_total() >= self.options.token_cap:
+        if role != "operator" and self.token_total() >= self.options.token_cap:
             raise CapReached("Session token cap reached")
         config = yaml.safe_load((Path(__file__).parent / "agents" / f"{role}.yaml").read_text())
         model = self.options.model
@@ -179,7 +183,6 @@ class Runner:
                 stream.write(json.dumps(record) + "\n")
                 stream.flush()
                 os.fsync(stream.fileno())
-        executor = ObservedExecutor(observer=observe, cwd=self.workspace, model=model, skills_filter="none", os_env=None)
         guard = role_policy(role, self.options.auto_approve, self.options.min_experiments)
         calls = 0
         measurement_tools = {"weigh", "drop", "launch"}
@@ -245,6 +248,19 @@ class Runner:
             async with dispatch_lock:
                 return await dispatch_serial(name, arguments)
 
+        if role == "operator":
+            if self.session.pending is None:
+                raise RuntimeError("Operator requires a durable registered experiment")
+            chosen = self.session.pending[0].spec.model_dump(mode="json")
+            name = chosen.pop("type")
+            result = await dispatch(name, chosen)
+            if "error" in result or result.get("blocked"):
+                raise RuntimeError(f"Operator could not execute: {result}")
+            print(json.dumps({"agent": role, "experiments": len(self.session.results),
+                              "model_calls": 0, "budget_left": self.session.budget_left}), flush=True)
+            return
+
+        executor = ObservedExecutor(observer=observe, cwd=self.workspace, model=model, skills_filter="none", os_env=None)
         executor._tool_executor = dispatch
         prompt = task + "\n" + json.dumps(self.context(), allow_nan=False)
         transcript, turn_usage = [], None
@@ -365,7 +381,10 @@ class Runner:
                 if record["event"]["type"] == "message_start":
                     totals = by_agent.setdefault(record["agent"], {})
                     totals["observed_model_calls"] = totals.get("observed_model_calls", 0) + 1
-        return {"by_agent": by_agent, "status": status, "error": error, "session_id": self.session.info.session_id,
+        if self.session.condition != "single":
+            by_agent.setdefault("operator", {"model_turn_attempts": 0, "tokens": 0,
+                                             "usage_missing_turns": 0, "observed_model_calls": 0})
+        return {"observed_by_agent": observed_usage(self.output / "model-calls.jsonl"), "by_agent": by_agent, "status": status, "error": error, "session_id": self.session.info.session_id,
                 "condition": self.session.condition, "cycles": len(self.session.results),
                 "budget_left": self.session.budget_left, "tool_calls": self.dispatch_count,
                 "stop_reason": "pi_chose_commit" if self.session.committed or self.pending_commit else status,
@@ -442,7 +461,7 @@ def main():
     parser.add_argument("--session-info")
     parser.add_argument("--max-wall-s", type=float, default=600)
     parser.add_argument("--approval", choices=["human", "auto"], default="human")
-    parser.add_argument("--model", default="sonnet")
+    parser.add_argument("--model", default="claude-sonnet-5-5")
     parser.add_argument("--analyst-model")
     parser.add_argument("--cycles", type=int, default=12)
     parser.add_argument("--min-experiments", type=int, default=0)
@@ -472,7 +491,7 @@ def main():
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         with tempfile.TemporaryDirectory(prefix="solzero-scientists-") as workspace, WorldClient(options.world_url) as client:
             saved = json.loads((output / "checkpoint.json").read_text()) if options.resume else None
-            if saved and any(saved['options'][key] != getattr(options, key) for key in ('world','condition','seed','model','analyst_model','cycles','schedule','min_experiments','token_cap')):
+            if saved and any(saved['options'][key] != getattr(options, key) for key in ('world','condition','seed','model','analyst_model','cycles','schedule','min_experiments')):
                 raise ValueError("Resume must preserve the run configuration")
             session = resume_session(client, saved, output, options.auto_approve) if saved else LabSession(
                 client, options.world, options.condition, runs_root=output,
@@ -482,6 +501,11 @@ def main():
             tool_functions.configure(session, seed=options.seed)
             runner = Runner(session, output, workspace, options)
             if saved:
+                if options.token_cap < saved["options"]["token_cap"]:
+                    raise ValueError("Resume cannot lower the recorded token allowance")
+                if options.token_cap > saved["options"]["token_cap"]:
+                    runner.trace({"kind": "host_cap_extension", "before": saved["options"]["token_cap"],
+                                  "after": options.token_cap, "experiments": len(session.results)})
                 if saved.get("schedule_digest", runner.schedule_digest) != runner.schedule_digest:
                     raise ValueError("Resume requires the original experiment schedule")
                 for attribute, key in (("step","step"),("memo","memo"),("inflight","inflight"),("fits","fits"),

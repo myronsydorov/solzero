@@ -117,7 +117,7 @@ def test_repeated_model_measurement_returns_memo_without_second_http_run(session
             yield SimpleNamespace(usage=None)
     monkeypatch.setattr('lab.run.ObservedExecutor',Executor)
     runner=Runner(session,tmp_path,'/tmp',options())
-    asyncio.run(runner.turn('operator','Execute once',1))
+    asyncio.run(runner.turn('single','Execute once',1))
     assert len(session.results)==1 and session.budget_left==11
     assert sum(entry['kind']=='result' for entry in runner.entries())==1
 
@@ -256,7 +256,7 @@ def test_parallel_random_measurements_are_serialized(session, tmp_path, monkeypa
             if False: yield
     monkeypatch.setattr('lab.run.ObservedExecutor', Executor)
     runner = Runner(session, tmp_path, '/tmp', options())
-    asyncio.run(runner.turn('operator', 'test', 1))
+    asyncio.run(runner.turn('single', 'test', 1))
     assert len(session.results) == 1 and session.budget_left == 11
 
 
@@ -279,6 +279,64 @@ def test_model_retry_after_measurement_does_not_spend_twice(session, tmp_path, m
     monkeypatch.setattr('lab.run.ObservedExecutor', Executor)
     monkeypatch.setattr('lab.run.asyncio.sleep', sleep)
     runner = Runner(session, tmp_path, '/tmp', options())
-    asyncio.run(runner.turn('operator', 'test', 1))
+    asyncio.run(runner.turn('single', 'test', 1))
     assert len(attempts) == 2 and len(session.results) == 1
     assert sum(item['kind'] == 'result' for item in runner.entries()) == 1
+
+
+def test_usage_report_marks_partial_responses(tmp_path):
+    from lab.model_runtime import observed_usage
+    path = tmp_path / 'calls.jsonl'
+    events = [
+        {'type': 'message_start', 'message': {'model': 'test', 'usage': {'input_tokens': 4, 'output_tokens': 1}}},
+        {'type': 'message_delta', 'usage': {'output_tokens': 7}},
+        {'type': 'message_stop'},
+        {'type': 'message_start', 'message': {'model': 'test', 'usage': {'input_tokens': 3}}},
+    ]
+    path.write_text(''.join(json.dumps({'agent': 'theorist', 'event': event}) + '\n' for event in events))
+    report = observed_usage(path)['theorist']
+    assert report == {'calls': 2, 'tokens_observed': 14, 'incomplete_responses': 1, 'models': ['test']}
+
+
+def test_operator_executes_registered_record_without_model(session, tmp_path, monkeypatch):
+    import asyncio
+    spec = {'type': 'drop', 'sample_id': 'ref_100', 'height_m': 1}
+    functions.record_candidates([spec, {**spec, 'height_m': .5}], spec)
+    functions.preregister(spec, [], spec)
+    def forbidden(**kwargs): raise AssertionError('Operator must not construct a model executor')
+    monkeypatch.setattr('lab.run.ObservedExecutor', forbidden)
+    runner = Runner(session, tmp_path, '/tmp', options())
+    runner.options.token_cap = 0
+    asyncio.run(runner.turn('operator', 'execute', 1))
+    assert session.budget_left == 11 and session.pending is None
+    assert runner.token_total() == 0
+
+
+def test_candidate_cap_applies_across_calls_in_a_cycle(session):
+    specs = [{'type': 'drop', 'sample_id': 'ref_100', 'height_m': value} for value in (.2, .4, .6, .8)]
+    functions.record_candidates(specs[:2], specs[0])
+    functions.record_candidates(specs[1:3], specs[1])
+    with pytest.raises(ValueError, match='three'):
+        functions.record_candidates(specs[2:], specs[2])
+    with pytest.raises(ValueError, match='three'):
+        functions.record_candidates(specs, specs[0])
+
+
+def test_fit_cache_tracks_evidence_and_law(session, monkeypatch):
+    from schemas import FitResult
+    calls = []
+    def fit(law, results, samples, *, seed):
+        calls.append((law, len(results), seed))
+        return FitResult(law_id=law.law_id, params={}, chi2_dof=1, loo_error=.1,
+                         n_experiments=len(results), converged=True)
+    monkeypatch.setattr('tools.fit_law', fit)
+    law = {'law_id': 'test', 'ax': '0', 'az': '-9.8', 'params': {}}
+    functions.fit_law(law)
+    functions.fit_law(law)
+    assert len(calls) == 1
+    spec = parse_spec({'type': 'drop', 'sample_id': 'ref_100', 'height_m': 1})
+    session.preregister(spec, [], None)
+    session.execute(spec)
+    functions.fit_law(law)
+    functions.fit_law({**law, 'az': '-9.7'})
+    assert len(calls) == 3
