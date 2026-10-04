@@ -17,10 +17,29 @@
     <div class="brand"><h1>Sol Zero</h1><span class="muted">robot lab, unknown physics, 12 experiments</span></div>
     <nav aria-label="Pages"><a href="./" aria-current="page">Session replay</a><a href="results.html">Aggregate results</a></nav>
     <span class="spacer"></span>
-    <span class="replay-flag" title="Nothing on this site is live">Replay of recorded runs</span>
+    <span class="replay-flag" title="Nothing on this site is live">Replay, not live</span>
     <button id="theme" type="button">Dark</button>
   </div>
   <main id="app">
+    <section class="hero" aria-labelledby="hero-h">
+      <p class="hero-tag">Recorded development run &middot; world 1000</p>
+      <h2 id="hero-h" class="hero-title">Sol Zero <span>Discover the physics. Then commit.</span></h2>
+      <p class="hero-lead">An AI lab investigates an unknown physical world, chooses its own experiments, updates its hypotheses, then commits to a mission plan.</p>
+      <div class="hero-stats" role="list">
+        <div role="listitem"><b>10 / 12</b><span>experiments used</span></div>
+        <div role="listitem"><b>5 / 5</b><span>mission targets hit</span></div>
+        <div role="listitem"><b>3 / 3</b><span>beyond tested range hit</span></div>
+      </div>
+      <div class="hero-cta">
+        <button id="cta-play" type="button" class="primary">Play discovery</button>
+        <button id="cta-mission" type="button">View mission result</button>
+        <a class="btn" href="media/demo_60s.mp4" target="_blank" rel="noopener">Watch 57&nbsp;s demo</a>
+      </div>
+      <p class="hero-note">One run on a development world that was unknown to the agents. It shows the workflow; it is not a comparison with random or single-agent baselines, and not a held-out test result. Evidence: <a href="https://github.com/myronsydorov/solzero/tree/main/docs/evidence/lab-dev1000" target="_blank" rel="noopener">run ledger and server score</a>.</p>
+    </section>
+
+    <div class="fixture-badge" role="note"><b>Interactive fixture replay</b><span>The timeline below uses deterministic replay data to demonstrate the interface. Recorded run evidence is in the repository.</span></div>
+
     <div class="runbar">
       <label for="run" class="secondary">Run</label>
       <select id="run"></select>

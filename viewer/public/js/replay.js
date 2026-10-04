@@ -37,6 +37,14 @@ async function boot() {
   $("#first").addEventListener("click", () => go(0));
   $("#last").addEventListener("click", () => go(state.steps.length - 1));
   $("#play").addEventListener("click", togglePlay);
+  $("#cta-play").addEventListener("click", () => {
+    stop(); go(0, true); play();
+    $("#tl-h").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  $("#cta-mission").addEventListener("click", () => {
+    stop(); go(state.steps.length - 1, true);
+    $("#mission-h").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
 }
 
 function fail(err) {
@@ -230,7 +238,8 @@ function renderMission(snap) {
     <div class="secondary" style="font-size:13px;margin-bottom:6px">Five untouched targets, one shot each with the 300 g mission sample. ${sz ? `Shot zero, fired with textbook physics, missed by <b>${fmt(100 * sz.miss_m, 3)} cm</b>.` : ""}</div>
     ${svg}
     <div class="legend"><span><i style="background:var(--series-1)"></i>target in tested range</span><span><i style="background:var(--series-4)"></i>beyond tested range</span><span class="muted">bar width = hit zone · vertical scale exaggerated</span></div>
-    ${fired ? `<p style="margin:10px 0 4px"><b>${hits} of ${fired.shots.length} hit</b> <span class="secondary">· law ${esc(fired.law_id)} · claim ${esc(fired.claim.replace(/_/g, " "))}${fired.claims_non_ordinary ? " · claims non-ordinary physics" : ""}</span></p>` : snap.step.commit ? "" : `<p class="muted" style="margin:10px 0 4px;font-size:12px">Shots are fired at the final step, after the PI commits.</p>`}
+    ${fired ? `<div class="mission-result ${hits === fired.shots.length ? "all" : "some"}"><b>${hits === fired.shots.length ? "HIT" : "RESULT"}</b><span class="big">${hits} of ${fired.shots.length}</span><span class="secondary">targets hit in this replay</span></div>
+    <p style="margin:10px 0 4px"><b>${hits} of ${fired.shots.length} hit</b> <span class="secondary">· law ${esc(fired.law_id)} · claim ${esc(fired.claim.replace(/_/g, " "))}${fired.claims_non_ordinary ? " · claims non-ordinary physics" : ""}</span></p>` : snap.step.commit ? "" : `<p class="muted" style="margin:10px 0 4px;font-size:12px">Shots are fired at the final step, after the PI commits.</p>`}
     <div class="table-wrap"><table><thead><tr><th>Target</th><th>Kind</th><th class="num">x (m)</th><th class="num">z (m)</th><th class="num">Radius</th><th class="num">Shot</th><th class="num">Miss</th><th>Result</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 

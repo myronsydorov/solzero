@@ -257,3 +257,27 @@ tr.nodata td { color: var(--text-muted); }
 
 details summary { cursor: pointer; color: var(--text-secondary); font-size: 13px; }
 footer.site { color: var(--text-muted); font-size: 12px; margin-top: 32px; }
+
+/* Landing summary (judge-facing) */
+.hero { padding: 28px 0 8px; margin-bottom: 8px; }
+.hero-tag { margin: 0 0 10px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+.hero-title { font-size: 40px; line-height: 1.1; font-weight: 700; margin: 0 0 12px; }
+.hero-title span { display: block; font-size: 22px; font-weight: 500; color: var(--text-secondary); margin-top: 6px; }
+.hero-lead { font-size: 17px; line-height: 1.5; max-width: 62ch; margin: 0 0 22px; color: var(--text-primary); }
+.hero-stats { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 22px; }
+.hero-stats > div { background: var(--surface-1, var(--surface-2)); border: 1px solid var(--border); border-radius: 10px; padding: 14px 20px; min-width: 170px; }
+.hero-stats b { display: block; font-size: 38px; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.hero-stats span { font-size: 13px; color: var(--text-secondary); }
+.hero-cta { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.hero-cta button, .hero-cta .btn { font: inherit; font-size: 15px; font-weight: 600; padding: 10px 18px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-primary); cursor: pointer; text-decoration: none; display: inline-block; }
+.hero-cta button.primary { background: var(--series-1); border-color: var(--series-1); color: #fff; }
+.hero-note { font-size: 12.5px; color: var(--text-muted); max-width: 80ch; margin: 0; line-height: 1.5; }
+.fixture-badge { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; border: 1px dashed var(--border); border-radius: 8px; padding: 8px 12px; margin: 18px 0 22px; font-size: 12.5px; color: var(--text-secondary); }
+.fixture-badge b { color: var(--text-primary); }
+#policy, .runbar .meta { color: var(--text-muted) !important; font-size: 12px !important; }
+.mission-result { display: flex; align-items: baseline; gap: 12px; margin: 12px 0 6px; padding: 12px 16px; border-radius: 10px; border: 2px solid var(--border); }
+.mission-result.all { border-color: var(--good); }
+.mission-result b { font-size: 22px; letter-spacing: .04em; }
+.mission-result.all b { color: var(--good); }
+.mission-result .big { font-size: 40px; font-weight: 700; font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) { .hero-title { font-size: 30px; } .hero-stats > div { min-width: 0; flex: 1 1 140px; } .hero-stats b { font-size: 30px; } }
