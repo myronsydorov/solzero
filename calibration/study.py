@@ -34,6 +34,8 @@ from schemas import HIT_RADIUS_FRAC, hit_radius
 from tools.defaults import NOISE_SD, RANGES, SAMPLES
 from world.generator import DEV_SEEDS, MASSES, World, make_world
 
+from eval.lawform import claim_for
+
 from .library import is_ordinary, library, nests_truth, true_form
 
 BUDGET = 12
@@ -261,7 +263,8 @@ def stage_b(seed: int, policy: str, hit_frac: float = HIT_RADIUS_FRAC) -> dict:
     sel = steps[-1]["selected_form"]
     return {
         "seed": seed, "policy": policy, "truth": w.truth(), "true_form": tf, "steps": steps,
-        "final_form": sel, "claims_non_ordinary": not is_ordinary(sel),
+        "final_form": sel, "claims_non_ordinary": claim_for(laws[sel], fits[sel]),
+        "claims_non_ordinary_form_rule": not is_ordinary(sel),
         "final_fit": fits[sel].model_dump(),
         "hit_frac": hit_frac,
         "mission_selected": mission(w, laws[sel], fits[sel], seed, hit_frac),

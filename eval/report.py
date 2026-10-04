@@ -66,6 +66,9 @@ def per_condition(rows: list[dict]) -> dict:
         d["experiments_to_threshold_median"] = (float(np.median([13 if v is None else v for v in reach])))
         d["reached_threshold"] = round(float(np.mean([v is not None for v in reach])), 3)
         d["abstention"] = round(float(np.mean([r["abstained"] for r in rs])), 3)
+        used = np.array([r.get("experiments_used", r["n_experiments"]) for r in rs], float)
+        d["experiments_used"] = {"mean": round(float(used.mean()), 2), "median": float(np.median(used)),
+                                 "min": int(used.min()), "share_full_budget": round(float(np.mean(used >= 12)), 3)}
         pc = [r["plan_changed_share"] for r in rs if r.get("plan_changed_share") is not None]
         d["plan_changed_share_mean"] = round(float(np.mean(pc)), 3) if pc else None
         ir = [r["initial_explanation_rejected"] for r in rs if r.get("initial_explanation_rejected") is not None]
@@ -198,7 +201,7 @@ def _fmt(d):
 
 def summary_table(stats, pairs) -> tuple[list[str], list[list[str]], str]:
     head = ["condition", "worlds", "beyond probe hit", "mission hit", "in / beyond", "law recovery",
-            "false disc. (ctrl)", "exp. to 80%", "abstain"]
+            "false disc. (ctrl)", "exp. used", "exp. to 80%", "abstain"]
     body = []
     for lab in ORDER:
         if lab not in stats:
@@ -208,11 +211,13 @@ def summary_table(stats, pairs) -> tuple[list[str], list[list[str]], str]:
                      f"{d['mission_hit_in_range']['mean']:.2f} / {d['mission_hit_beyond']['mean']:.2f}",
                      _fmt(d["law_form_recovered"]),
                      f"{_fmt(d['false_discovery'])} n={d['n_control']}",
+                     f"{d['experiments_used']['mean']:.1f} (min {d['experiments_used']['min']})",
                      f"{d['experiments_to_threshold_median']:g}", f"{d['abstention']:.2f}"])
     md = ["| " + " | ".join(head) + " |", "|" + " --- |" * len(head)]
     md += ["| " + " | ".join(r) + " |" for r in body]
     md.append("")
-    md.append("Values are means over worlds with 95% bootstrap intervals. Experiments to 80% is a median, and 13 means not reached.")
+    md.append("Values are means over worlds with 95% bootstrap intervals. Experiments used is the mean (minimum) "
+              "number run before the commit. Experiments to 80% is a median, and 13 means not reached.")
     md.append("")
     if pairs:
         md.append("| paired difference | worlds | beyond probe hit | mission hit | law recovery | false disc. |")

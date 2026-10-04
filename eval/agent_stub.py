@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import time
 from pathlib import Path
 
@@ -29,7 +30,11 @@ def main():
     ap.add_argument("--max-tokens", type=int, default=0)
     ap.add_argument("--max-wall-s", type=float, default=600)
     ap.add_argument("--approval", choices=["human", "auto"], default="human")
+    ap.add_argument("--resume", action="store_true")
     args = ap.parse_args()
+    # Test hook: SOLZERO_STUB_RATE_LIMIT_AFTER=N stops a fresh run after N experiments with a
+    # provider-limit status, as a real agent would on a session limit.
+    limit_after = int(os.environ.get("SOLZERO_STUB_RATE_LIMIT_AFTER", "-1"))
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     info = SessionInfo.model_validate_json(Path(args.session_info).read_text())
@@ -40,8 +45,20 @@ def main():
              else [WeighSpec(sample_id="ref_100", height_m=0.5)] * info.budget)
     law, fit = textbook_law()
     status = "committed"
-    ledger.write(0, "theorist", "law_set", {"laws": []})
+    done = 0
+    if args.resume and ledger.path.exists():
+        done = sum(json.loads(line)["kind"] == "result" for line in ledger.path.read_text().splitlines())
+    else:
+        ledger.write(0, "theorist", "law_set", {"laws": []})
     for i, spec in enumerate(specs, 1):
+        if i <= done:
+            continue
+        if not args.resume and i - 1 == limit_after:
+            (out / "summary.json").write_text(json.dumps({
+                "session_id": info.session_id, "status": "rate_limited", "tokens_used": 0,
+                "wall_s": time.perf_counter() - t0, "n_experiments": i - 1, "retry_after_s": 1,
+                "error": "You've hit your session limit (simulated)", "agent": "stub"}, indent=1))
+            return
         if time.perf_counter() - t0 > args.max_wall_s:
             status = "cap_reached"
             break
