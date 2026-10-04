@@ -240,7 +240,9 @@ def run_one(args, client: WorldClient, worlds: dict[int, str], condition: str, s
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--condition", required=True, choices=[*AGENT_CONDITIONS, *REFERENCES])
+    ap.add_argument("--condition", required=True,
+                    help="one or more of lab,single,random,textbook,oracle, comma-separated; one batch shares "
+                         "the concurrency limit and the provider-limit pause")
     ap.add_argument("--seeds", required=True)
     ap.add_argument("--out", default="runs/eval")
     ap.add_argument("--agent", choices=["cli", "scripted"], default="cli",
@@ -260,7 +262,11 @@ def main():
     ap.add_argument("--final-eval", action="store_true")
     ap.add_argument("--retry-failed", action="store_true")
     args = ap.parse_args()
-    if args.agent == "scripted" and args.condition in ("lab", "single"):
+    conditions = [c.strip() for c in args.condition.split(",") if c.strip()]
+    bad = [c for c in conditions if c not in (*AGENT_CONDITIONS, *REFERENCES)]
+    if bad:
+        raise SystemExit(f"unknown condition(s) {bad}")
+    if args.agent == "scripted" and set(conditions) & {"lab", "single"}:
         raise SystemExit("--agent scripted only applies to the random condition")
     seeds = parse_seeds(args.seeds, args.final_eval)
     out = Path(args.out)
@@ -279,11 +285,18 @@ def main():
             raise SystemExit(f"server does not serve seeds {missing}")
         t0 = time.time()
         with ThreadPoolExecutor(args.max_concurrency) as ex:
-            futs = {ex.submit(run_one, args, client, worlds, args.condition, s): s for s in seeds}
+            # Interleave conditions so a partial batch still has paired runs on the same worlds.
+            futs = {ex.submit(run_one, args, client, worlds, c, s): (c, s) for s in seeds for c in conditions}
             for f in as_completed(futs):
-                st = f.result()
-                log(f"{label_for(args.condition, args.agent)} {futs[f]}: {st.get('status')} "
-                    f"({st.get('agent_status')}, {st.get('wall_s', 0):.0f}s)")
+                c, s = futs[f]
+                try:
+                    st = f.result()
+                except Exception as exc:  # one broken run must not stop the batch
+                    log(f"{label_for(c, args.agent)} {s}: runner error {type(exc).__name__}: {exc}")
+                    continue
+                log(f"{label_for(c, args.agent)} {s}: {st.get('status')} "
+                    f"({st.get('agent_status')}, {st.get('wall_s', 0):.0f}s, "
+                    f"{st.get('rate_limit_pauses', 0)} pauses)")
         log(f"done in {time.time() - t0:.0f}s")
     finally:
         if server:
