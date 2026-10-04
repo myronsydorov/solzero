@@ -315,7 +315,25 @@ Videos are in `runs/render/`, which is untracked. For the demo run on a test wor
   - Shot zero's practice target t0 is drawn as a bin.
 - **The clip's textbook shot** uses the shared `plan_shot` with `textbook_law()`, plus a seeded actuation draw (stream `[seed, 88, k]`).
 
+**Update (2026-10-04, second session)**
+
+- **`python -m sim.demo --run <id | run dir | ledger> [--style normal|large|both]`** renders three assets into `runs/demo/<run>/`, in parallel, plus a `demo.json` manifest:
+  - `replay.mp4`, the full replay;
+  - `clip.mp4`, the side-by-side;
+  - `opener.mp4`, exactly 10 s of shot zero missing, with a zoom on the miss.
+- **Large-type variant (`--style large`):** overlays are drawn on a 1280x720 canvas and scaled up, so all type is 1.5x bigger. Panels use a relative layout.
+- **Run resolution:**
+  - Accepted layouts: eval runner (`attempt*/admin_score.json`, `truth.json`, `session_info.json`), viewer `metrics.json`, lane B's `admin-score-persisted.json`, oracle `world_session.json`.
+  - Mission hits come from the server's admin score whenever one is present; `demo.json` records which source was used.
+- **Lane B's real session `s_40ebae9470`** (dev 1000; the PI committed after 5 of 12 experiments) rendered with the server's admin score: **5/5 hits** (misses 0.1 to 2.0 cm).
+  - Clip on t4 (beyond range): the textbook shot misses by 51.6 cm; the agents' law lands 2.0 cm off (radius 5.4 cm).
+  - Both styles took 1 min 34 s. The first attempt took 14.5 min; demo workers now run BLAS single-threaded.
+
 **Next step**
+
+- Rerun the sim tests on main once `mujoco` is in `pyproject.toml` (still missing as of this update).
+- Render the first complete eval-runner session from lane B with `sim.demo` as soon as one exists. As of this update, every `lab`/`single` eval run is `eval.agent_stub`.
+
 
 - Render the demo run once the human freezes the test seeds and picks it (SPEC 10: the selection rule is fixed before results are seen).
 - Copy `video.mp4` into the viewer run directory, coordinated with the viewer lane.
