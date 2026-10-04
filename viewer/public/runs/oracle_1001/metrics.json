@@ -1,0 +1,1410 @@
+{
+ "run_id": "oracle_1001",
+ "label": "Scripted oracle on dev world 1001 (fixture)",
+ "condition": "oracle",
+ "policy": "scripted greedy disagreement over the 12-form library (no language model)",
+ "session_info": {
+  "session_id": "s_8c7c021358",
+  "budget": 12,
+  "samples": [
+   {
+    "sample_id": "ref_020",
+    "mass_kg": 0.02,
+    "launchable": true
+   },
+   {
+    "sample_id": "ref_050",
+    "mass_kg": 0.05,
+    "launchable": true
+   },
+   {
+    "sample_id": "ref_100",
+    "mass_kg": 0.1,
+    "launchable": true
+   },
+   {
+    "sample_id": "ref_200",
+    "mass_kg": 0.2,
+    "launchable": true
+   },
+   {
+    "sample_id": "ref_400",
+    "mass_kg": 0.4,
+    "launchable": true
+   },
+   {
+    "sample_id": "ref_800",
+    "mass_kg": 0.8,
+    "launchable": true
+   },
+   {
+    "sample_id": "mission_300",
+    "mass_kg": 0.3,
+    "launchable": false
+   }
+  ],
+  "ranges": {
+   "weigh": {
+    "height_m": [
+     0.0,
+     1.2
+    ]
+   },
+   "drop": {
+    "height_m": [
+     0.1,
+     1.2
+    ]
+   },
+   "launch": {
+    "speed_mps": [
+     1.0,
+     4.0
+    ],
+    "elevation_deg": [
+     15.0,
+     75.0
+    ]
+   },
+   "mission": {
+    "speed_mps": [
+     1.0,
+     7.0
+    ],
+    "elevation_deg": [
+     15.0,
+     75.0
+    ]
+   }
+  },
+  "noise_sd": {
+   "force_frac": 0.02,
+   "fall_time_s": 0.005,
+   "landing_x_m": 0.01,
+   "flight_time_s": 0.005,
+   "speed_frac": 0.005,
+   "elevation_deg": 0.1
+  },
+  "launcher": {
+   "x_m": 0.0,
+   "z_m": 0.2
+  },
+  "targets": [
+   {
+    "target_id": "t1",
+    "x_m": 0.577,
+    "z_m": 0.429,
+    "hit_radius_m": 0.05
+   },
+   {
+    "target_id": "t2",
+    "x_m": 1.178,
+    "z_m": 0.101,
+    "hit_radius_m": 0.05
+   },
+   {
+    "target_id": "t3",
+    "x_m": 2.116,
+    "z_m": 0.049,
+    "hit_radius_m": 0.05
+   },
+   {
+    "target_id": "t4",
+    "x_m": 2.04,
+    "z_m": 0.09,
+    "hit_radius_m": 0.05
+   },
+   {
+    "target_id": "t5",
+    "x_m": 2.875,
+    "z_m": 0.492,
+    "hit_radius_m": 0.0575
+   }
+  ],
+  "shot_zero": {
+   "spec": {
+    "type": "launch",
+    "sample_id": "ref_100",
+    "speed_mps": 3.67,
+    "elevation_deg": 17.5
+   },
+   "target_id": "t0",
+   "landing_x_m": 1.11842112477869,
+   "miss_m": 0.08157887522131002
+  }
+ },
+ "score": {
+  "session_id": "s_8c7c021358",
+  "world_id": "w_cd4bf5ee2360",
+  "condition": "oracle",
+  "budget": 12,
+  "used": 12,
+  "results": [
+   {
+    "experiment_id": "e01",
+    "index": 1,
+    "spec": {
+     "type": "weigh",
+     "sample_id": "ref_100",
+     "height_m": 0.6
+    },
+    "observables": {
+     "force_n": 0.9713452401023889
+    },
+    "noise_sd": {
+     "force_n": 0.01947708842853892
+    },
+    "status": "ok",
+    "budget_left": 11
+   },
+   {
+    "experiment_id": "e02",
+    "index": 2,
+    "spec": {
+     "type": "drop",
+     "sample_id": "ref_100",
+     "height_m": 1.0
+    },
+    "observables": {
+     "fall_time_s": 0.45929571375430533
+    },
+    "noise_sd": {
+     "fall_time_s": 0.005
+    },
+    "status": "ok",
+    "budget_left": 10
+   },
+   {
+    "experiment_id": "e03",
+    "index": 3,
+    "spec": {
+     "type": "launch",
+     "sample_id": "ref_100",
+     "speed_mps": 3.0,
+     "elevation_deg": 45.0
+    },
+    "observables": {
+     "landing_x_m": 1.0198864295423513,
+     "flight_time_s": 0.5010267870273122
+    },
+    "noise_sd": {
+     "landing_x_m": 0.01,
+     "flight_time_s": 0.005,
+     "speed_frac": 0.005,
+     "elevation_deg": 0.1
+    },
+    "status": "ok",
+    "budget_left": 9
+   },
+   {
+    "experiment_id": "e04",
+    "index": 4,
+    "spec": {
+     "type": "launch",
+     "sample_id": "ref_020",
+     "speed_mps": 3.764465635876163,
+     "elevation_deg": 32.67588093825031
+    },
+    "observables": {
+     "landing_x_m": 1.055356440961743,
+     "flight_time_s": 0.4636662939296458
+    },
+    "noise_sd": {
+     "landing_x_m": 0.01,
+     "flight_time_s": 0.005,
+     "speed_frac": 0.005,
+     "elevation_deg": 0.1
+    },
+    "status": "ok",
+    "budget_left": 8
+   },
+   {
+    "experiment_id": "e05",
+    "index": 5,
+    "spec": {
+     "type": "launch",
+     "sample_id": "ref_020",
+     "speed_mps": 2.4268684108899192,
+     "elevation_deg": 44.53254597433046
+    },
+    "observables": {
+     "landing_x_m": 0.6491971391738681,
+     "flight_time_s": 0.4312979715516095
+    },
+    "noise_sd": {
+     "landing_x_m": 0.01,
+     "flight_time_s": 0.005,
+     "speed_frac": 0.005,
+     "elevation_deg": 0.1
+    },
+    "status": "ok",
+    "budget_left": 7
+   },
+   {
+    "experiment_id": "e06",
+    "index": 6,
+    "spec": {
+     "type": "weigh",
+     "sample_id": "ref_400",
+     "height_m": 1.1243486400124256
+    },
+    "observables": {
+     "force_n": 3.8527694767218708
+    },
+    "noise_sd": {
+     "force_n": 0.07790835371415568
+    },
+    "status": "ok",
+    "budget_left": 6
+   },
+   {
+    "experiment_id": "e07",
+    "index": 7,
+    "spec": {
+     "type": "weigh",
+     "sample_id": "ref_020",
+     "height_m": 1.1415338905782004
+    },
+    "observables": {
+     "force_n": 0.18841680267457603
+    },
+    "noise_sd": {
+     "force_n": 0.0038954176857077844
+    },
+    "status": "ok",
+    "budget_left": 5
+   },
+   {
+    "experiment_id": "e08",
+    "index": 8,
+    "spec": {
+     "type": "weigh",
+     "sample_id": "ref_050",
+     "height_m": 1.1384545715989822
+    },
+    "observables": {
+     "force_n": 0.4937595448539923
+    },
+    "noise_sd": {
+     "force_n": 0.00973854421426946
+    },
+    "status": "ok",
+    "budget_left": 4
+   },
+   {
+    "experiment_id": "e09",
+    "index": 9,
+    "spec": {
+     "type": "weigh",
+     "sample_id": "ref_800",
+     "height_m": 1.1520608172819593
+    },
+    "observables": {
+     "force_n": 7.884776040704768
+    },
+    "noise_sd": {
+     "force_n": 0.15581670742831136
+    },
+    "status": "ok",
+    "budget_left": 3
+   },
+   {
+    "experiment_id": "e10",
+    "index": 10,
+    "spec": {
+     "type": "weigh",
+     "sample_id": "ref_400",
+     "height_m": 1.1298118745104302
+    },
+    "observables": {
+     "force_n": 3.9042346861438437
+    },
+    "noise_sd": {
+     "force_n": 0.07790835371415568
+    },
+    "status": "ok",
+    "budget_left": 2
+   },
+   {
+    "experiment_id": "e11",
+    "index": 11,
+    "spec": {
+     "type": "weigh",
+     "sample_id": "mission_300",
+     "height_m": 0.003003028553986331
+    },
+    "observables": {
+     "force_n": 2.8074565951336536
+    },
+    "noise_sd": {
+     "force_n": 0.05843126528561676
+    },
+    "status": "ok",
+    "budget_left": 1
+   },
+   {
+    "experiment_id": "e12",
+    "index": 12,
+    "spec": {
+     "type": "launch",
+     "sample_id": "ref_800",
+     "speed_mps": 2.968311303549475,
+     "elevation_deg": 49.58019196794707
+    },
+    "observables": {
+     "landing_x_m": 1.014747981932309,
+     "flight_time_s": 0.5419786727606037
+    },
+    "noise_sd": {
+     "landing_x_m": 0.01,
+     "flight_time_s": 0.005,
+     "speed_frac": 0.005,
+     "elevation_deg": 0.1
+    },
+    "status": "ok",
+    "budget_left": 0
+   }
+  ],
+  "live_laws": [
+   "const_p3",
+   "height_p3",
+   "mass_p3"
+  ],
+  "prediction_tables": [
+   {
+    "id": "p_55105b57cc",
+    "spec": {
+     "type": "weigh",
+     "sample_id": "ref_100",
+     "height_m": 0.6
+    },
+    "law_ids": [],
+    "used": true,
+    "experiment_index": 1,
+    "tentative_followup": {
+     "type": "drop",
+     "sample_id": "ref_100",
+     "height_m": 1.0
+    }
+   },
+   {
+    "id": "p_2dc23cfd67",
+    "spec": {
+     "type": "drop",
+     "sample_id": "ref_100",
+     "height_m": 1.0
+    },
+    "law_ids": [
+     "const_p1",
+     "const_p2",
+     "const_p3"
+    ],
+    "used": true,
+    "experiment_index": 2,
+    "tentative_followup": {
+     "type": "launch",
+     "sample_id": "ref_100",
+     "speed_mps": 3.0,
+     "elevation_deg": 45.0
+    }
+   },
+   {
+    "id": "p_acd27a0e16",
+    "spec": {
+     "type": "launch",
+     "sample_id": "ref_100",
+     "speed_mps": 3.0,
+     "elevation_deg": 45.0
+    },
+    "law_ids": [
+     "const_p1",
+     "const_p2",
+     "const_p3"
+    ],
+    "used": true,
+    "experiment_index": 3,
+    "tentative_followup": {
+     "type": "launch",
+     "sample_id": "ref_020",
+     "speed_mps": 2.0904008919173056,
+     "elevation_deg": 62.910924989585695
+    }
+   },
+   {
+    "id": "p_2a8c0c31ec",
+    "spec": {
+     "type": "launch",
+     "sample_id": "ref_020",
+     "speed_mps": 3.764465635876163,
+     "elevation_deg": 32.67588093825031
+    },
+    "law_ids": [
+     "const_p2",
+     "const_p3",
+     "height_p3"
+    ],
+    "used": true,
+    "experiment_index": 4,
+    "tentative_followup": {
+     "type": "launch",
+     "sample_id": "ref_020",
+     "speed_mps": 3.9487819302422027,
+     "elevation_deg": 61.605356335536605
+    }
+   },
+   {
+    "id": "p_7cf5363b51",
+    "spec": {
+     "type": "launch",
+     "sample_id": "ref_020",
+     "speed_mps": 2.4268684108899192,
+     "elevation_deg": 44.53254597433046
+    },
+    "law_ids": [
+     "const_p2",
+     "const_p3",
+     "height_p3"
+    ],
+    "used": true,
+    "experiment_index": 5,
+    "tentative_followup": {
+     "type": "launch",
+     "sample_id": "ref_020",
+     "speed_mps": 2.3216458888339324,
+     "elevation_deg": 39.402945258516894
+    }
+   },
+   {
+    "id": "p_634b8ea470",
+    "spec": {
+     "type": "weigh",
+     "sample_id": "ref_400",
+     "height_m": 1.1243486400124256
+    },
+    "law_ids": [
+     "const_p3",
+     "height_p3",
+     "mass_p3"
+    ],
+    "used": true,
+    "experiment_index": 6,
+    "tentative_followup": {
+     "type": "weigh",
+     "sample_id": "ref_020",
+     "height_m": 1.1415338905782004
+    }
+   },
+   {
+    "id": "p_3ae43d356e",
+    "spec": {
+     "type": "weigh",
+     "sample_id": "ref_020",
+     "height_m": 1.1415338905782004
+    },
+    "law_ids": [
+     "const_p3",
+     "height_p3",
+     "mass_p3"
+    ],
+    "used": true,
+    "experiment_index": 7,
+    "tentative_followup": {
+     "type": "weigh",
+     "sample_id": "ref_050",
+     "height_m": 1.1384545715989822
+    }
+   },
+   {
+    "id": "p_3f6dfdf082",
+    "spec": {
+     "type": "weigh",
+     "sample_id": "ref_050",
+     "height_m": 1.1384545715989822
+    },
+    "law_ids": [
+     "const_p3",
+     "height_p3",
+     "mass_p3"
+    ],
+    "used": true,
+    "experiment_index": 8,
+    "tentative_followup": {
+     "type": "weigh",
+     "sample_id": "ref_400",
+     "height_m": 1.1988399789174127
+    }
+   },
+   {
+    "id": "p_80b4870955",
+    "spec": {
+     "type": "weigh",
+     "sample_id": "ref_800",
+     "height_m": 1.1520608172819593
+    },
+    "law_ids": [
+     "const_p3",
+     "height_p3",
+     "mass_p3"
+    ],
+    "used": true,
+    "experiment_index": 9,
+    "tentative_followup": {
+     "type": "weigh",
+     "sample_id": "ref_400",
+     "height_m": 1.1298118745104302
+    }
+   },
+   {
+    "id": "p_89f7f36a2a",
+    "spec": {
+     "type": "weigh",
+     "sample_id": "ref_400",
+     "height_m": 1.1298118745104302
+    },
+    "law_ids": [
+     "const_p3",
+     "height_p3",
+     "mass_p3"
+    ],
+    "used": true,
+    "experiment_index": 10,
+    "tentative_followup": {
+     "type": "weigh",
+     "sample_id": "mission_300",
+     "height_m": 0.003003028553986331
+    }
+   },
+   {
+    "id": "p_954776ef17",
+    "spec": {
+     "type": "weigh",
+     "sample_id": "mission_300",
+     "height_m": 0.003003028553986331
+    },
+    "law_ids": [
+     "const_p3",
+     "height_p3",
+     "mass_p3"
+    ],
+    "used": true,
+    "experiment_index": 11,
+    "tentative_followup": {
+     "type": "weigh",
+     "sample_id": "ref_050",
+     "height_m": 0.02295825503274811
+    }
+   },
+   {
+    "id": "p_d46d6598b4",
+    "spec": {
+     "type": "launch",
+     "sample_id": "ref_800",
+     "speed_mps": 2.968311303549475,
+     "elevation_deg": 49.58019196794707
+    },
+    "law_ids": [
+     "const_p3",
+     "height_p3",
+     "mass_p3"
+    ],
+    "used": true,
+    "experiment_index": 12,
+    "tentative_followup": null
+   }
+  ],
+  "nominations": [
+   {
+    "n_experiments": 1,
+    "law": {
+     "law_id": "const_p3",
+     "description": "gravity const, drag p3",
+     "ax": "-c*speed**2*vx/m",
+     "az": "-g0 - c*speed**2*vz/m",
+     "params": {
+      "g0": {
+       "init": 9.81,
+       "lo": 0.5,
+       "hi": 30.0
+      },
+      "c": {
+       "init": 0.001,
+       "lo": 0.0,
+       "hi": 2.0
+      }
+     }
+    },
+    "fit": {
+     "law_id": "const_p3",
+     "params": {
+      "g0": {
+       "value": 9.824969284431573,
+       "sd": 0.14042131087039209
+      },
+      "c": {
+       "value": 0.0036105019444253,
+       "sd": 0.0008205780745071601
+      }
+     },
+     "chi2_dof": 0.6826391398256535,
+     "loo_error": null,
+     "n_experiments": 2,
+     "converged": true,
+     "cov": [
+      [
+       0.01971814454655929,
+       -7.601878836357587e-05
+      ],
+      [
+       -7.601878836357592e-05,
+       6.733483763618784e-07
+      ]
+     ]
+    },
+    "probe_median_error_m": 0.004988885686201927,
+    "probe_within_beyond": 0.85,
+    "probe_within_in_range": 1.0
+   },
+   {
+    "n_experiments": 2,
+    "law": {
+     "law_id": "const_p3",
+     "description": "gravity const, drag p3",
+     "ax": "-c*speed**2*vx/m",
+     "az": "-g0 - c*speed**2*vz/m",
+     "params": {
+      "g0": {
+       "init": 9.81,
+       "lo": 0.5,
+       "hi": 30.0
+      },
+      "c": {
+       "init": 0.001,
+       "lo": 0.0,
+       "hi": 2.0
+      }
+     }
+    },
+    "fit": {
+     "law_id": "const_p3",
+     "params": {
+      "g0": {
+       "value": 9.811693529303119,
+       "sd": 0.107807610493413
+      },
+      "c": {
+       "value": 0.003678407472462565,
+       "sd": 0.0006824435896629345
+      }
+     },
+     "chi2_dof": 0.3523425851831328,
+     "loo_error": null,
+     "n_experiments": 3,
+     "converged": true,
+     "cov": [
+      [
+       0.011622480880299452,
+       -3.4965704281451166e-05
+      ],
+      [
+       -3.496570428144998e-05,
+       4.6572925307203175e-07
+      ]
+     ]
+    },
+    "probe_median_error_m": 0.0041297647937930115,
+    "probe_within_beyond": 0.95,
+    "probe_within_in_range": 1.0
+   },
+   {
+    "n_experiments": 3,
+    "law": {
+     "law_id": "const_p3",
+     "description": "gravity const, drag p3",
+     "ax": "-c*speed**2*vx/m",
+     "az": "-g0 - c*speed**2*vz/m",
+     "params": {
+      "g0": {
+       "init": 9.81,
+       "lo": 0.5,
+       "hi": 30.0
+      },
+      "c": {
+       "init": 0.001,
+       "lo": 0.0,
+       "hi": 2.0
+      }
+     }
+    },
+    "fit": {
+     "law_id": "const_p3",
+     "params": {
+      "g0": {
+       "value": 9.86897309925261,
+       "sd": 0.0840614142516088
+      },
+      "c": {
+       "value": 0.003503198866632319,
+       "sd": 0.0005892776238866417
+      }
+     },
+     "chi2_dof": 0.37878939674659307,
+     "loo_error": null,
+     "n_experiments": 4,
+     "converged": true,
+     "cov": [
+      [
+       0.007066321365980579,
+       -2.946443102919133e-05
+      ],
+      [
+       -2.9464431029191517e-05,
+       3.4724811801348634e-07
+      ]
+     ]
+    },
+    "probe_median_error_m": 0.007832754398851116,
+    "probe_within_beyond": 0.85,
+    "probe_within_in_range": 1.0
+   },
+   {
+    "n_experiments": 4,
+    "law": {
+     "law_id": "const_p3",
+     "description": "gravity const, drag p3",
+     "ax": "-c*speed**2*vx/m",
+     "az": "-g0 - c*speed**2*vz/m",
+     "params": {
+      "g0": {
+       "init": 9.81,
+       "lo": 0.5,
+       "hi": 30.0
+      },
+      "c": {
+       "init": 0.001,
+       "lo": 0.0,
+       "hi": 2.0
+      }
+     }
+    },
+    "fit": {
+     "law_id": "const_p3",
+     "params": {
+      "g0": {
+       "value": 9.837240861625393,
+       "sd": 0.06817623610276884
+      },
+      "c": {
+       "value": 0.003835401462446383,
+       "sd": 0.00016810481943914436
+      }
+     },
+     "chi2_dof": 0.3241484780585126,
+     "loo_error": null,
+     "n_experiments": 5,
+     "converged": true,
+     "cov": [
+      [
+       0.00464799916914048,
+       -6.120466192561927e-06
+      ],
+      [
+       -6.120466192562569e-06,
+       2.825923031866733e-08
+      ]
+     ]
+    },
+    "probe_median_error_m": 0.005657607150501287,
+    "probe_within_beyond": 1.0,
+    "probe_within_in_range": 1.0
+   },
+   {
+    "n_experiments": 5,
+    "law": {
+     "law_id": "const_p3",
+     "description": "gravity const, drag p3",
+     "ax": "-c*speed**2*vx/m",
+     "az": "-g0 - c*speed**2*vz/m",
+     "params": {
+      "g0": {
+       "init": 9.81,
+       "lo": 0.5,
+       "hi": 30.0
+      },
+      "c": {
+       "init": 0.001,
+       "lo": 0.0,
+       "hi": 2.0
+      }
+     }
+    },
+    "fit": {
+     "law_id": "const_p3",
+     "params": {
+      "g0": {
+       "value": 9.837894100243044,
+       "sd": 0.0625307263030519
+      },
+      "c": {
+       "value": 0.0038296644480947254,
+       "sd": 0.0001621108396886523
+      }
+     },
+     "chi2_dof": 0.24552098093973274,
+     "loo_error": null,
+     "n_experiments": 6,
+     "converged": true,
+     "cov": [
+      [
+       0.003910091731987187,
+       -5.524636990217057e-06
+      ],
+      [
+       -5.52463699021747e-06,
+       2.6279924344559927e-08
+      ]
+     ]
+    },
+    "probe_median_error_m": 0.006046759888869047,
+    "probe_within_beyond": 1.0,
+    "probe_within_in_range": 1.0
+   },
+   {
+    "n_experiments": 6,
+    "law": {
+     "law_id": "const_p3",
+     "description": "gravity const, drag p3",
+     "ax": "-c*speed**2*vx/m",
+     "az": "-g0 - c*speed**2*vz/m",
+     "params": {
+      "g0": {
+       "init": 9.81,
+       "lo": 0.5,
+       "hi": 30.0
+      },
+      "c": {
+       "init": 0.001,
+       "lo": 0.0,
+       "hi": 2.0
+      }
+     }
+    },
+    "fit": {
+     "law_id": "const_p3",
+     "params": {
+      "g0": {
+       "value": 9.818937602021991,
+       "sd": 0.05946439908572704
+      },
+      "c": {
+       "value": 0.003856469011824776,
+       "sd": 0.00016028309688635405
+      }
+     },
+     "chi2_dof": 0.3303645950779163,
+     "loo_error": null,
+     "n_experiments": 7,
+     "converged": true,
+     "cov": [
+      [
+       0.0035360147586266147,
+       -5.0216333208451424e-06
+      ],
+      [
+       -5.021633320845558e-06,
+       2.5690671147480357e-08
+      ]
+     ]
+    },
+    "probe_median_error_m": 0.005369457633082775,
+    "probe_within_beyond": 1.0,
+    "probe_within_in_range": 1.0
+   },
+   {
+    "n_experiments": 7,
+    "law": {
+     "law_id": "height_p3",
+     "description": "gravity height, drag p3",
+     "ax": "-c*speed**2*vx/m",
+     "az": "-g0*(1 + kappa*z) - c*speed**2*vz/m",
+     "params": {
+      "g0": {
+       "init": 9.81,
+       "lo": 0.5,
+       "hi": 30.0
+      },
+      "kappa": {
+       "init": 0.0,
+       "lo": -1.5,
+       "hi": 1.5
+      },
+      "c": {
+       "init": 0.001,
+       "lo": 0.0,
+       "hi": 2.0
+      }
+     }
+    },
+    "fit": {
+     "law_id": "height_p3",
+     "params": {
+      "g0": {
+       "value": 9.966969849707157,
+       "sd": 0.10639638576378525
+      },
+      "kappa": {
+       "value": -0.03598857570749178,
+       "sd": 0.017480315975239608
+      },
+      "c": {
+       "value": 0.003791967396305713,
+       "sd": 0.00016669979335495662
+      }
+     },
+     "chi2_dof": 0.2962632592626919,
+     "loo_error": null,
+     "n_experiments": 8,
+     "converged": true,
+     "cov": [
+      [
+       0.011320190903596204,
+       -0.0015575040574459479,
+       -9.539378286141149e-06
+      ],
+      [
+       -0.0015575040574459394,
+       0.00030556144659421705,
+       9.480055474912289e-07
+      ],
+      [
+       -9.539378286140144e-06,
+       9.480055474910836e-07,
+       2.778882110458524e-08
+      ]
+     ]
+    },
+    "probe_median_error_m": 0.006570493858965076,
+    "probe_within_beyond": 0.95,
+    "probe_within_in_range": 1.0
+   },
+   {
+    "n_experiments": 8,
+    "law": {
+     "law_id": "height_p3",
+     "description": "gravity height, drag p3",
+     "ax": "-c*speed**2*vx/m",
+     "az": "-g0*(1 + kappa*z) - c*speed**2*vz/m",
+     "params": {
+      "g0": {
+       "init": 9.81,
+       "lo": 0.5,
+       "hi": 30.0
+      },
+      "kappa": {
+       "init": 0.0,
+       "lo": -1.5,
+       "hi": 1.5
+      },
+      "c": {
+       "init": 0.001,
+       "lo": 0.0,
+       "hi": 2.0
+      }
+     }
+    },
+    "fit": {
+     "law_id": "height_p3",
+     "params": {
+      "g0": {
+       "value": 9.929460559446815,
+       "sd": 0.10164376967894594
+      },
+      "kappa": {
+       "value": -0.02522302032071457,
+       "sd": 0.015118302707138155
+      },
+      "c": {
+       "value": 0.0038013017572524396,
+       "sd": 0.00016662568759211906
+      }
+     },
+     "chi2_dof": 0.4677023586491478,
+     "loo_error": null,
+     "n_experiments": 9,
+     "converged": true,
+     "cov": [
+      [
+       0.010331455914546608,
+       -0.0012923622959665228,
+       -9.293957230160714e-06
+      ],
+      [
+       -0.0012923622959665102,
+       0.00022856307674466088,
+       8.961146663656036e-07
+      ],
+      [
+       -9.293957230159862e-06,
+       8.961146663654994e-07,
+       2.7764119765546457e-08
+      ]
+     ]
+    },
+    "probe_median_error_m": 0.007983761450317428,
+    "probe_within_beyond": 1.0,
+    "probe_within_in_range": 1.0
+   },
+   {
+    "n_experiments": 9,
+    "law": {
+     "law_id": "const_p3",
+     "description": "gravity const, drag p3",
+     "ax": "-c*speed**2*vx/m",
+     "az": "-g0 - c*speed**2*vz/m",
+     "params": {
+      "g0": {
+       "init": 9.81,
+       "lo": 0.5,
+       "hi": 30.0
+      },
+      "c": {
+       "init": 0.001,
+       "lo": 0.0,
+       "hi": 2.0
+      }
+     }
+    },
+    "fit": {
+     "law_id": "const_p3",
+     "params": {
+      "g0": {
+       "value": 9.793513199721525,
+       "sd": 0.052109579012923665
+      },
+      "c": {
+       "value": 0.003892684551893849,
+       "sd": 0.00015565013971078292
+      }
+     },
+     "chi2_dof": 0.6235105702687376,
+     "loo_error": null,
+     "n_experiments": 10,
+     "converged": true,
+     "cov": [
+      [
+       0.0027154082249041343,
+       -3.882834815166961e-06
+      ],
+      [
+       -3.882834815167292e-06,
+       2.4226965991986243e-08
+      ]
+     ]
+    },
+    "probe_median_error_m": 0.003892751111869708,
+    "probe_within_beyond": 1.0,
+    "probe_within_in_range": 1.0
+   },
+   {
+    "n_experiments": 10,
+    "law": {
+     "law_id": "const_p3",
+     "description": "gravity const, drag p3",
+     "ax": "-c*speed**2*vx/m",
+     "az": "-g0 - c*speed**2*vz/m",
+     "params": {
+      "g0": {
+       "init": 9.81,
+       "lo": 0.5,
+       "hi": 30.0
+      },
+      "c": {
+       "init": 0.001,
+       "lo": 0.0,
+       "hi": 2.0
+      }
+     }
+    },
+    "fit": {
+     "law_id": "const_p3",
+     "params": {
+      "g0": {
+       "value": 9.791976442298758,
+       "sd": 0.05050127722252504
+      },
+      "c": {
+       "value": 0.0038948833979278036,
+       "sd": 0.00015459924555089274
+      }
+     },
+     "chi2_dof": 0.5699960024666298,
+     "loo_error": null,
+     "n_experiments": 11,
+     "converged": true,
+     "cov": [
+      [
+       0.002550379001106326,
+       -3.648374507925028e-06
+      ],
+      [
+       -3.6483745079248973e-06,
+       2.390092672490523e-08
+      ]
+     ]
+    },
+    "probe_median_error_m": 0.003842115600099505,
+    "probe_within_beyond": 1.0,
+    "probe_within_in_range": 1.0
+   },
+   {
+    "n_experiments": 11,
+    "law": {
+     "law_id": "const_p3",
+     "description": "gravity const, drag p3",
+     "ax": "-c*speed**2*vx/m",
+     "az": "-g0 - c*speed**2*vz/m",
+     "params": {
+      "g0": {
+       "init": 9.81,
+       "lo": 0.5,
+       "hi": 30.0
+      },
+      "c": {
+       "init": 0.001,
+       "lo": 0.0,
+       "hi": 2.0
+      }
+     }
+    },
+    "fit": {
+     "law_id": "const_p3",
+     "params": {
+      "g0": {
+       "value": 9.766778341257737,
+       "sd": 0.049563568092645234
+      },
+      "c": {
+       "value": 0.003931099180457073,
+       "sd": 0.00015457857471021615
+      }
+     },
+     "chi2_dof": 0.8357238778333216,
+     "loo_error": null,
+     "n_experiments": 12,
+     "converged": true,
+     "cov": [
+      [
+       0.002456547282074281,
+       -3.5382917845874143e-06
+      ],
+      [
+       -3.5382917845875257e-06,
+       2.3894535759441873e-08
+      ]
+     ]
+    },
+    "probe_median_error_m": 0.0018484110031907752,
+    "probe_within_beyond": 1.0,
+    "probe_within_in_range": 1.0
+   },
+   {
+    "n_experiments": 12,
+    "law": {
+     "law_id": "const_p3",
+     "description": "gravity const, drag p3",
+     "ax": "-c*speed**2*vx/m",
+     "az": "-g0 - c*speed**2*vz/m",
+     "params": {
+      "g0": {
+       "init": 9.81,
+       "lo": 0.5,
+       "hi": 30.0
+      },
+      "c": {
+       "init": 0.001,
+       "lo": 0.0,
+       "hi": 2.0
+      }
+     }
+    },
+    "fit": {
+     "law_id": "const_p3",
+     "params": {
+      "g0": {
+       "value": 9.766812119995743,
+       "sd": 0.043513624528445566
+      },
+      "c": {
+       "value": 0.003933655746858859,
+       "sd": 0.0001512631996768585
+      }
+     },
+     "chi2_dof": 0.8259789077795321,
+     "loo_error": null,
+     "n_experiments": 13,
+     "converged": true,
+     "cov": [
+      [
+       0.0018934355196025398,
+       -2.7785075296679743e-06
+      ],
+      [
+       -2.778507529667792e-06,
+       2.2880555576481166e-08
+      ]
+     ]
+    },
+    "probe_median_error_m": 0.001839613136180085,
+    "probe_within_beyond": 1.0,
+    "probe_within_in_range": 1.0
+   }
+  ],
+  "commit": {
+   "law_id": "const_p3",
+   "claim": "law_identified",
+   "claims_non_ordinary": true,
+   "after_experiments": 12,
+   "shots": [
+    {
+     "target_id": "t1",
+     "speed_mps": 3.6099615196244095,
+     "elevation_deg": 75.0,
+     "kind": "in_range",
+     "x_m": 0.5784522096395359,
+     "miss_m": 0.0014522096395359618,
+     "miss_frac": 0.002516827798155913,
+     "hit_radius_m": 0.05,
+     "hit": true
+    },
+    {
+     "target_id": "t2",
+     "speed_mps": 3.3131734822791707,
+     "elevation_deg": 40.0,
+     "kind": "in_range",
+     "x_m": 1.1865246400087,
+     "miss_m": 0.008524640008700013,
+     "miss_frac": 0.0072365365099321,
+     "hit_radius_m": 0.05,
+     "hit": true
+    },
+    {
+     "target_id": "t3",
+     "speed_mps": 5.445860665403781,
+     "elevation_deg": 20.0,
+     "kind": "beyond",
+     "x_m": 2.1061337951133607,
+     "miss_m": 0.009866204886639363,
+     "miss_frac": 0.004662667715803101,
+     "hit_radius_m": 0.05,
+     "hit": true
+    },
+    {
+     "target_id": "t4",
+     "speed_mps": 4.5347696087011276,
+     "elevation_deg": 40.0,
+     "kind": "beyond",
+     "x_m": 2.0465440624052467,
+     "miss_m": 0.006544062405246631,
+     "miss_frac": 0.003207873728062074,
+     "hit_radius_m": 0.05,
+     "hit": true
+    },
+    {
+     "target_id": "t5",
+     "speed_mps": 6.078437508469538,
+     "elevation_deg": 52.5,
+     "kind": "beyond",
+     "x_m": 2.842895132933812,
+     "miss_m": 0.03210486706618809,
+     "miss_frac": 0.01116691028389151,
+     "hit_radius_m": 0.0575,
+     "hit": true
+    }
+   ]
+  },
+  "targets": [
+   {
+    "target_id": "t1",
+    "x_m": 0.577,
+    "z_m": 0.429,
+    "hit_radius_m": 0.05,
+    "kind": "in_range"
+   },
+   {
+    "target_id": "t2",
+    "x_m": 1.178,
+    "z_m": 0.101,
+    "hit_radius_m": 0.05,
+    "kind": "in_range"
+   },
+   {
+    "target_id": "t3",
+    "x_m": 2.116,
+    "z_m": 0.049,
+    "hit_radius_m": 0.05,
+    "kind": "beyond"
+   },
+   {
+    "target_id": "t4",
+    "x_m": 2.04,
+    "z_m": 0.09,
+    "hit_radius_m": 0.05,
+    "kind": "beyond"
+   },
+   {
+    "target_id": "t5",
+    "x_m": 2.875,
+    "z_m": 0.492,
+    "hit_radius_m": 0.0575,
+    "kind": "beyond"
+   }
+  ]
+ },
+ "truth": {
+  "world_id": "w_cd4bf5ee2360",
+  "family": "F1",
+  "p": 3.0,
+  "g0": 9.73854421426946,
+  "rho": 0.11099032747423207,
+  "alpha": 0.0,
+  "kappa": 0.0,
+  "c": 0.00400327485727428,
+  "seed": 1001,
+  "targets": [
+   {
+    "target_id": "t1",
+    "x_m": 0.577,
+    "z_m": 0.429,
+    "hit_radius_m": 0.05,
+    "kind": "in_range"
+   },
+   {
+    "target_id": "t2",
+    "x_m": 1.178,
+    "z_m": 0.101,
+    "hit_radius_m": 0.05,
+    "kind": "in_range"
+   },
+   {
+    "target_id": "t3",
+    "x_m": 2.116,
+    "z_m": 0.049,
+    "hit_radius_m": 0.05,
+    "kind": "beyond"
+   },
+   {
+    "target_id": "t4",
+    "x_m": 2.04,
+    "z_m": 0.09,
+    "hit_radius_m": 0.05,
+    "kind": "beyond"
+   },
+   {
+    "target_id": "t5",
+    "x_m": 2.875,
+    "z_m": 0.492,
+    "hit_radius_m": 0.0575,
+    "kind": "beyond"
+   }
+  ]
+ }
+}

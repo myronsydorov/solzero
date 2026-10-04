@@ -8,7 +8,8 @@ from pydantic import field_validator
 
 from .records import Claim, ExperimentSpec, FitResult, Law, Prediction, Record, Shot
 
-Condition = Literal["lab", "random", "single"]
+# lab, random and single are the agent conditions; textbook and oracle are scripted references.
+Condition = Literal["lab", "random", "single", "textbook", "oracle"]
 
 
 class SessionRequest(Record):

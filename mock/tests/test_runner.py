@@ -141,3 +141,44 @@ def test_single_condition_ledger_preserves_actual_actor(session,tmp_path):
     single.preregister(spec,[],spec);single.execute(spec)
     records=[json.loads(line) for line in single.ledger.path.read_text().splitlines()]
     assert {item['agent'] for item in records}=={'single'}
+
+
+def test_adopted_session_never_starts_another_and_writes_flat_ledger(session, tmp_path, monkeypatch):
+    def forbidden(*args):
+        raise AssertionError('must not start another session')
+    monkeypatch.setattr(session.client, 'start', forbidden)
+    adopted = LabSession(session.client, '', info=session.info, runs_root=tmp_path / 'adopted',
+                         flat_ledger=True, approval='auto')
+    assert adopted.info == session.info
+    assert adopted.ledger.path == tmp_path / 'adopted' / 'ledger.jsonl'
+    assert adopted.ledger.path.exists()
+
+
+def test_result_ledger_failure_blocks_further_mutations(session, monkeypatch):
+    spec = parse_spec({'type':'drop','sample_id':'ref_100','height_m':1})
+    session.preregister(spec, [], None)
+    def fail(*args):
+        raise OSError('disk full')
+    monkeypatch.setattr(session.ledger, 'append', fail)
+    with pytest.raises(OSError):
+        session.execute(spec)
+    assert session.budget_left == 11 and session.uncertain
+    with pytest.raises(RuntimeError, match='unknown outcome'):
+        session.execute(spec)
+
+
+def test_eval_cli_zero_wall_cap_writes_summary_without_http(session, tmp_path):
+    import subprocess
+    import sys
+    info = tmp_path / 'info.json'
+    info.write_text(session.info.model_dump_json())
+    output = tmp_path / 'adapter'
+    result = subprocess.run([sys.executable, '-m', 'lab.run', '--world-url', 'http://127.0.0.1:1',
+                             '--session-info', str(info), '--out', str(output), '--no-tracing',
+                             '--max-wall-s', '0', '--approval', 'auto'], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    summary = json.loads((output / 'summary.json').read_text())
+    assert summary['status'] == 'cap_reached'
+    assert summary['n_experiments'] == summary['tokens_used'] == 0
+    assert summary['session_id'] == session.info.session_id
+    assert (output / 'ledger.jsonl').exists()

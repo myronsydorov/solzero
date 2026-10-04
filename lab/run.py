@@ -66,6 +66,10 @@ def tool_schema(name):
     return {"name": name, "description": inspect.getdoc(function) or name, "parameters": parameters}
 
 
+class CapReached(RuntimeError):
+    pass
+
+
 class Runner:
     def __init__(self, session, output, workspace, options):
         self.session, self.output, self.workspace, self.options = session, output, workspace, options
@@ -79,6 +83,11 @@ class Runner:
         self.wall_seconds = 0.0
         self.started = time.monotonic()
         self.schedule = json.loads(Path(options.schedule).read_text()) if options.schedule else None
+        if self.schedule and "type" in self.schedule[0]:
+            self.schedule = [parse_spec(item).model_dump(mode="json") for item in self.schedule]
+            if len(self.schedule) != session.info.budget:
+                raise ValueError("Expected exactly one supplied spec per experiment budget unit")
+        self.schedule_digest = hashlib.sha256(json.dumps(self.schedule, sort_keys=True).encode()).hexdigest()
         self.trace_enabled = not options.no_tracing
         if self.trace_enabled:
             import mlflow
@@ -106,7 +115,7 @@ class Runner:
     def save(self):
         session = self.session
         atomic_json(self.output / "checkpoint.json", {
-            "options": vars(self.options), "origin": str(session.client._http.base_url),
+            "schedule_digest": self.schedule_digest, "ledger_path": str(session.ledger.path), "options": vars(self.options), "origin": str(session.client._http.base_url),
             "info": session.info.model_dump(mode="json"), "condition": session.condition,
             "results": [result.model_dump(mode="json") for result in session.results],
             "live_laws": [law.model_dump(mode="json") for law in session.live_laws.values()],
@@ -140,7 +149,7 @@ class Runner:
 
     async def turn(self, role, task, cycle):
         if self.token_total() >= self.options.token_cap:
-            raise RuntimeError("Session token cap reached")
+            raise CapReached("Session token cap reached")
         config = yaml.safe_load((Path(__file__).parent / "agents" / f"{role}.yaml").read_text())
         model = self.options.analyst_model if role == "analyst" and self.options.analyst_model else self.options.model
         executor = ClaudeSDKExecutor(cwd=self.workspace, model=model, skills_filter="none", os_env=None)
@@ -156,7 +165,7 @@ class Runner:
             if calls > 32:
                 return {"error": "Per-turn tool limit reached"}
             key = hashlib.sha256(json.dumps([self.step, name, arguments], sort_keys=True).encode()).hexdigest()
-            if key in self.memo:
+            if name in measurement_tools | {"commit_mission"} and key in self.memo:
                 return self.memo[key]
             decision = guard({"type": "tool_call", "target": name, "data": {"arguments": arguments}})
             if name in measurement_tools and len(self.session.results) >= cycle:
@@ -189,7 +198,8 @@ class Runner:
                         if name == "fit_law":
                             self.fits[result["law_id"]] = result
                             self.fit_laws[result["law_id"]] = tool_functions.validated_law(arguments["law"])
-                        self.memo[key] = result
+                        if name in measurement_tools | {"commit_mission"}:
+                            self.memo[key] = result
                         self.inflight = None
                     except Exception as error:
                         result = {"error": f"{type(error).__name__}: {error}"}
@@ -235,17 +245,31 @@ class Runner:
         if not self.schedule or len(self.schedule) < cycle:
             raise ValueError("The random condition requires a host-supplied shared-sampler schedule")
         pair = self.schedule[cycle - 1]
-        chosen = pair["chosen"]
-        tool_functions.record_candidates(pair["candidates"], chosen)
+        if "type" in pair:
+            chosen = pair
+            following = self.schedule[cycle] if cycle < len(self.schedule) else None
+            self.session.ledger.append(cycle, "experimentalist", "candidates",
+                                       {"candidates": [chosen], "chosen": chosen})
+        else:
+            chosen = pair["chosen"]
+            following = pair["tentative_followup"]
+            tool_functions.record_candidates(pair["candidates"], chosen)
         forecasts = []
         for identifier, law in self.session.live_laws.items():
             if identifier not in self.fits:
                 raise RuntimeError("A retained live law has no current fit")
             forecasts.append(tool_functions.predict(law.model_dump(mode="json"), self.fits[identifier], chosen))
-        tool_functions.preregister(chosen, forecasts, pair["tentative_followup"], "Host shared sampler selected this experiment")
+        tool_functions.preregister(chosen, forecasts, following, "Host shared sampler selected this experiment")
         self.save()
 
     async def run(self):
+        if self.pending_commit and self.options.auto_approve:
+            self.inflight = {"name": "commit_mission", "key": "approved_pending"}
+            self.save()
+            self.session.commit(Commit.model_validate(self.pending_commit))
+            self.inflight = None
+            self.pending_commit = None
+            self.save()
         # Persisted phase index makes a completed phase immune to replay on resume.
         steps = [("theorist", "Review initial information and register the initial live set, which may be empty.", 0)]
         if self.session.condition == "single":
@@ -307,7 +331,7 @@ def resume_session(client, saved, output, auto_approve):
     # A durable result closes the window between ledger fsync and checkpoint save.
     # Without that acknowledgement, an in-flight measurement must never be replayed.
     if saved["inflight"] and saved["inflight"]["name"] in {"weigh", "drop", "launch"} and saved["pending"]:
-        ledger_path = output / saved["info"]["session_id"] / "ledger.jsonl"
+        ledger_path = Path(saved.get("ledger_path", output / saved["info"]["session_id"] / "ledger.jsonl"))
         records = [json.loads(line) for line in ledger_path.read_text().splitlines()] if ledger_path.exists() else []
         later = [Result.model_validate(item["payload"]) for item in records
                  if item["kind"] == "result" and item["cycle"] > len(saved["results"])]
@@ -326,6 +350,8 @@ def resume_session(client, saved, output, auto_approve):
     session.client, session.condition = client, saved["condition"]
     session.info = SessionInfo.model_validate(saved["info"])
     session.ledger = Ledger(session.info.session_id, output)
+    session.ledger.path = Path(saved.get("ledger_path", session.ledger.path))
+    session.approval = "auto" if auto_approve else "human"
     session.ledger.actor_override = "single" if session.condition == "single" else None
     session.results = [Result.model_validate(item) for item in saved["results"]]
     session.live_laws = {item["law_id"]: Law.model_validate(item) for item in saved["live_laws"]}
@@ -339,41 +365,54 @@ def resume_session(client, saved, output, auto_approve):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--world", "--world-id", dest="world", required=True)
+    parser.add_argument("--world", "--world-id", dest="world")
     parser.add_argument("--condition", choices=["lab", "random", "single"], default="lab")
     parser.add_argument("--seed", type=int, default=1000)
-    parser.add_argument("--output", default=None)
+    parser.add_argument("--output", "--out", default=None)
+    parser.add_argument("--world-url")
+    parser.add_argument("--session-info")
+    parser.add_argument("--max-wall-s", type=float, default=600)
+    parser.add_argument("--approval", choices=["human", "auto"], default="human")
     parser.add_argument("--model", default="sonnet")
     parser.add_argument("--analyst-model")
     parser.add_argument("--cycles", type=int, default=12)
     parser.add_argument("--min-experiments", type=int, default=0)
-    parser.add_argument("--token-cap", type=int, default=2000000)
+    parser.add_argument("--token-cap", "--max-tokens", type=int, default=2000000)
     parser.add_argument("--auto-approve", action="store_true")
-    parser.add_argument("--schedule", help="Public experiment schedule prepared by the host shared sampler")
+    parser.add_argument("--schedule", "--specs", help="Public experiment schedule prepared by the host shared sampler")
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--no-tracing", action="store_true")
     parser.add_argument("--tracking-uri")
     options = parser.parse_args()
+    options.auto_approve = options.auto_approve or options.approval == "auto"
+    if not options.session_info and not options.world:
+        parser.error("Supply --world or --session-info")
+    if options.max_wall_s < 0 or options.token_cap < 0:
+        parser.error("Caps must be nonnegative")
     if not 1000 <= options.seed <= 1999 or not 1 <= options.cycles <= 12 or not 0 <= options.min_experiments <= 12:
         parser.error("Use a dev seed and valid experiment limits")
     if options.condition == "random" and not options.schedule:
         parser.error("The random condition needs --schedule from the host shared sampler")
     output = Path(options.output or f"runs/session-{time.time_ns()}").resolve()
-    output.mkdir(parents=True, exist_ok=options.resume)
+    output.mkdir(parents=True, exist_ok=options.resume or bool(options.session_info))
     os.environ["OMNIGENT_DISABLE_TELEMETRY"] = "true"
     os.environ["CLAUDE_CODE_MAX_OUTPUT_TOKENS"] = "4096"
     with (output / ".runner.lock").open("w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        with tempfile.TemporaryDirectory(prefix="solzero-scientists-") as workspace, WorldClient() as client:
+        with tempfile.TemporaryDirectory(prefix="solzero-scientists-") as workspace, WorldClient(options.world_url) as client:
             saved = json.loads((output / "checkpoint.json").read_text()) if options.resume else None
-            if saved and any(saved['options'][key] != getattr(options, key) for key in ('world','condition','seed','model','min_experiments','token_cap')):
+            if saved and any(saved['options'][key] != getattr(options, key) for key in ('world','condition','seed','model','analyst_model','cycles','schedule','min_experiments','token_cap')):
                 raise ValueError("Resume must preserve the run configuration")
             session = resume_session(client, saved, output, options.auto_approve) if saved else LabSession(
                 client, options.world, options.condition, runs_root=output,
-                approve_commit=(lambda _: True) if options.auto_approve else None)
+                approve_commit=(lambda _: True) if options.auto_approve else None,
+                info=SessionInfo.model_validate_json(Path(options.session_info).read_text()) if options.session_info else None,
+                flat_ledger=bool(options.session_info), approval="auto" if options.auto_approve else "human")
             tool_functions.configure(session, seed=options.seed)
             runner = Runner(session, output, workspace, options)
             if saved:
+                if saved.get("schedule_digest", runner.schedule_digest) != runner.schedule_digest:
+                    raise ValueError("Resume requires the original experiment schedule")
                 for attribute, key in (("step","step"),("memo","memo"),("inflight","inflight"),("fits","fits"),
                                        ("pending_commit","pending_commit"),("dispatch_count","tool_calls"),
                                        ("usage_turns","usage_turns"),("wall_seconds","wall_seconds")):
@@ -383,7 +422,12 @@ def main():
                 runner.save()
             status, error = "interrupted", None
             try:
-                status = asyncio.run(runner.run())
+                async def bounded_run():
+                    remaining = max(0, options.max_wall_s - runner.wall_seconds)
+                    return await asyncio.wait_for(runner.run(), timeout=remaining)
+                status = asyncio.run(bounded_run())
+            except (TimeoutError, CapReached) as failure:
+                status, error = "cap_reached", str(failure) or "Wall-clock cap reached"
             except Exception as failure:
                 status, error = "failed", f"{type(failure).__name__}: {failure}"
             finally:
@@ -392,9 +436,13 @@ def main():
                     import mlflow
                     mlflow.flush_trace_async_logging()
                 summary = runner.summary(status, error)
+                if options.session_info:
+                    summary.update(status={"awaiting_approval": "pending_approval", "cycle_limit": "cap_reached", "failed": "error"}.get(status, status),
+                                   tokens_used=runner.token_total(), wall_s=summary["wall_seconds"],
+                                   n_experiments=len(session.results))
                 atomic_json(output / "summary.json", summary)
                 print(json.dumps(summary, indent=2), flush=True)
-            raise SystemExit({"committed":0,"awaiting_approval":3,"cycle_limit":5}.get(status,4))
+            raise SystemExit(0 if options.session_info else {"committed":0,"awaiting_approval":3,"cycle_limit":5}.get(status,4))
 
 
 if __name__ == "__main__":

@@ -1,7 +1,5 @@
 """Small JSON function adapters; configure one session in each isolated runner."""
 from __future__ import annotations
-import ast
-import math
 
 from schemas import Commit, FitResult, Law, Prediction, Verdict, parse_spec
 from lab.session import LabSession
@@ -23,21 +21,6 @@ def current() -> LabSession:
 
 
 def validated_law(record: dict) -> Law:
-    # Validate arithmetic before handing strings to the shared expression parser.
-    names = {"m", "z", "vx", "vz", "speed"} | set(record.get("params", {}))
-    allowed = (ast.Expression, ast.BinOp, ast.UnaryOp, ast.Constant, ast.Name, ast.Load,
-               ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Pow, ast.USub, ast.UAdd)
-    for field in ("ax", "az"):
-        expression = record[field]
-        if not isinstance(expression, str) or len(expression) > 4096:
-            raise ValueError("Expected a bounded arithmetic expression")
-        for node in ast.walk(ast.parse(expression, mode="eval")):
-            if not isinstance(node, allowed):
-                raise ValueError("Only arithmetic expressions are allowed")
-            if isinstance(node, ast.Name) and node.id not in names:
-                raise ValueError("Unknown expression symbol")
-            if isinstance(node, ast.Constant) and (type(node.value) not in (int, float) or not math.isfinite(node.value)):
-                raise ValueError("Expected finite numeric constants")
     return Law.model_validate(record)
 
 

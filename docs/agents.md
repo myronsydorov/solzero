@@ -29,10 +29,9 @@ SOLZERO_WORLD_URL=http://127.0.0.1:8003 .venv/bin/python -m lab.run \
 - `lab`: five specialists in the sequence above, with Theorist revision after
   each assessment and PI review after each cycle.
 - `random`: the same Theorist, Analyst, Operator and PI; a host-prepared schedule
-  from lane A's `calibration.study.random_spec` chooses experiments. Supply
-  `--schedule <public-json>`. Host-only `eval.dev_batch` prepares this input.
-  Scientific code never imports calibration. The sampler should move into
-  `tools/` for direct reuse; this is requested in STATUS.md.
+  from lane A's `eval.sampler.random_specs` chooses experiments in supplied order.
+  Supply `--specs <public-json>` with exactly one spec per budget unit.
+  Scientific code never imports the host sampler.
 - `single`: one agent with all scientific tools owns the complete cycle. It has
   the same experiment limit, numerical tools, model and session token ceiling.
 
@@ -48,7 +47,7 @@ standing authorization. Without it, a safe commit saves `pending-commit.json`
 and exits before firing: this is the default interactive demo behavior.
 Unsafe settings and incomplete tables are denied even with automatic approval.
 
-Exit codes: 0 committed; 2 invalid CLI; 3 awaiting interactive approval;
+Standalone exit codes: 0 committed; 2 invalid CLI; 3 awaiting interactive approval;
 4 runtime failure; 5 requested cycle cap reached before commitment. Interrupted
 processes use the OS signal status and retain checkpoints. The summary includes
 status, stop reason, budget, tools, elapsed seconds, token counts and ledger path.
@@ -88,7 +87,7 @@ The host persists a mutation intent before dispatch. Failed measurements consume
 budget; transport ambiguity stops mutation instead of silently replaying it.
 Only connection establishment failures retry automatically, at most twice after
 the initial attempt. Read timeouts, bad response bodies and server errors never
-trigger automatic experiment retries. Successful tool calls are memoized within
+trigger automatic experiment retries. Successful measurements and commits are memoized within
 a phase so resuming that phase does not repeat an acknowledged measurement.
 
 Use the same command and output with `--resume` against the original live server.
@@ -119,3 +118,27 @@ inventory included native filesystem and connected-app tools beyond the lab
 allowlist. It was not adopted for scientific runs. Claude session-limit failures
 are preserved in the raw reports; switching a provider is not silently mixed
 into a paired comparison.
+
+## Eval adapter (SPEC 5.6)
+
+```sh
+python -m lab.run --world-url http://127.0.0.1:8003 \
+  --session-info session_info.json --condition lab --out runs/agent \
+  --max-tokens 2000000 --max-wall-s 600 --approval auto
+```
+
+This mode adopts the supplied public session without calling `/session`.
+It writes `ledger.jsonl` directly in the output directory and `summary.json`
+with `session_id`, `status`, `tokens_used`, `wall_s`, `n_experiments`, and `error`.
+Statuses are `committed`, `cap_reached`, `error`, or `pending_approval`.
+Exit zero means that summary was written; setup/crash failures are nonzero.
+Automatic commits include `approval: auto` in their ledger payload.
+Random input is the exact ordered public list produced by the host sampler.
+
+Remaining contract gap: the Claude executor exposes cumulative usage at turn
+completion, so `--max-tokens` is currently checked between turns, not a hard
+provider-side cap. Do not use this implementation for a claimed equal-hard-token
+comparison. The wall deadline cancels further agent work, but an already running
+HTTP or numerical worker may finish during cleanup; its mutation intent remains
+on disk to prevent replay. No extra model turn is started to manufacture a final
+mission after a cap. Both limitations are reported to the integrator in STATUS.

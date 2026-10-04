@@ -1,0 +1,36 @@
+{
+ "runs": [
+  {
+   "run_id": "oracle_1000",
+   "label": "Scripted oracle on dev world 1000 (fixture)",
+   "condition": "oracle",
+   "has_metrics": true,
+   "video": null,
+   "ledger_entries": 86
+  },
+  {
+   "run_id": "oracle_1001",
+   "label": "Scripted oracle on dev world 1001 (fixture)",
+   "condition": "oracle",
+   "has_metrics": true,
+   "video": null,
+   "ledger_entries": 86
+  },
+  {
+   "run_id": "oracle_1002",
+   "label": "Scripted oracle on dev world 1002 (fixture)",
+   "condition": "oracle",
+   "has_metrics": true,
+   "video": null,
+   "ledger_entries": 86
+  },
+  {
+   "run_id": "oracle_1003",
+   "label": "Scripted oracle on dev world 1003 (fixture)",
+   "condition": "oracle",
+   "has_metrics": true,
+   "video": null,
+   "ledger_entries": 86
+  }
+ ]
+}

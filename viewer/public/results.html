@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sol Zero Results</title>
+  <meta name="description" content="Aggregate Sol Zero results across worlds: learning curves, the primary metrics by condition and the control-world false-discovery rate.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6' fill='%232a78d6'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="module" src="js/results.js"></script>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand"><h1>Sol Zero</h1><span class="muted">robot lab, unknown physics, 12 experiments</span></div>
+    <nav aria-label="Pages"><a href="./">Session replay</a><a href="results.html" aria-current="page">Aggregate results</a></nav>
+    <span class="spacer"></span>
+    <span class="replay-flag" title="Nothing on this site is live">Replay of recorded runs</span>
+    <button id="theme" type="button">Dark</button>
+  </div>
+  <main id="app" class="stack">
+    <section>
+      <h2 style="font-size:16px">Aggregate results</h2>
+      <p class="secondary" id="agg-label" style="margin:4px 0 8px"></p>
+      <div class="notice" id="notes"></div>
+    </section>
+
+    <div class="tiles" id="tiles"></div>
+
+    <section class="panel">
+      <header><h2>Learning curve: beyond-range accuracy</h2><span class="hint">mean share of the 20 beyond-range probes (4 to 7 m/s) whose predicted landing point is within the hit radius, for the nominated law after each experiment</span></header>
+      <div id="curve-within"></div>
+      <details style="margin-top:8px"><summary>Show as a table</summary><div class="table-wrap"><table><thead id="curve-head"></thead><tbody id="curve-table"></tbody></table></div></details>
+    </section>
+
+    <section class="panel">
+      <header><h2>Learning curve: landing error</h2><span class="hint">median over worlds of the median landing error on all 40 probes (secondary metric), log scale</span></header>
+      <div id="curve-error"></div>
+    </section>
+
+    <section class="panel">
+      <header><h2>Primary metrics</h2><span class="hint">SPEC section 7, reported for every condition: beyond-range probe hit rate for the law nominated after the last experiment, mission hit rate, law-form recovery, control false discovery</span></header>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Condition</th><th class="num">Worlds</th><th class="num">Beyond-range probe hit rate</th><th class="num">Mission hit rate</th><th class="num">In-range hits</th><th class="num">Beyond-range hits</th><th class="num">Median miss / distance (in / beyond)</th><th class="num">Law-form recovery</th><th class="num">Control false discovery</th></tr></thead>
+        <tbody id="metrics"></tbody>
+      </table></div>
+    </section>
+
+    <section class="panel">
+      <header><h2>Secondary metrics</h2><span class="hint">experiments to threshold = first experiment count with ≥80% of beyond-range probes within the hit radius; runs that never reach it count as budget + 1</span></header>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Condition</th><th class="num">Median exp. to threshold</th><th class="num">Reached in budget</th><th class="num">Median probe error, final</th><th class="num">Abstained</th></tr></thead>
+        <tbody id="secondary"></tbody>
+      </table></div>
+    </section>
+
+    <div class="grid cols-replay">
+      <section class="panel">
+        <header><h2>Control-world false discovery</h2><span class="hint">share of F0 (ordinary physics) worlds where the final claim is non-ordinary physics</span></header>
+        <div class="table-wrap"><table><thead><tr><th>Condition</th><th class="num">Rate</th><th class="num">Worlds</th><th>Control worlds</th></tr></thead><tbody id="fdr"></tbody></table></div>
+      </section>
+      <section class="panel">
+        <header><h2>Paired differences</h2><span class="hint">per world, A − B, mean with 95% bootstrap interval; small samples give wide intervals</span></header>
+        <div class="table-wrap"><table><thead><tr><th>A − B</th><th class="num">Worlds</th><th class="num">Beyond-range probe hit rate (points)</th><th class="num">Mission hits (of 5)</th><th class="num">Exp. to threshold</th></tr></thead><tbody id="paired"></tbody></table></div>
+      </section>
+    </div>
+
+    <section class="panel">
+      <header><h2>Law recovery by family</h2><span class="hint">final law has the right dependence on mass, height and drag exponent</span></header>
+      <div class="table-wrap"><table><thead id="family-head"></thead><tbody id="family"></tbody></table></div>
+    </section>
+
+    <footer class="site">Built from <code>eval/aggregate.json</code>. Report whatever comes out: these numbers are not tuned for this page.</footer>
+  </main>
+</body>
+</html>

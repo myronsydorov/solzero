@@ -10,8 +10,7 @@ import sys
 import time
 
 import httpx
-import numpy as np
-from calibration.study import random_spec
+from eval.sampler import random_specs
 
 
 def prepare(root, base_url, token_file):
@@ -31,10 +30,7 @@ def prepare(root, base_url, token_file):
     (root/'selection-admin.json').write_text(json.dumps(groups,indent=2)+'\n')
     worlds=sorted([item for group in groups.values() for item in group],key=lambda item:item['seed'])
     for item in worlds:
-        rng=np.random.default_rng(item['seed'])
-        draws=[random_spec(rng).model_dump(mode='json') for _ in range(25)]
-        schedule=[{'chosen':draws[index*2],'candidates':draws[index*2:index*2+2],
-                   'tentative_followup':draws[index*2+2]} for index in range(12)]
+        schedule=[item.model_dump(mode='json') for item in random_specs(item['seed'], 12)]
         path=root/f"schedule-{item['seed']}.json"
         path.write_text(json.dumps(schedule,indent=2)+'\n')
         item['schedule']=str(path.resolve())

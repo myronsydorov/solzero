@@ -6,21 +6,25 @@ from threading import RLock
 
 import httpx
 from schemas import (Commit, CommitRequest, ExperimentRequest, ExperimentSpec, FitResult, Law,
-                     NominateRequest, Prediction, PredictionsRequest, Result, SessionRequest)
+                     NominateRequest, Prediction, PredictionsRequest, Result, SessionRequest, SessionInfo)
 from lab.client import WorldClient
 from lab.ledger import Ledger
 
 
 class LabSession:
     def __init__(self, client: WorldClient, world_id: str, condition: str = "lab", *,
-                 runs_root: str | Path = "runs", approve_commit: Callable[[Commit], bool] | None = None):
+                 runs_root: str | Path = "runs", approve_commit: Callable[[Commit], bool] | None = None,
+                 info: SessionInfo | None = None, flat_ledger: bool = False, approval: str = "human"):
         self.client = client
-        self.info = client.start(SessionRequest(world_id=world_id, condition=condition))
+        self.info = info if info is not None else client.start(SessionRequest(world_id=world_id, condition=condition))
+        self.approval = approval
         self.condition = condition
-        existing = Path(runs_root) / self.info.session_id / "ledger.jsonl"
+        existing = Path(runs_root) / "ledger.jsonl" if flat_ledger else Path(runs_root) / self.info.session_id / "ledger.jsonl"
         if existing.exists() and existing.stat().st_size:
             raise FileExistsError("Session ledger already exists; use a fresh runs directory")
         self.ledger = Ledger(self.info.session_id, runs_root)
+        self.ledger.path = existing
+        existing.touch(exist_ok=True)
         self.ledger.actor_override = "single" if condition == "single" else None
         self.budget_left = self.info.budget
         self.results: list[Result] = []
@@ -102,7 +106,11 @@ class LabSession:
             self.results.append(result)
             self.tentative = pending[0].tentative_followup if pending else None
             self.pending = None
-            self.ledger.append(result.index, "operator", "result", result)
+            try:
+                self.ledger.append(result.index, "operator", "result", result)
+            except Exception:
+                self.uncertain = True
+                raise
             return result
 
     def nominate(self, law: Law, fit: FitResult):
@@ -138,5 +146,10 @@ class LabSession:
                     self.uncertain = True
                 raise
             self.committed = True
-            self.ledger.append(len(self.results), "pi", "commit", request)
+            try:
+                self.ledger.append(len(self.results), "pi", "commit",
+                                   {**request.model_dump(mode="json"), "approval": self.approval})
+            except Exception:
+                self.uncertain = True
+                raise
             return response

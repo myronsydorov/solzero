@@ -1,0 +1,14 @@
+{
+ "attempts": 1,
+ "status": "done",
+ "session_id": "s_2c366fea96",
+ "world_id": "w_3e4c79f80383",
+ "seed": 1002,
+ "condition": "textbook",
+ "label": "textbook",
+ "attempt_dir": "attempt1",
+ "started": 1791070824.468089,
+ "returncode": 0,
+ "wall_s": 1.485703945159912,
+ "agent_status": "committed"
+}

@@ -1,6 +1,6 @@
 # Status
 
-Last updated: 2026-10-04 (lane A: decisions 1 to 3, calibration rerun, world server). Each assistant edits only its own lane section, plus "Requests" and "Interface changes".
+Last updated: 2026-10-04 (integrator: E1 to E3). Each assistant edits only its own lane section, plus "Requests" and "Interface changes".
 
 ## Gates
 
@@ -13,99 +13,77 @@ Last updated: 2026-10-04 (lane A: decisions 1 to 3, calibration rerun, world ser
 | Agents and prompts frozen | 12 | Not started | Human |
 | Test seeds frozen | Before hour 12 | Not started | Human only |
 
-## Lane A: world and science (Claude Code, branch `physics`)
+## Lane A / physics: eval and integration (Claude Code, branch `physics`, the integrator)
 
-**Current milestone:** decisions 1 to 3 applied, calibration rerun on the same 20 dev seeds, world server built. Next is wiring an end-to-end loop with lane B.
+**Current milestone:** E1 to E3 done. Waiting on lane B's agent CLI (SPEC 5.6) to run the agent conditions.
 
 **Done** (2026-10-04)
 
-- Dependencies: lane B's `lab/requirements.txt` packages are now in `pyproject.toml` (`omnigent==0.16.0`, fastapi, uvicorn, httpx), and `mock/tests` is in `testpaths` (`4b71a1c`).
-- Decision 1:
-  - Launcher actuation error is now 0.5% speed and 0.1 degrees, for experiments and the mission.
-  - `Target.hit_radius_m` = max(5 cm, 2% of target distance); see below for why 2% rather than 3%.
-  - `plan_shot` reports `reachable=false` only when no nominal solution exists.
-- Decision 2: there are now 40 hidden probes (20 at 1 to 4 m/s, 20 at 4 to 7 m/s). The headline is the number of experiments until 80% of beyond-range probes are within the hit radius. Co-headlines are law-form recovery and control-world false discovery.
-- Decision 3: `POST /laws` replaces the live set. `/predictions` must cover exactly that set, or the server returns 422.
-- World server `world/server.py` (FastAPI) implements every SPEC 5.2 endpoint plus admin:
-  - `GET /admin/score/{session_id}`, `GET /admin/truth/{world_id}`, and `GET /admin/worlds`, which maps dev seeds to opaque world ids.
-  - Admin endpoints need the `X-Admin-Token` header to equal `SOLZERO_ADMIN_TOKEN`; they are disabled when it is unset.
-  - World ids are opaque hashes, so the seed and family cannot be read off them.
-  - Only dev seeds are served. `--final-eval` reads `world/test_seeds.lock` instead (that file does not exist and was not created).
-  - Every session's raw record goes to `runs/<session_id>/world_session.json`.
-  - `tests/test_server.py` covers pre-registration, live-set checks, ranges, forbidden samples, budget, nominate, commit and admin auth.
-- Smoke test: a live uvicorn server on port 8765 created a session and ran a drop.
+- Schemas and SPEC, committed first and separately (`5f60ab7`):
+  - Law strings are checked against an arithmetic whitelist before sympy parses them. This closes the `parse_expr`/eval injection reported by lane B; 9 hostile expressions are tested.
+  - `Condition` adds `textbook` and `oracle`.
+  - SPEC 5.6 fixes the agent CLI contract.
+  - SPEC 7 fixes the four primary metrics and the law-grading rule, with 40 test seeds (10 per family).
+  - The SPEC 8 wrong-form check excludes forms that contain the true law.
+- AGENTS.md: four lanes, integrator role, merge and autonomy rules (`50e96ee`).
+- **E1 evaluation harness** (`eval/`, `caadca5`):
+  - `eval.run` opens sessions, runs each condition as a subprocess through the SPEC 5.6 command line, runs N in parallel, caps wall clock (the agent gets `--max-tokens`), retries a crash once in a new session, and resumes from `state.json`.
+  - `eval.sampler` is the shared fixed-seed random spec stream (`SAMPLER_SEED = 20261004`).
+  - `eval.scripted` provides textbook, oracle and scripted random over HTTP, reusing `calibration/`.
+  - `eval.agent_stub` stands in for lane B's CLI.
+  - `eval.grade` computes the 4 primary metrics, the threshold curve, abstention, plan-changed share, laws rejected and initial explanation rejected. Law grading follows the SPEC 7 rule.
+  - `eval.report` computes per-condition means and paired differences with 95% bootstrap CIs. It draws learning curves, in-range versus beyond-range hits and false discovery, writes the summary table as Markdown and PNG, and with `--readme` fills the README results block.
+- **E1 dry run** on dev 1000 to 1002, all six labels, in `runs/eval-dryrun-dev3/` (report in `report/`):
 
-**Results** on dev seeds 1000 to 1019 (the same 20 worlds). Raw JSON is in `calibration/results/dev20_v2/`, the summary in `summary.json`, and the plot in `error_vs_experiment.png`. Hit probabilities are under 0.5% / 0.1 degree actuation error, with 400 draws per shot.
+  | Reference | Beyond probe hit | Mission hit | Law recovery |
+  | --- | --- | --- | --- |
+  | Textbook | 0.02 | 0.27 | 1/3 |
+  | Oracle | 1.00 | 0.93 | 3/3 |
+  | Scripted random | 0.83 | 0.80 | 2/3 |
 
-Stage A (decision 1 check, made before Stage B ran):
+  The lab, single and random rows are the stub (textbook physics plus 12 weighs) and test plumbing only. Wall time: about 3 s textbook, about 20 s oracle, about 15 s scripted random, about 4 s stub.
+- **E2 scale**:
+  - The 60-world scripted calibration is below.
+  - Server hardening (subagent, merged): per-session locks, a world cache built once per seed, atomic budget, table use and commit, and atomic session files. Prediction tables are pinned to law content, and `/commit` requires exactly 5 shots (lane B's two requests).
+  - The load test found a real bug, now fixed: `inf` misses produced a 500 on `/admin/score`; non-finite values are now written as `null`.
+  - `tests/test_server_load.py` runs 16 concurrent sessions on a real uvicorn server, plus double-submit races. CLI: `python -m world.loadtest`. One run gave 16 sessions, 557 requests, 7.1 s, 0 errors; p95 latency was 157 ms for `/experiment` and 161 ms for `/nominate`. `/session` takes about 1.9 s the first time a world is generated.
+  - `python -m world.freeze` is written and tested on dev seeds only. **It has not been run, and `world/test_seeds.lock` does not exist.**
+- **E3** `README.md`: reproduction commands, the dev-calibration disclosure, and a results block that `eval.report --readme` fills.
 
-| | Radius 3% | Radius 2% |
-| --- | --- | --- |
-| Exact-law hit rate (all / in-range / beyond) | 97.5 / 99.9 / 95.9% | **95.2** / 98.6 / 92.9% |
-| True-form fit hit rate | 96.7% | 94.2% |
-| Best wrong form, beyond-range, all worlds | 50.0% | **49.2%** |
-| Best wrong form, beyond-range, non-control | 33.3% | 32.9% |
-| Best form that does not contain the truth, beyond-range | 6.1% | 4.0% |
+**Results: scripted policies on 60 dev worlds** (1000 to 1059, 15 per family; 2% hit radius, 0.5% / 0.1 degree launcher). Raw data in `calibration/results/dev60/`, table in `primary_table.md`. Means with 95% bootstrap CIs:
 
-- The 3% radius fails the wrong-form check (50% > 30%), so the radius is 2%, as decided.
-- **2% also fails the check:** 49% overall, 33% on non-control worlds.
-- **The cause is nesting.** In F0 and F1 worlds the best "wrong" form is a superset that contains the true law, with its extra parameter fitted near 0. Examples: `height_p2` on F0, `mass_p3` on a p = 3 F1 world. These forms hit 98 to 99% of beyond-range targets.
-- In F2 and F3 worlds the best wrong form (a different drag exponent) hits 0%. The best form that does not contain the truth hits 4% overall.
-- Median miss as a fraction of target distance:
+| Metric | Random | Greedy | Paired (greedy - random) |
+| --- | --- | --- | --- |
+| Beyond-range probe hit rate after 12 | 0.892 [0.831, 0.945] | 0.995 [0.990, 0.999] | +0.103 [+0.052, +0.164] |
+| Mission hit rate | 0.895 [0.846, 0.938] | 0.951 [0.924, 0.973] | +0.056 [+0.024, +0.094] |
+| Mission hit rate, beyond-range targets | 0.845 [0.774, 0.909] | 0.926 [0.886, 0.960] | +0.081 [+0.036, +0.138] |
+| Law-form recovery (SPEC 7 rule) | 0.900 [0.817, 0.967] | 0.967 [0.917, 1.000] | +0.067 [-0.017, +0.167] |
+| Control false discovery (n = 15) | 0.200 [0.000, 0.400] | 0.133 [0.000, 0.333] | -0.067 [-0.333, +0.200] |
 
-  | | In-range | Beyond-range |
-  | --- | --- | --- |
-  | Exact law | 0.62% | 0.53% |
-  | True-form fit | 0.62% | 0.57% |
-  | Best wrong form | 0.78% | 5.9% |
-  | Best non-nesting wrong form | 1.9% | 17.9% |
-
-- Unreachable targets under the exact law: 0. The `plan_shot` fix removed the 3 false flags.
-- The slowest single `fit_law` call was 2.95 s in Stage A and 4.58 s in Stage B, under the 5 s bar, so the fit loop was not sped up.
-
-Stage B (radius 2%, random versus greedy, n = 20 each):
-
-| Metric | Random | Greedy |
-| --- | --- | --- |
-| Headline: reached 80% of beyond-range probes within 12 experiments | 95% of worlds | 100% |
-| Experiments to the headline (median) | 2 | 3 |
-| Paired difference, random minus greedy | 0.3 experiments, 95% CI -0.75 to 1.6 | |
-| Beyond-range probes within radius after 12 experiments (mean) | 87.8% | 99.5% |
-| Law-form recovery (co-headline) | 16/20 (F0 3/5, F1 4/5, F2 5/5, F3 4/5) | 19/20 (F1 4/5) |
-| Control false discovery (co-headline) | 2/5 | 0/5 |
-| Mission hit probability (all / in-range / beyond) | 87.8 / 95.2 / 82.9% | 93.1 / 98.4 / 89.5% |
-| Paired mission hit probability, greedy minus random | | +5.3 points, 95% CI 0.7 to 11.9 |
-| Median miss fraction (in / beyond) | 0.70 / 0.73% | 0.64 / 0.64% |
-| Median all-probe error after 12 experiments (secondary) | 6.7 mm | 3.3 mm |
-
-- The headline criterion, as defined, still does not separate the policies: random reaches it in 95% of worlds, against the reference of at most 40%. Random gets ahead early because greedy spends its first 3 experiments on fixed seed experiments. Greedy pulls ahead from experiment 4, and the gap at the end of the budget is large (99.5% vs 87.8%). Reported as measured; nothing was tuned.
-- The previous run (`calibration/results/dev20/`, 2% / 0.5 degree launcher, 5 cm radius) is kept for the before numbers. Its summary was made by the report at commit `36bc1be`.
+- Stage A: the exact law hits 96.5% and the true-form fit 95.1%. The best form that does not contain the truth hits 5.4% of beyond-range targets (F0 12%, F1 2%, F2 2%, F3 4%). No target is unreachable. The slowest single fit took 3.65 s.
+- The two policies separate on beyond-range probes and mission hits. Law recovery and false discovery do not reach significance with 60 worlds, and 15 controls, respectively.
+- Greedy's 2 of 15 false discoveries come from its claim rule: it claims non-ordinary physics whenever the BIC-selected form is not plain gravity with quadratic or no drag. That includes nesting forms whose extra parameter is within 2 sd of zero. I left the rule as it was, because changing it after seeing the numbers would be tuning.
 
 **Commands**
 
 ```
-uv sync
-.venv/bin/python -m pytest -q          # 34 passed, 1 skipped (leak test until lab/ lands), about 5 s
-.venv/bin/python -m calibration.study --seeds 1000-1019 --stages A --out calibration/results/dev20_v2 --jobs 12
-.venv/bin/python -m calibration.study --seeds 1000-1019 --stages B --hit-frac 0.02 --out calibration/results/dev20_v2 --jobs 12
-.venv/bin/python -m calibration.report calibration/results/dev20_v2
-SOLZERO_ADMIN_TOKEN=... .venv/bin/python -m world.server --port 8000
+.venv/bin/python -m pytest -q                                   # 59 passed, 1 skipped, about 21 s
+.venv/bin/python -m calibration.study --seeds 1000-1059 --stages AB --hit-frac 0.02 --out calibration/results/dev60 --jobs 8
+.venv/bin/python -m calibration.report calibration/results/dev60
+.venv/bin/python -m eval.run --condition {textbook,oracle} --seeds 1000-1002 --out runs/eval-dryrun-dev3 --serve --parallel 3
+.venv/bin/python -m eval.run --condition random --agent scripted --seeds 1000-1002 --out runs/eval-dryrun-dev3 --serve --parallel 3
+.venv/bin/python -m eval.run --condition {lab,single,random} --agent-cmd ".venv/bin/python -m eval.agent_stub" --seeds 1000-1002 --out runs/eval-dryrun-dev3 --serve
+.venv/bin/python -m eval.grade runs/eval-dryrun-dev3 && .venv/bin/python -m eval.report runs/eval-dryrun-dev3
+SOLZERO_ADMIN_TOKEN=t .venv/bin/python -m world.loadtest --url http://127.0.0.1:8000 --admin-token t --sessions 16 --out runs/loadtest
 ```
 
-**Blockers**
+**Blockers:** none of my own. The agent conditions need lane B's CLI (see Requests).
 
-- None blocking the build. Two calibration results need a human decision:
-  1. The wrong-form check (at most 30%) fails at 2% only because nesting forms are counted as wrong. Should the check exclude forms that contain the truth? Those hit 4%.
-  2. Headroom on the new headline is again small (paired difference 0.3 experiments, CI includes 0). The separation shows in final accuracy, law recovery, false discovery and mission hits.
-
-**Next step**
-
-- Lane B: point `lab/` at the real server (`SOLZERO_WORLD_URL`), using `/admin/worlds` to get world ids. Then run one full loop on a dev world.
-- Lane A: the MuJoCo scene (SPEC 9, hours 4 to 8), and the random and oracle condition runners against the server.
+**Next step:** once lane B implements SPEC 5.6, run lab, single and random through the CLI on 3 dev worlds, then on the 60 dev worlds for a dev-world comparison. Then wait for the human freeze.
 
 ## Lane B: Omnigent and agents (Codex, branch `omnigent`)
 
-**Current milestone (2026-10-04 02:00 Europe/Berlin):** both approved missions committed. L1–L5 implementation advanced; **94 tests pass**. Live acceptance and the paired comparison are **blocked by the Claude subscription session limit**, which reports a reset at 05:30 Europe/Berlin. The candidate tag is a code-review checkpoint with incomplete scientific validation, not a test-seed freeze.
+**Current milestone (2026-10-04 02:27 Europe/Berlin):** both approved missions committed. Latest main merged; eval adapter implemented with the hard-token-cap gap disclosed below. L1–L5 remain partial. Live acceptance and the paired comparison are **blocked by the Claude subscription session limit**, which reports a reset at 05:30 Europe/Berlin. The candidate tag is a code-review checkpoint with incomplete scientific validation, not a test-seed freeze.
 
 ### Approved missions and why they stopped
 
@@ -125,16 +103,21 @@ Evidence caveat: the old servers were started without an admin token. Their orig
 
 - **L1 implemented, live 12-experiment acceptance incomplete.** Five real prompts now state decision ownership, inputs, output schemas and that insufficient evidence is valid. Theorist registers/revises/retires via `/laws`; Experimentalist compares candidates and registers complete predictions/tentative follow-up; Operator executes once; Analyst records coverage, prior-prediction z-scores/confounds and nominates; PI plans and commits. All eight ledger kinds are supported. Shared models and tools only; source and generated-tool-schema leak checks pass.
 - **Approval:** explicit `--auto-approve` is used by every dev/batch command under the user's standing authorization. The default interactive/demo command still pauses for human approval. Automatic approval does not bypass envelope, five-target or budget checks. `--min-experiments 12` is a disclosed fixed-budget verification setting; the normal default 0 leaves early stopping to the PI. No physics/noise/ranges/thresholds were tuned.
-- **L2 implemented, model verification interrupted.** `--condition lab|random|single`; random uses host schedules generated by lane A's existing sampler and the same Theorist/Analyst/PI. One single-condition agent gets every scientific tool. All conditions share model, experiment ceiling and token ceiling. CLI contract is published under Requests and in `docs/agents.md`. Direct safe-module sampler export remains a lane A request; lab never imports calibration.
+- **L2 adapter implemented; hard token caps and model verification incomplete.** `--condition lab|random|single`; random uses host schedules generated by lane A's existing sampler and the same Theorist/Analyst/PI. One single-condition agent gets every scientific tool. All conditions share model, experiment ceiling and token ceiling. CLI contract is published under Requests and in `docs/agents.md`. Latest main provides `eval.sampler.random_specs`; the host prepares its exact ordered public list, which lab reads without importing eval. Existing interrupted manifests retain their historical sampler provenance; regenerate them before the paired comparison.
 - **L3 partial.** Host selected seeds 1000–1007 (two per family) via admin endpoints; no family/seed metadata is sent in model context. Added Analyst `coverage` with per-sample actual specs/status and budget. Eight lab sessions started; each completed one measurement before the model limit. Tool audit found **zero wrapper/tool exceptions** in those sessions; longer-run law retirement, confounds and stop quality cannot yet be assessed. Initial model-driven runs before prompt expansion stopped at mock 6 / real 5; after expansion and fixed-budget verification, the new real acceptance run was interrupted at 2, not a PI stop. No before/after scientific performance claim is made.
-- **L4 implemented with explicit limits.** Nested MLflow agent/tool spans persist inputs/outputs; tests read them back. SDK token usage and wall time are saved. Three connection-establishment attempts maximum; no retry after a read timeout/unknown mutation. Durable phase checkpoints, successful-call memo, runner lock and ledger recovery prevent acknowledged experiments being replayed. A crash after ledger fsync and before checkpoint save recovers from the durable result. Unknown outcomes without that result still need host reconciliation; server-restart recovery needs lane A snapshot/idempotency support.
+- **L4 partial, with explicit limits.** Nested MLflow agent/tool spans persist inputs/outputs; tests read them back. SDK token usage and wall time are saved. Three connection-establishment attempts maximum; no retry after a read timeout/unknown mutation. Durable phase checkpoints, successful measurement/commit memo, runner lock and ledger recovery prevent acknowledged experiments being replayed. A crash after ledger fsync and before checkpoint save recovers from the durable result. Unknown outcomes without that result still need host reconciliation; server-restart recovery needs lane A snapshot/idempotency support.
 - **Parallel verification:** 16 isolated subprocesses completed **192 HTTP experiments**, each with its own session, budget 0 and thirteenth request 409; engineering fixture elapsed **0.687 s**. Saved `runs/l1-l5/parallel16-engineering/summary.json`. This is a real process/HTTP test, **not** sixteen successful model sessions.
 - **Second Analyst model:** the one-line `--analyst-model haiku` option was exercised in a random-condition diagnostic, but the shared subscription limit interrupted it before Analyst ran. Compatibility is unproven; no success claim.
 - **L5 candidate only.** `docs/agents.md` documents prompts, policies, CLI, usage, tracing and resume limits. `lab-freeze-candidate` marks tested code with unresolved live-validation gates. The same-world 24-cell report contains **0 completed paired sessions**, 8 interrupted lab sessions and 16 unrun random/single cells; it does not treat unrun cells as zero hits. `scientific_freeze_ready=false` in `runs/l1-l5/paired-dev8/all-conditions-report.json` and `.md`. No test seeds generated, inspected or run.
 
 ### Measurements and exact commands
 
-- Final `.venv/bin/python -m pytest -q`: **94 passed**, 6.37 s, three upstream deprecation warnings. Includes generated-schema vocabulary, role/envelope/auto-approval, retries, duplicate measurement suppression, checkpoint recovery, coverage and MLflow persistence.
+- Latest merge verification: `.venv/bin/python -m pytest -q` passed **130 tests, 1 skipped**, 38.52 s before three added adapter/durability tests; final suite after these additions: **133 passed, 1 skipped, 5 warnings in 37.84 s**. `.gitignore` keeps both branches; STATUS keeps lane A from main and lane B plus both Requests/Interface changes sets. No root dependency edits.
+- SPEC 5.6 adapter adopts `SessionInfo` without `/session`, supports all published flags, exact ordered random specs, flat ledger, summary statuses/fields, exit-zero-on-summary, and `approval: auto` commit provenance. Standalone flags remain compatible. Shared expression validation now accepts the entire approved grammar.
+- Orchestration bug fixes (engineering evidence, no performance claim): memoization no longer caches state-dependent fits/law changes; post-measurement ledger errors block further mutations; resume checks cycle/model configuration and schedule content, and can submit an already saved table under standing auto-approval. Fresh tests confirm adoption makes no session request and a zero wall cap needs no network/model calls.
+- **Design/API gap:** SDK usage arrives at turn completion; hard `--max-tokens` enforcement required by SPEC 5.6 is not implemented. Wall timeout cancels new agent work, but in-flight threaded HTTP/numerical work can finish during cleanup. Uncertain mutations remain fail-closed. This is not equal-hard-token benchmark acceptance.
+
+- Before latest main merge, `.venv/bin/python -m pytest -q`: **94 passed**, 6.37 s, three upstream deprecation warnings. Includes generated-schema vocabulary, role/envelope/auto-approval, retries, duplicate measurement suppression, checkpoint recovery, coverage and MLflow persistence.
 - `uv pip install mlflow-skinny`: installed 3.16.1 for the explicitly requested tracing work. Root pyproject/lock remain untouched by lane B; integration request below. A fresh `uv sync` will remove this extra until lane A lands it.
 - Initial tracing bug: `start_span(inputs=...)` is not supported by installed MLflow; fixed to `span.set_inputs`. It failed before **any experiments**. Resumed the original sessions after the fix rather than creating replacement measurements. Trace test also now flushes the asynchronous exporter before querying.
 - Full-budget acceptance `runs/l1-l5/l1-budget12`: **2 experiments**, 143.8 s, **312,274 reported tokens including cache**, provider-interrupted. Not twelve-experiment completion.
@@ -175,21 +158,204 @@ SOLZERO_WORLD_URL=http://127.0.0.1:8003 .venv/bin/python -m lab.run --world w_3c
 
 **Earlier verified milestones:** Omnigent 0.16.0/Python 3.12.10; upstream YAML spec read at tag `82a7447`; bundled hello succeeded. Orchestrator plus two agents used declared `type: agent` / `sys_session_send` handoffs with JSON ExperimentSpec/Result; policy denied one call with zero body executions. Main integration commits `e126556`, `81ecf9a`; source/schema follow-ups `e1f2212`, `e17c3a0`; prior status `f4d72f0`. Initial 12-call HTTP fixture passed budget/pre-registration checks. All raw evidence remains under `runs/omnigent-smoke/`, `runs/mock-check-final/` and `runs/merge-integration/`.
 
+## Viewer: replay site (Claude Code, branch `viewer`)
+
+**Current milestone (2026-10-04):** V1 to V3 done. The site runs on fixture data and is deployed at **https://viewer-delta-ten.vercel.app** (results page: `/results.html`). Every page is labelled "Replay of recorded runs".
+
+**Done**
+
+- V1, session replay (`viewer/public/index.html`). It shows:
+  - a cycle timeline (play, step, arrow keys, deep links `?run=&step=`);
+  - law cards with KaTeX equations rendered from the law strings, fitted parameters, and live, rejected or retired status with the last verdict;
+  - the disagreement table, with the chosen candidate highlighted;
+  - pre-registered predictions against each result, with z-scores;
+  - the decision diff, with a "plan changed by evidence" badge and timeline marker;
+  - a budget bar;
+  - the mission panel: a side view with hit zones, shot zero, and fired shots with hit or miss;
+  - the hidden law beside the discovered law, plus a chart of the nominated law's hidden probe score per experiment;
+  - the video, when the run directory has one.
+- V2, aggregate results (`viewer/public/results.html`) from `eval/aggregate.json`:
+  - learning curves: beyond-range probe hit rate, and median probe error on a log scale;
+  - the SPEC section 7 primary-metric table for lab, random and single agent (rows read "not run" when there are no rows), plus any reference conditions present;
+  - secondary metrics, including experiments to threshold;
+  - paired per-world differences with a seeded bootstrap 95% interval (lab − random, lab − single, references − random);
+  - control-world false discovery, and law recovery by family.
+- V3, fixtures and deployment:
+  - `viewer.fixtures.oracle_session` runs the scripted greedy-disagreement oracle (12-form library, no language model) against the real `world.server.WorldServer` in-process, on dev seeds 1000 to 1003. Prediction tables and the budget are checked by the server code. It writes SPEC 5.5 ledgers and 5.7 `metrics.json`.
+  - `viewer.fixtures.calibration_aggregate` turns calibration stage B (`dev20_v2`) into `aggregate.json`.
+  - Real runs load by dropping a directory into `viewer/public/runs/` and running `node viewer/scripts/build-index.mjs` (Vercel runs it on every build). See `viewer/README.md`.
+- `tests/test_viewer_fixtures.py` validates every fixture ledger entry against `schemas`, checks that prediction tables cover exactly the live set, and checks the `metrics.json` and `aggregate.json` shapes.
+- The interface is SPEC 5.5 (`candidates` payload) and 5.7 (viewer inputs). Both were committed separately, before the code.
+
+**Results** (fixture data; dev seeds only)
+
+| Seed | Family | Final form | Hits | Plan changed by evidence |
+| --- | --- | --- | --- | --- |
+| 1000 | F0 | const_p2 | 5/5 | 7 of 12 cycles |
+| 1001 | F1 (p = 3) | const_p3 | 5/5 | 5 |
+| 1002 | F2 | mass_p2 | 5/5 | 4 |
+| 1003 | F3 | height_p2 | 4/5 | 5 |
+
+- Runtime is 11 to 26 s per world.
+- The aggregate page reproduces the calibration report:
+
+  | | Random | Greedy |
+  | --- | --- | --- |
+  | Final beyond-range probe hit rate | 87.8% | 99.5% |
+  | Law recovery | 16/20 | 19/20 |
+  | Control false discovery | 2/5 | 0/5 |
+  | Median experiments to threshold | 2 | 3 |
+
+  The page also shows a paired difference of oracle − random on the beyond-range probe hit rate: 11.8 points, 95% CI 3.75 to 22.2.
+
+**Commands**
+
+```
+.venv/bin/python -m viewer.fixtures.oracle_session --seeds 1000,1001,1002,1003 --out viewer/public/runs --jobs 4
+.venv/bin/python -m viewer.fixtures.calibration_aggregate calibration/results/dev20_v2 --out viewer/public/eval/aggregate.json
+node viewer/scripts/build-index.mjs
+cd viewer/public && python3 -m http.server 8000          # local preview
+cd viewer && npx vercel deploy --temporary --prod --yes  # redeploy (no login)
+.venv/bin/python -m pytest -q                            # 64 passed, 1 skipped (after merging main)
+```
+
+**Blockers**
+
+- Deployment ownership. The Vercel CLI is not logged in, so the site was deployed with `vercel deploy --temporary`, under a temporary team (`brisa6`).
+  - The production URL above is live now.
+  - The CLI does not say how long a temporary deployment lasts.
+  - For a durable URL, the human runs `! npx vercel login`, then `cd viewer && npx vercel deploy --prod`, and puts the new URL here.
+
+**Decisions made autonomously**
+
+- **Stack:** a static site with no build step (plain HTML, CSS and ES modules). KaTeX renders the equations and math.js parses the law strings, both from cdnjs. The only build step is the Node run-index script, because a static host cannot list directories.
+- **SPEC 5.7 input format:**
+  - `metrics.json` = SessionInfo + `GET /admin/score` + `GET /admin/truth`, unchanged. The ledger alone lacks targets, shot zero and the truth.
+  - `aggregate.json` is a flat list of per-world rows, and the viewer computes the metrics from them. That keeps `eval/` output simple.
+- **Disagreement table:** taken from an optional `disagreements` field in the `candidates` payload. When it is absent (lane B ledgers today), gaps for the chosen spec are derived from the prediction table, using the same formula as `tools.disagreement`, and the page says so.
+- **Fixture condition:** the fixture now opens `oracle` sessions; the merged server accepts that condition. The first version used `lab`, because the server did not accept `oracle` then. The oracle still sends a prediction table with every experiment, so the server checks each one.
+- **Fixture verdicts:**
+  - The z-score is the signed z of the worst observable.
+  - A law is rejected above |z| 3, supported at |z| 2 or below, and insufficient evidence in between.
+  - A failed run gives "insufficient evidence", z = 0. The first version wrongly rejected laws on failed runs with a placeholder z.
+- **Tentative follow-up in the fixture:** the next cycle's candidate pool is drawn before the result and ranked with the current fits. After the result it is re-ranked with the new fits. "Changed" means the argmax moved.
+- **Aggregate fixture, two caveats** (stated in its notes):
+  - Mission hits count one realised shot per target, not the calibration report's hit probabilities.
+  - Law recovery uses calibration's definition (the selected form equals the true form), not `eval/grade.py`.
+- **Results page after the merge with main:** reorganised around the section 7 primary metrics; experiments to threshold moved to secondary. Two numbering changes:
+  - main added its own SPEC 5.6 (agent run CLI), so viewer inputs became 5.7;
+  - aggregate rows gained `mission_hits_in_range` and the median-miss fields.
+- **Law-card status:** a law is "live" while it is in the current law set, even if its last verdict was "rejected". The oracle keeps the best three by BIC, so this happens, and both badges are shown. It is "rejected" if it left the set after a rejection, and "retired" otherwise.
+- **Hidden law:** revealed only at the last step, or with a "Reveal now" button, matching the demo order.
+
+**Eval importer (2026-10-04, after V3)**
+
+- `viewer.import_eval` converts `eval/run.py` output straight into the viewer layout, so eval does not need to change its format:
+  - per run: `session_info.json`, `admin_score.json`, `truth.json` and `agent/ledger.jsonl` become `runs/<label>_<seed>/`;
+  - `all_metrics.jsonl` becomes `eval/aggregate.json`.
+- Mission hit counts are rates × 2 in-range and × 3 beyond-range targets.
+- Checked on the physics lane's dry run (`runs/eval-dryrun-dev3`, 18 sessions, 6 labels, dev worlds 1000 to 1002) in a scratch copy of the site. Every replay and the results page rendered, with no console errors.
+- That dry run's lab, random and single rows come from the stub agent (0 tokens, about 1 s), so they are **not** deployed. The site still shows the oracle fixtures.
+- `tests/test_viewer_import.py` covers the conversion.
+- Supporting changes:
+  - The viewer knows the `random-scripted` label (scripted-random reference), in its own colour slot. The six-colour palette passed the dataviz validator in light and dark modes.
+  - Charts now have a legend whenever there are two or more series.
+  - The results page adds the pairs oracle − scripted random and random − scripted random.
+
+**Next step**
+
+- When the real eval run finishes: `.venv/bin/python -m viewer.import_eval runs/eval --title "..." --remove-fixtures`, then redeploy.
+- Add the demo video when the sim lane renders it.
+
+## Lane sim: MuJoCo (Claude Code, branch `sim`)
+
+**Current milestone:** S1 done. S2 to S5 are not started (session stopped at a usage limit).
+
+**Done** (2026-10-04, `12ec586`)
+
+- S1 is in `sim/scene.py`, `sim/arm.py` and `sim/experiment.py`:
+  - Scene: table, Menagerie Panda on a 0.35 m pedestal, launcher with an elevation actuator, tray with the seven spheres, target bins, wrist force sensor.
+  - MuJoCo gravity is 0 and fluid forces are off. The hidden law (`world.law` compiled by `tools.analysis.compile_law`) is added as an external force on every sample in the passive-force callback, every step.
+  - Flights use RK4 at 1 ms, so the law is evaluated at every stage.
+- Fast mode places the sample at its release state. Full mode runs the arm primitives: pick, transit, move_sample_to, hold, release, load_launcher, aim, fire.
+- `Lab.run_experiment` returns a `Result` with the same noise draw order as `World.run_experiment`.
+- `sim/oracle_ledger.py` (written by a subagent) runs the greedy-disagreement oracle against the in-process `WorldServer` and writes a SPEC 5.5 ledger. On seeds 1001 and 1002 it selected the true form and hit 5 of 5 targets.
+- `tests/test_sim.py` (skipped without mujoco or the assets) and `tests/test_sim_oracle_ledger.py`.
+
+**Results** (noiseless, dev seeds 1002 and 1003)
+
+- Weigh, fast and full: matches the integrator to 1e-8 relative.
+- Drop and launch, fast: matches to 1e-6 s and 1e-9 m. An 11 m beyond-range mission shot agrees to 2 nm.
+- Full-mode drop: up to 0.21 ms early at 0.1 m height (0.04 sd), from the release state. `Lab.release_error` records it.
+- One experiment takes about 1 s wall time in full mode and 0.1 s in fast mode.
+- Bugs fixed on the way:
+  - MjSpec reads angles in degrees by default, which pinned the launcher at 2 degrees.
+  - Fingers touched the barrel while loading; loading now happens at 75 degrees, via a transit height.
+  - Holding the law force constant over a step gave first-order error (8 mm on an 11 m shot at 0.1 ms). The passive callback with RK4 replaced it.
+
+**Commands**
+
+```
+.venv/bin/python -m sim.fetch_assets      # Menagerie panda at commit 4d038b3f into sim/assets/ (gitignored)
+.venv/bin/python -m sim.experiment --seed 1002 --mode full --spec '{"type":"drop","sample_id":"ref_100","height_m":1.0}'
+.venv/bin/python -m sim.oracle_ledger --seed 1001 --out runs/oracle_1001
+.venv/bin/python -m pytest -q             # 54 passed, 1 skipped
+```
+
+**Decisions made autonomously**
+
+- The Menagerie assets (34 MB) are fetched at a pinned commit, not committed.
+- The arm is gravity-compensated, and grasping uses a weld constraint. Samples never collide with the fingers.
+- The weigh station sits beyond the table edge, so height 0 touches nothing. Above about 1 m the arm holds the sample with the gripper horizontal.
+- The launcher releases the sample at the muzzle (the barrel guides it). The arm's loading error is checked, and anything over 5 mm fails as a misload.
+- Target bins are visual only, and hits are scored geometrically as in SPEC 3.
+- The oracle ledger opens its session as condition `lab`, because the server does not accept `oracle` yet.
+
+**Next step**
+
+- S2: run 50 randomized full-mode experiments and report the failure rate.
+- S3: run 20 experiments in full mode against `World.run_experiment` with the same rng.
+- S4: `sim/render.py`, built against `runs/oracle_1001`.
+- S5: the side-by-side clip.
+
 ## Requests (one lane asking the other, or the human, for something)
 
-- **Lane B CLI contract for eval:** `SOLZERO_WORLD_URL=<origin> python -m lab.run --world <id> --condition lab|random|single --seed <dev-seed> --output <fresh-dir> --auto-approve`. Random additionally needs `--schedule <public-json>` from host shared sampler. `--min-experiments 12` selects fixed-budget verification; default 0 preserves PI early stop. Exit 0 committed, 2 CLI, 3 approval, 4 failure, 5 cycle cap. Ledger `<output>/<session_id>/ledger.jsonl`; summary contains wall seconds, SDK token use including caches, budget, stop reason and ledger path. Same model, 2M token ceiling checked between turns, 4096 output-token limit and 12-experiment cap across conditions. `--resume` requires same live service and output; ambiguous requests fail closed. `docs/agents.md` is the full contract.
+- **Lane B latest integration:** SPEC 5.6 flags and output adapter implemented in `lab.run`; adopted sessions never POST `/session`; `--approval auto` records provenance; flat `DIR/ledger.jsonl`; exit 0 when summary written. Remaining blocker: Claude SDK only exposes usage after a turn, so token cap is a between-turn guard and cannot yet satisfy the hard-cap contract. Keep agent comparison provisional until an isolated provider path with hard token accounting is available. Wall timeout stops new work but may wait for an in-flight thread to finish; host kill grace still applies.
+- **Lane B handoff:** latest main resolves expression-parser, full-law snapshot, five-shot validation and shared-sampler requests below. Historical rows retained. Host-only `eval/dev_batch.py`, `eval/report_dev.py`, `eval/replay_mock.py`, `eval/verify_parallel.py` were added under the earlier shared-path claim; hand these to the integrator under the new ownership table. `dev_batch` now uses `eval.sampler.random_specs` exactly; old interrupted schedules are historical and must not be silently reused for the final paired comparison.
 
-- Lane B claims `eval/` for host-only dev manifests, batch launch and score reporting (L2–L5, user request). `docs/agents.md` authorized explicitly by user. No scientific agent receives host admin data.
-- Lane B dependency request: add `mlflow-skinny==3.16.1` to root pyproject/lock (user explicitly requested MLflow). Installed with `uv pip install mlflow-skinny` for verification; root ownership preserved.
-- Lane B sampler request: expose lane A `calibration.study.random_spec` from a safe shared `tools/` module. Until then, the host-only eval preparation step generates public schedules with that existing sampler; lab reads the supplied schedule and never imports calibration.
-- Lane B robustness request: public session snapshot and idempotent experiment keys are needed for automatic recovery after a lost mutation response or server restart. Until supplied, client checkpoints resume against a live server and fail closed on ambiguous mutations, never replaying an experiment blindly.
-- User authorization (2026-10-03 23:28 UTC): both pending firing tables approved and committed. Automatically approve subsequent dev/batch commits; preserve approval as default for interactive demo sessions. The real 5-cycle and mock 6-cycle runs stopped because PI chose to commit, not because the host cut them short. L1–L5 replaces the earlier prompt-stub scope.
-
-- Lane B resolution (2026-10-03 22:43 UTC): all earlier schema/dependency/pytest-path and `/laws` integration requests below are resolved by main `c64d2fa`; historical rows are retained as requested. `lab/requirements.txt` is deleted.
-- Lane B → lane A (bugs, direct HTTP clients): `world/server.py` stores only law IDs in prediction tables, so replacing an expression under the same ID does not invalidate a table; track a law revision/snapshot. `/commit` also accepts fewer than five target shots; require exactly one per target. Mock and lab already enforce both.
+- Lane sim to physics: please `uv add mujoco` (3.14 tested). Until then, `tests/test_sim.py` skips. Please also add `runs/` to `.gitignore`.
+- **Integrator to lane B (open, 2026-10-04):** please implement the agent CLI exactly as in SPEC 5.6, or amend 5.6 in a schema-and-SPEC commit:
+  - `python -m lab.run --world-url --session-info FILE --condition {lab,single,random} --out DIR [--specs FILE] [--max-tokens N] [--max-wall-s S] [--approval {human,auto}]`.
+  - The runner opens the session and passes its `SessionInfo`; `lab.run` must not call `/session`.
+  - Write `DIR/summary.json` and `DIR/ledger.jsonl`, and exit 0.
+  - `eval.agent_stub` is a reference implementation of the plumbing. `tests/test_eval.py::test_pipeline_textbook_and_stub` shows the expected behaviour.
+- **Integrator to lane B (fyi):**
+  - `/admin/score` now writes non-finite misses as `null`.
+  - `/commit` requires exactly 5 shots.
+  - Prediction tables are pinned to law content, so changing a law under the same id invalidates the table, as your mock already does.
+  - The `schemas.check_expr` grammar is now enforced at the HTTP boundary.
+- **Integrator merge check (2026-10-04):** test-merging `omnigent` (`f4d72f0`) into `main` (`a254def`) conflicts only in `STATUS.md`. With the conflict resolved, the full suite passes: 110 tests, including lane B's and the leak test with `lab/` present. Lane B can `git merge main`, keep both lane sections and both sets of Requests rows, and merge to main.
+- Resolved: lane B's requests about law-content invalidation, exactly-five-shot commits and safe expression parsing are done (`5f60ab7`, and the server merge after it).
 
 - Lane A to human: should the wrong-form check exclude forms that contain the true law? See the lane A Blockers.
 - Lane A to lane B: the real server is in `world/server.py`, with the same contract as `mock/` plus `POST /laws` and `Target.hit_radius_m`. The mock needs `/laws` and the live-set check to stay faithful to 5.2.
+- Viewer to lane B: please add `disagreements` (one `Disagreement` per candidate, from the `disagreement` tool) to the `candidates` ledger payload (SPEC 5.5). The replay shows it as the disagreement table; without it the viewer can only derive gaps for the chosen spec.
+- Viewer to physics, a design observation from the fixtures (dev seed 1003, F3, kappa = -0.481):
+  - Gravity g0 * (1 + kappa * z) reaches zero at z = 1/|kappa| = 2.08 m.
+  - Steep launches of heavy samples at about 3.2 to 3.6 m/s and 62 to 69 degrees climb past that height and never land. `World.shot_x` returns NaN, and the run is reported `failed`.
+  - With kappa down to -0.6 the zero-gravity height is 1.67 m, inside the reach of a 4 m/s launch.
+  - The greedy oracle picked 4 such launches in 12, because a law that predicts no landing scores a 1000-sigma gap.
+  - This is a design problem (the family range), not an integrator bug. Diagnosed by an energy check: the vertical speed needed to reach 2.08 m is about 2.93 m/s, against about 3.0 m/s launched.
+
+
+- **Lane B CLI contract for eval:** `SOLZERO_WORLD_URL=<origin> python -m lab.run --world <id> --condition lab|random|single --seed <dev-seed> --output <fresh-dir> --auto-approve`. Random additionally needs `--schedule <public-json>` from host shared sampler. `--min-experiments 12` selects fixed-budget verification; default 0 preserves PI early stop. Exit 0 committed, 2 CLI, 3 approval, 4 failure, 5 cycle cap. Ledger `<output>/<session_id>/ledger.jsonl`; summary contains wall seconds, SDK token use including caches, budget, stop reason and ledger path. Same model, 2M token ceiling checked between turns, 4096 output-token limit and 12-experiment cap across conditions. `--resume` requires same live service and output; ambiguous requests fail closed. `docs/agents.md` is the full contract.
+- Lane B claims `eval/` for host-only dev manifests, batch launch and score reporting (L2–L5, user request). `docs/agents.md` authorized explicitly by user. No scientific agent receives host admin data.
+- Lane B dependency request: add `mlflow-skinny==3.16.1` to root pyproject/lock (user explicitly requested MLflow). Installed with `uv pip install mlflow-skinny` for verification; root ownership preserved.
+- Lane B historical sampler request (resolved by host-only `eval.sampler`): expose lane A `calibration.study.random_spec` from a safe shared `tools/` module. Until then, the host-only eval preparation step generates public schedules with that existing sampler; lab reads the supplied schedule and never imports calibration.
+- Lane B robustness request: public session snapshot and idempotent experiment keys are needed for automatic recovery after a lost mutation response or server restart. Until supplied, client checkpoints resume against a live server and fail closed on ambiguous mutations, never replaying an experiment blindly.
+- User authorization (2026-10-03 23:28 UTC): both pending firing tables approved and committed. Automatically approve subsequent dev/batch commits; preserve approval as default for interactive demo sessions. The real 5-cycle and mock 6-cycle runs stopped because PI chose to commit, not because the host cut them short. L1–L5 replaces the earlier prompt-stub scope.
+- Lane B resolution (2026-10-03 22:43 UTC): all earlier schema/dependency/pytest-path and `/laws` integration requests below are resolved by main `c64d2fa`; historical rows are retained as requested. `lab/requirements.txt` is deleted.
+- Lane B → lane A (bugs, direct HTTP clients): `world/server.py` stores only law IDs in prediction tables, so replacing an expression under the same ID does not invalidate a table; track a law revision/snapshot. `/commit` also accepts fewer than five target shots; require exactly one per target. Mock and lab already enforce both.
 - Lane B integration (2026-10-03 22:28 UTC): initial main merge resolved as requested; temporary requirements removed; 72 combined tests pass, 12-call HTTP fixture passes, and one live specialist evidence/revision cycle completed with one experiment, 11 remaining, and 11 tool calls. Updated main has now landed; merging its dependencies, target schema and real server next.
 - Lane A to human: decide calibration blockers 1 (actuation noise versus mission ceiling) and 2 (headroom metric). See lane A Blockers.
 - Lane B → human: merge `schemas/` to main first (initial commit `76ff1d6`; compatible follow-up `5d0547d`) so the mock/wrappers can import and test the shared models. This is the active integration blocker.
@@ -204,10 +370,18 @@ SOLZERO_WORLD_URL=http://127.0.0.1:8003 .venv/bin/python -m lab.run --world w_3c
 | --- | --- | --- | --- |
 | 2026-10-03 | Claude Code | `FitResult.cov` (optional parameter covariance) added; `loo_error` defined as RMS in noise-sd units | `predict` needs correlated parameter draws; the units were undefined |
 | 2026-10-03 | Claude Code | `noise_sd` in `SessionInfo` and in launch `Result` gains `speed_frac` and `elevation_deg` (launcher actuation error) | Actuation error dominates launch noise; the fit must weight launches by it |
+| 2026-10-04 | Claude Code | Law expressions limited to a whitelisted arithmetic grammar (`schemas.check_expr`), checked before sympy parses them | Lane B bug report: untrusted strings reached `sympy.parse_expr` (eval) over HTTP |
+| 2026-10-04 | Claude Code | `Condition` adds `textbook` and `oracle` (scripted references); `/commit` requires exactly one shot per target; prediction tables are pinned to full law content | Human instruction E1; lane B bug reports |
+| 2026-10-04 | Claude Code | SPEC 5.6: agent run CLI contract (`lab.run --session-info --condition --specs --max-tokens --max-wall-s --approval`, `summary.json`). Lane B to confirm or amend | E1 needs a fixed handoff between `eval/` and `lab/` |
+| 2026-10-04 | Claude Code | SPEC 7: four primary metrics fixed; experiments to threshold is secondary; law-grading rule; 40 test seeds (10 per family). SPEC 8: wrong-form check excludes forms that contain the true law | Human decisions, 2026-10-04 |
 | 2026-10-04 | Claude Code | `POST /laws {session_id, live_laws}` replaces the live set; `/predictions` must cover exactly that set (422 otherwise); `LawsRequest` in schemas; a prediction table is single-use and is invalidated if the live set changes | Human decision 3 |
 | 2026-10-04 | Claude Code | `Target.hit_radius_m` (default max(5 cm, 2% of distance)); `noise_sd` actuation values now 0.005 / 0.1; `plan_shot` `reachable=false` only without a nominal solution | Human decision 1 |
 | 2026-10-04 | Claude Code | Admin `GET /admin/worlds` (dev seed to opaque world id) | Eval runners need world ids; ids are hashes so agents cannot read the seed |
+| 2026-10-04 | Claude Code (viewer) | SPEC 5.5: `candidates` payload documented, with optional `disagreements` (one Disagreement per candidate). New SPEC 5.7 (numbered 5.6 before the merge with main): viewer inputs (`runs/index.json`, per-run `ledger.jsonl` + `metrics.json` + optional `video.mp4`, `eval/aggregate.json`) | The replay site needs SessionInfo, admin score and truth beside the ledger, and a flat per-world eval format |
+| 2026-10-04 | Claude Code (viewer) | SPEC 5.7 aggregate rows gain `mission_hits_in_range` and optional `median_miss_frac_in_range` / `median_miss_frac_beyond`; the viewer reports the section 7 primary metrics | Section 7 primary metrics (merged from main) split mission hits into in-range and beyond-range with median miss fraction |
+| 2026-10-04 | Claude Code (viewer) | SPEC 5.7: aggregate `condition` is the eval label, adding `random-scripted`; `viewer.import_eval` converts `eval/run.py` output | eval writes the scripted-random reference under its own label beside the agent random condition |
 | 2026-10-03 | Claude Code | SPEC 5.4: analysis tools take keyword-only extras (`samples`, `noise_sd`, `seed`, `n_draws`); added `predict_many` and `disagreement_many` | Explicit seeds; batched candidate scoring |
+
 | 2026-10-03 | Codex | Mock and Theorist wrapper implement POST /laws with exact prediction coverage and pending-table invalidation; launcher noise metadata forwarded | Human-requested interface closure; no private model copies |
 
 ## Design changes from calibration (dev worlds only)
@@ -218,6 +392,25 @@ SOLZERO_WORLD_URL=http://127.0.0.1:8003 .venv/bin/python -m lab.run --world w_3c
 | 2026-10-04 | Hit radius 5 cm to max(5 cm, 2% of target distance). 3% was tried first. | True-form fit hit 47% | 94.2% (3%: 96.7%) | Decision 1. At 3% the best wrong form hit 50% of beyond-range targets (above 30%), so 2% was used; at 2% it hits 49%, caused by nesting forms |
 | 2026-10-04 | Probes 20 mixed to 20 in-range plus 20 beyond-range; headline = experiments to 80% of beyond-range probes within the radius | Old 5 cm median metric: random 95%, greedy 100% reach | New headline: random 95%, greedy 100%; paired difference 0.3 (CI -0.75 to 1.6) | Human decision 2. Budget, noise and ranges unchanged |
 
+## Decisions made autonomously
+
+| When | Who | Decision | Why |
+| --- | --- | --- | --- |
+| 2026-10-04 | integrator | Proposed the SPEC 5.6 agent CLI, in which the runner opens the session and passes `SessionInfo` | The runner needs the session id for admin scoring and crash recovery, and there is no GET-session endpoint |
+| 2026-10-04 | integrator | `--approval auto` exists for evaluation runs only, recorded in the ledger. `human` keeps the SPEC 6 gate | Hundreds of eval runs cannot each wait for a human approval |
+| 2026-10-04 | integrator | Textbook and oracle run through the world server as conditions `textbook` and `oracle`; scripted random uses `random` with label `random-scripted` | One scoring path for every condition |
+| 2026-10-04 | integrator | A crashed agent is retried once in a new session (new noise stream). A run that is still running when the runner itself crashes is restarted from scratch | The server keeps sessions in memory, and a fresh session keeps the pre-registration record clean |
+| 2026-10-04 | integrator | Default caps: 1800 s wall clock and 2,000,000 tokens per run, with 4 parallel runs | Placeholders until lane B measures a full run; all are flags |
+| 2026-10-04 | integrator | Law grading thresholds: a dependence counts above a 1% change in gravity over the range; the drag exponent is the slope between 1 and 4 m/s; the exponent check is waived when the true rho is below 0.05 | Needed to make the human's 2-sd rule executable on free-form laws. Written into SPEC 7 before any test run |
+| 2026-10-04 | integrator | The beyond-range probe hit rate uses the last nomination made after the final experiment. With no nomination at all it counts as 0, and the run is flagged | A run that never names a law gets no credit |
+| 2026-10-04 | integrator | A missing shot counts as a miss in the mission hit rate (the server now refuses fewer than 5 anyway) | Conservative |
+| 2026-10-04 | integrator | The scripted claim rule (non-ordinary whenever the selected form is non-ordinary) is unchanged after its 2/15 false discoveries were seen | Changing it after seeing the result would be tuning |
+| 2026-10-04 | integrator | I did not merge `omnigent` into `main`; lane B merges its own branch under the new rules. I will resolve conflicts if they appear | Each lane merges itself when its tests pass |
+
 ## Decisions by the human
+
+- 2026-10-04: the wrong-form check excludes forms that contain the true law, and the 2% hit radius is final. For grading, a fitted form matches the true law after dropping terms whose parameter is within 2 sd of zero.
+- 2026-10-04: experiments to threshold becomes secondary. The primary metrics are the beyond-range probe hit rate after 12 experiments, mission hit rate, law-form recovery and control false discovery. Single-use prediction tables, live-set invalidation and `/admin/worlds` are approved.
+- 2026-10-04: the physics branch is the integrator, with lanes physics, omnigent, sim and viewer.
 
 - None yet.

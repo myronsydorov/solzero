@@ -105,7 +105,7 @@ Every condition uses the same four analysis tools, and none of them offers a men
 
 - SI units everywhere: m, s, kg, N. Angles in degrees in specs, radians inside the integrator.
 - All records are JSON. Shared Python models live in `schemas/` (pydantic). Both lanes import from there.
-- Law expressions are sympy-parsable strings over the variables `m`, `z`, `vx`, `vz`, `speed` and the law's named parameters. No other names are allowed.
+- Law expressions are arithmetic strings over the variables `m`, `z`, `vx`, `vz`, `speed` and the law's named parameters. No other names are allowed. Allowed syntax: numbers, names, `+ - * / **`, unary minus, parentheses, and calls to `sqrt exp log sin cos tan tanh abs Abs`. At most 400 characters. Anything else is rejected before sympy parses it (`schemas.check_expr`).
 - The world server base URL comes from the environment variable `SOLZERO_WORLD_URL`.
 
 ### 5.2 World server HTTP API
@@ -119,12 +119,12 @@ Agent-facing endpoints:
 | `POST /predictions` | `{session_id, spec, predictions[], tentative_followup}` | `{prediction_table_id}` | 404 unknown session; 422 spec out of range, or predictions not covering exactly the live law set |
 | `POST /experiment` | `{session_id, spec, prediction_table_id}` | `Result` | 409 budget exhausted; 422 missing or mismatched prediction table, out-of-range spec, forbidden sample |
 | `POST /nominate` | `{session_id, law, fit}` | `{ok: true}` | |
-| `POST /commit` | `{session_id, law_id, shots[], claim, claims_non_ordinary}` | `{status: "committed"}` | 409 already committed |
+| `POST /commit` | `{session_id, law_id, shots[], claim, claims_non_ordinary}` | `{status: "committed"}` | 409 already committed; 422 not exactly one shot per target, or a shot outside the mission envelope |
 
-- `world_id` is opaque to agents. `condition` is one of `lab`, `random`, `single`.
+- `world_id` is opaque to agents. `condition` is one of `lab`, `random`, `single` (agent conditions) or `textbook`, `oracle` (scripted references, run by `eval/`).
 - `/laws` replaces the session's live law set (it starts empty). Every condition may call it.
 - `/predictions` is required before every `/experiment` in the `lab` and `single` conditions. Its `predictions` must contain exactly one entry per live law, with the same `law_id` set, or the server returns 422. It is an empty list only while the live set is empty (cycle 0).
-- A prediction table is used once, by an `/experiment` with the same spec. The live set at `/experiment` time must still be the one the table was made for, or the server returns 422.
+- A prediction table is used once, by an `/experiment` with the same spec. The live set at `/experiment` time must still be the one the table was made for, or the server returns 422. The set is compared by full law content, so re-registering a `law_id` with a changed expression or parameter bounds also invalidates the table.
 - `/nominate` is called after every experiment with the current best law. The server scores it on hidden probes and returns nothing about the score.
 - `/commit` returns no hit or miss information to agents.
 
@@ -134,6 +134,7 @@ Admin endpoints (never exposed to agent tools; protected by `SOLZERO_ADMIN_TOKEN
 | --- | --- |
 | `GET /admin/score/{session_id}` | Probe error after each experiment, mission hits and misses, law recovery inputs |
 | `GET /admin/truth/{world_id}` | Family and parameters, for grading and the demo reveal |
+| `GET /admin/worlds` | Map from served seed to opaque `world_id`, for eval runners |
 
 ### 5.3 Records
 
@@ -232,6 +233,54 @@ One JSON object per line in `runs/<session_id>/ledger.jsonl`:
 
 `kind` is one of `law_set`, `candidates`, `prediction_table`, `result`, `verdicts`, `decision_diff`, `nomination`, `commit`.
 A `decision_diff` payload is `{"tentative": ExperimentSpec, "actual": ExperimentSpec, "changed": true, "reason": "..."}`.
+A `candidates` payload is `{"candidates": [ExperimentSpec], "chosen": ExperimentSpec, "disagreements": [Disagreement]}`. `disagreements` is optional, one per candidate in the same order; the viewer shows it as the disagreement table and otherwise derives gaps for the chosen spec from the prediction table.
+
+### 5.6 Agent run CLI (lane B exposes, `eval/` calls)
+
+The eval runner opens the session itself and hands it to the agent process:
+
+```
+python -m lab.run --world-url URL --session-info FILE --condition {lab,single,random} --out DIR
+                  [--specs FILE] [--max-tokens N] [--max-wall-s S] [--approval {human,auto}]
+```
+
+- `--session-info` is the `SessionInfo` JSON returned by `POST /session`. The agent process never calls `/session`.
+- `--specs` (random condition only) is a JSON list of exactly `budget` ExperimentSpecs from the shared sampler (`eval.sampler`). The Operator runs them in order. The other agents still propose, fit, judge, nominate and commit.
+- `--max-tokens` and `--max-wall-s` are hard caps. The agent stops cleanly, and commits if it can, when a cap is reached. The runner also kills the process at `max-wall-s + 60`.
+- `--approval auto` approves the five-shot table automatically, for evaluation runs only. It is recorded in the ledger as `{"kind": "commit", "payload": {..., "approval": "auto"}}`. `human` keeps the section 6 gate.
+- On exit it writes `DIR/summary.json`: `{"session_id", "status": "committed" | "cap_reached" | "error" | "pending_approval", "tokens_used", "wall_s", "n_experiments", "error": str | null}`, plus `DIR/ledger.jsonl` (section 5.5).
+- Exit code 0 means `summary.json` was written. Any other code is a crash, and the runner retries the run once.
+
+### 5.7 Viewer inputs
+
+The replay site (`viewer/`) is static. It reads files only; it never calls the world server.
+
+```
+viewer/public/runs/index.json            // built by `node viewer/scripts/build-index.mjs`; lists run directories
+viewer/public/runs/<run_id>/ledger.jsonl // section 5.5, unchanged
+viewer/public/runs/<run_id>/metrics.json // see below
+viewer/public/runs/<run_id>/video.mp4    // optional
+viewer/public/eval/aggregate.json        // see below
+```
+
+```json
+// metrics.json: written by the condition runner after the session, from admin data
+{"run_id": "s_ab12", "label": "lab on dev world 1002", "condition": "lab",
+ "session_info": SessionInfo,
+ "score": {...},   // GET /admin/score/{session_id}, unchanged
+ "truth": {...}}   // GET /admin/truth/{world_id}, unchanged
+
+// aggregate.json: written by eval/, one row per (world, condition) session
+{"label": "...", "budget": 12, "notes": {"<condition>": "..."},
+ "rows": [{"world": "1002", "family": "F2", "condition": "lab",
+           "within_beyond": [0.0, ...],   // after 0..budget experiments; null where not nominated
+           "median_error_m": [0.31, ...], // same indexing
+           "law_recovered": true, "claim": "law_identified", "claims_non_ordinary": true,
+           "mission_hits": 4, "mission_hits_in_range": 2, "mission_hits_beyond": 2,
+           "median_miss_frac_in_range": 0.006, "median_miss_frac_beyond": 0.007}]}
+```
+
+`condition` in aggregate rows is the eval label: `lab`, `random`, `single`, `textbook`, `oracle`, or `random-scripted` (the scripted-random reference, which opens `random` sessions). `python -m viewer.import_eval <eval root>` converts `eval/run.py` output (per-run `session_info.json`, `admin_score.json`, `truth.json`, `agent/ledger.jsonl`, and `all_metrics.jsonl`) into this layout. The viewer computes the section 7 primary metrics (final `within_beyond`, mission hit rate, law-form recovery, control false discovery from F0 rows), experiments to threshold (first index with `within_beyond >= 0.8`, budget + 1 if never) and the paired differences from the rows. `law_recovered` is graded by `eval/grade.py`. The `median_miss_frac_*` fields are optional.
 
 ## 6. Agents and Omnigent
 
@@ -272,21 +321,30 @@ Rules that make the orchestration consequential:
 
 - **Matched budgets:** same model, 12 experiments, same tools, same token cap, same world seeds, compared pairwise.
 - **Dev worlds:** seeds 1000 to 1999, for calibration and prompt work.
-- **Test worlds:** 12 seeds (three per family) drawn from 9000 to 9999 and written to `world/test_seeds.lock` at the freeze. Cut to 8 if time is short. No code path runs a test seed without the flag `--final-eval`.
+- **Test worlds:** 40 seeds (ten per family) drawn from 9000 to 9999 by `python -m world.freeze` and written to `world/test_seeds.lock` at the freeze, which only the human runs. No code path runs a test seed without the flag `--final-eval`.
+- **References run through the same server:** textbook (no experiments, Earth physics) and oracle (greedy disagreement over the 12-form library) open sessions with conditions `textbook` and `oracle`. The scripted-random reference (shared sampler plus library fitting) uses condition `random`. All three reuse `calibration/`.
 - **Hidden scoring:** after each experiment the server scores the nominated best law on 40 hidden probe launches landing on the table, all with mixed samples: 20 in the tested range (1 to 4 m/s) and 20 beyond it (4 to 7 m/s). A probe counts as within the hit radius when the law's predicted landing point is within max(5 cm, 2% of the true landing distance) of the true one, with a perfect launcher. Agents never see these scores.
 
 | Metric | Definition |
 | --- | --- |
-| Experiments to accuracy (headline) | Experiments needed until at least 80% of the beyond-range probes are within the hit radius. Report the whole curve. Secondary: median landing error over all 40 probes. |
-| Mission success | Hit rate, mean miss and median miss as a fraction of target distance on the five targets, split into in-range and beyond-range |
-| Law recovery (co-headline) | The final law has the right dependence: gravity on mass, gravity on height, drag exponent within 0.3 |
-| False discovery (co-headline) | Share of control worlds where the lab claims non-ordinary physics |
+| **Beyond-range probe hit rate (primary)** | Share of the 20 beyond-range probes within the hit radius for the law nominated after the last experiment |
+| **Mission hit rate (primary)** | Share of the five targets hit, split into in-range and beyond-range, with median miss as a fraction of target distance |
+| **Law-form recovery (primary)** | The final law has the right dependence (graded as below) |
+| **Control false discovery (primary)** | Share of control worlds where the run claims non-ordinary physics |
+| Experiments to threshold (secondary) | Experiments until at least 80% of beyond-range probes are within the hit radius. Report the whole curve. Also the median landing error over all 40 probes. |
 | Abstention | Share of worlds ending in "insufficient evidence", and accuracy on the rest |
 | Evidence-driven replanning | Share of cycles logged as "plan changed by evidence", and runs where the initial explanation was rejected |
 
-- **Headline numbers:** experiments to accuracy for random / lab, with law recovery and control false discovery beside it, and the hit-rate difference. Report whatever comes out.
-- **Statistics:** per-world paired differences with a bootstrap interval. Twelve worlds is a small sample, and the write-up says so.
-- **Grading:** law recovery is graded by a script written before the test runs.
+- **Primary metrics are fixed here (2026-10-04)** and are reported for every condition, whatever comes out.
+- **Statistics:** per-world paired differences with a 95% bootstrap interval (lab minus random, lab minus single). Forty worlds is still a small sample, and the write-up says so.
+- **Grading:** `eval/grade.py`, written before any test run. Law-form recovery:
+  - The committed law (or the last nominated one) is reduced by setting to zero every parameter whose fitted value is within 2 sd of zero.
+  - The reduced law is probed numerically:
+    - Gravity depends on mass if the static acceleration at z = 0 changes by more than 1% between 20 g and 800 g.
+    - Gravity depends on height if, for the 100 g sample, it changes by more than 1% between z = 0 and 1.2 m.
+    - The drag exponent is the log-log slope of the horizontal drag acceleration of the 100 g sample between 1 and 4 m/s (none if the drag is zero).
+  - A run recovers the law if both dependences match the truth (mass only in F2, height only in F3) and the exponent is within 0.3 of the true p.
+  - When the true drag strength rho is below 0.05, the exponent check is waived.
 
 ## 8. Calibration (first milestone, time-boxed to two hours)
 
@@ -304,7 +362,7 @@ Start with 5 dev worlds to measure runtime. Expand to 20 to 30 if practical, and
 | Criterion | Reference level |
 | --- | --- |
 | Ceiling | Exact-law shots hit at least 90% of targets (under actuation error). The true-form fit is reported beside it. |
-| Wrong-form check | The best wrong-form fit hits at most 30% of beyond-range targets. If it exceeds 30% with the 3% hit radius, use 2% and report both. |
+| Wrong-form check | The best wrong-form fit hits at most 30% of beyond-range targets. Forms that contain the true law as a special case are not wrong and are excluded. The 2% hit radius is final (human decision, 2026-10-04). |
 | Headroom | Greedy brings 80% of beyond-range probes within the hit radius within 12 experiments in at least 70% of worlds; random in at most 40% |
 | Mission separability | On beyond-range targets, the best wrong-form fit misses and the true-form fit hits, in at least 70% of non-control worlds |
 | Control | Greedy claims non-ordinary physics in under 10% of control worlds |
@@ -362,13 +420,13 @@ Fix the run-selection rule before looking at results, and state it. No reruns fo
 
 | Path | Contents | Owner | Visible to scientific agents |
 | --- | --- | --- | --- |
-| `schemas/` | Shared pydantic models for section 5 | Claude Code (changes need a spec update) | Yes |
-| `tools/` | `fit_law`, `predict`, `disagreement`, `plan_shot`, integrator | Claude Code | Yes, through tool wrappers |
-| `world/` | Generator, world server, hidden scoring, `test_seeds.lock` | Claude Code | No |
-| `calibration/` | Scripted policies, study runner, results, plots | Claude Code | No |
-| `sim/` | MuJoCo scene, arm primitives, launcher | Claude Code | No |
-| `mock/` | Mock world server implementing section 5.2 | Codex | Yes |
-| `lab/` | Omnigent agent definitions, tool wrappers, policies, ledger writer | Codex | Yes |
-| `eval/` | Condition runners, grading script, figures | Shared, agreed in `STATUS.md` | No |
-| `viewer/` | Replay site | Shared | No |
+| `schemas/` | Shared pydantic models for section 5 | physics lane (changes need a spec update) | Yes |
+| `tools/` | `fit_law`, `predict`, `disagreement`, `plan_shot`, integrator | physics lane | Yes, through tool wrappers |
+| `world/` | Generator, world server, hidden scoring, freeze script, `test_seeds.lock` | physics lane | No |
+| `calibration/` | Scripted policies, study runner, results, plots | physics lane | No |
+| `eval/` | Condition runner, sampler, scripted references, grading, figures | physics lane (integrator) | No |
+| `sim/` | MuJoCo scene, arm primitives, launcher | sim lane | No |
+| `mock/` | Mock world server implementing section 5.2 | omnigent lane | Yes |
+| `lab/` | Omnigent agent definitions, tool wrappers, policies, ledger writer | omnigent lane | Yes |
+| `viewer/` | Replay site | viewer lane | No |
 | `runs/` | Ledgers and traces | Generated | Own session only |
