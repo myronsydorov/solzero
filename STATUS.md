@@ -109,6 +109,34 @@ SOLZERO_ADMIN_TOKEN=t .venv/bin/python -m world.loadtest --url http://127.0.0.1:
   - Set caps at about twice the pilot's p95 tokens and minutes.
   - Finalize the size recommendation with the measured sessions per hour.
 
+**Update 2026-10-04 13:10 (integrator): pilot, caps, test-set size**
+
+- **Pilot references on dev 1000 to 1007** (`runs/pilot/`, 8 worlds, all 12 experiments, after the failed-result fix):
+
+  | Reference | Beyond-range probe hit | Mission hit | Law recovered | Control false discovery |
+  | --- | --- | --- | --- | --- |
+  | Textbook | 0.01 | 0.15 | 2/8 | 0/2 |
+  | Scripted random | 0.84 | 0.88 | 7/8 | 0/2 |
+  | Oracle | 1.00 | 0.97 | 8/8 | 0/2 |
+
+  Oracle minus scripted random, paired over 8 worlds: beyond probe +0.16 [0.00, +0.31], mission +0.10 [-0.05, +0.28].
+- **Bug found and fixed in my lane:** launches that never come down returned NaN, which JSON carries as null, so every client failed to parse the Result. Oracle and scripted-random runs on dev 1003 died at experiments 6 and 9. A failed Result now has empty `observables` (SPEC 5.3, test added). Not a lane B bug.
+- **Agent pilot (lab, random, single) is blocked by the provider session limit.** Quota windows opened 04:51, 06:52 and 11:54 and each lasted 4 to 16 minutes at 4-way concurrency.
+  - Sessions that got far enough to measure (`runs/pilot-cap2M/`, 2M-token cap, 4 sessions): 192k tokens and 108 s per experiment, so about 2.3M tokens and 22 min for 12 experiments. Two lab sessions hit the 2M cap at 9 experiments.
+  - One single-agent session failed with `Cycle did not produce exactly one result` after 10 experiments (bug filed for lane B).
+  - Across the windows the agents ran about 50 experiments, or about 1.4 full sessions per window, with windows about 5 hours apart.
+  - The restarted batch (`runs/pilot/`, pid 91975, new caps) is paused until 16:52 and resumes by itself. If it dies, the same command resumes it.
+- **Caps set** at about twice the measured need: 5.5M tokens and 3600 s per run (`eval.run` defaults). The pilot's p95 is not measured; four sessions is too few.
+- **Test-set size, mission-hit difference** (`calibration/results/dev60/power.json`; smallest detectable at 80% power, alpha 0.05):
+
+  | Worlds | Detectable difference | Power at the dev-world gap (+5.6 points) | Agent sessions (3 conditions) | Tokens at 2.3M per session |
+  | --- | --- | --- | --- | --- |
+  | 40 | 7.9 points | 61% | 120 | about 276M |
+  | 20 | 11.2 points | 33% | 60 | about 138M |
+  | 12 | 14.5 points | 17% | 36 | about 83M |
+
+- **Recommendation: 12 test worlds, and only with paid API access.** Under the subscription quota the pilot measured about 1.4 sessions per 5-hour window. Even 12 worlds (36 sessions) would need more than 100 hours. There are about 9 hours left on the clock. Larger sizes do not fit even with API access, given the rate limits. 12 worlds can only detect differences of about 15 points, so a null lab-versus-random result at this size means "not detected", not "no effect". The write-up has to say so. Whether to spend API money on this is the human's call; I did not use any API key.
+
 **Blockers:** none of my own. The agent conditions need lane B's CLI (see Requests).
 
 **Next step:** once lane B implements SPEC 5.6, run lab, single and random through the CLI on 3 dev worlds, then on the 60 dev worlds for a dev-world comparison. Then wait for the human freeze.

@@ -1,0 +1,40 @@
+{
+ "source": "calibration/results/dev60",
+ "n_dev_worlds": 60,
+ "expected_hit_rate": {
+  "random": 0.895,
+  "greedy": 0.9509
+ },
+ "method": [
+  "    python -m eval.power calibration/results/dev60 --sizes 40,20,12 [--throughput runs/pilot/report/report.json]",
+  "",
+  "Uses the 60 dev-world scripted runs as a proxy for the paired lab-versus-random comparison.",
+  "Per world, realized hits are redrawn as five Bernoulli shots from each target's hit",
+  "probability, so single-shot luck is included. Two estimates per size n:",
+  "- analytic MDE = (z_0.975 + z_0.8) * sd(paired difference) / sqrt(n)",
+  "- simulated power to detect the observed dev-world difference with the report's paired bootstrap."
+ ],
+ "sizes": [
+  {
+   "n_worlds": 40,
+   "sd_paired_diff": 0.1793,
+   "mde": 0.0794,
+   "observed_diff": 0.0566,
+   "power_at_observed_diff": 0.606
+  },
+  {
+   "n_worlds": 20,
+   "sd_paired_diff": 0.1791,
+   "mde": 0.1122,
+   "observed_diff": 0.0562,
+   "power_at_observed_diff": 0.333
+  },
+  {
+   "n_worlds": 12,
+   "sd_paired_diff": 0.1793,
+   "mde": 0.145,
+   "observed_diff": 0.0556,
+   "power_at_observed_diff": 0.167
+  }
+ ]
+}
