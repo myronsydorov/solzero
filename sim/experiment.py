@@ -108,9 +108,9 @@ def _hermite_root(p0, p1, d0, d1, target):
 class Lab:
     """One world's scene plus the arm; runs ExperimentSpecs in fast or full mode."""
 
-    def __init__(self, world, on_frame=None, x_end: float = 4.0):
+    def __init__(self, world, on_frame=None, x_end: float = 4.0, extra_targets=()):
         self.world = world
-        self.sc = scene_for_world(world, x_end)
+        self.sc = scene_for_world(world, x_end, extra_targets)
         self.on_frame = on_frame
         self.arm = Arm(self.sc, on_frame=on_frame)
         self.last_flight: Flight | None = None

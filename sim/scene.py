@@ -90,10 +90,10 @@ def build_spec(targets: list[Target] | None = None, x_end: float = 4.0) -> mujoc
 
     s.add_texture(name="sky", type=mujoco.mjtTexture.mjTEXTURE_SKYBOX,
                   builtin=mujoco.mjtBuiltin.mjBUILTIN_GRADIENT,
-                  rgb1=[0.42, 0.30, 0.26], rgb2=[0.08, 0.06, 0.07], width=512, height=512)
+                  rgb1=[0.86, 0.62, 0.48], rgb2=[0.30, 0.20, 0.20], width=512, height=512)
     s.add_texture(name="ground", type=mujoco.mjtTexture.mjTEXTURE_2D,
                   builtin=mujoco.mjtBuiltin.mjBUILTIN_CHECKER, mark=mujoco.mjtMark.mjMARK_EDGE,
-                  rgb1=[0.36, 0.24, 0.18], rgb2=[0.30, 0.20, 0.15], markrgb=[0.45, 0.32, 0.24],
+                  rgb1=[0.62, 0.42, 0.30], rgb2=[0.56, 0.37, 0.26], markrgb=[0.70, 0.50, 0.36],
                   width=300, height=300)
     s.add_texture(name="bench", type=mujoco.mjtTexture.mjTEXTURE_2D,
                   builtin=mujoco.mjtBuiltin.mjBUILTIN_CHECKER, mark=mujoco.mjtMark.mjMARK_EDGE,
@@ -104,10 +104,13 @@ def build_spec(targets: list[Target] | None = None, x_end: float = 4.0) -> mujoc
                    reflectance=0.05)
 
     wb = s.worldbody
-    wb.add_light(pos=[1.0, -2.0, 4.0], dir=[-0.2, 0.4, -1.0], diffuse=[0.8, 0.8, 0.8],
-                 castshadow=True)
-    wb.add_light(pos=[x_end / 2, 0.0, 6.0], dir=[0, 0, -1], diffuse=[0.4, 0.4, 0.4],
-                 castshadow=False)
+    s.visual.headlight.ambient = [0.35, 0.35, 0.35]
+    s.visual.headlight.diffuse = [0.45, 0.45, 0.45]
+    s.visual.headlight.specular = [0.1, 0.1, 0.1]
+    wb.add_light(type=mujoco.mjtLightType.mjLIGHT_DIRECTIONAL, pos=[0, 0, 5], dir=[0.3, 0.5, -1.0],
+                 diffuse=[0.55, 0.55, 0.55], specular=[0.2, 0.2, 0.2], castshadow=True)
+    wb.add_light(type=mujoco.mjtLightType.mjLIGHT_DIRECTIONAL, pos=[0, 0, 5], dir=[-0.4, -0.6, -1.0],
+                 diffuse=[0.25, 0.25, 0.28], castshadow=False)
     wb.add_geom(name="floor", type=mujoco.mjtGeom.mjGEOM_PLANE, size=[0, 0, 0.05],
                 pos=[0, 0, -0.8], material="ground", contype=0, conaffinity=0)
     x0 = -0.9
@@ -331,7 +334,7 @@ def make_scene(targets: list[Target] | None = None, law=None, values: dict | Non
     return sc
 
 
-def scene_for_world(world, x_end: float = 4.0) -> Scene:
-    """Scene with the world's targets and its hidden law (world.generator.World)."""
+def scene_for_world(world, x_end: float = 4.0, extra_targets=()) -> Scene:
+    """Scene with the world's targets (plus any extra bins) and its hidden law."""
     values = {k: world.fit.params[k].value for k in world.law.params}
-    return make_scene(world.targets, world.law, values, x_end)
+    return make_scene(list(world.targets) + list(extra_targets), world.law, values, x_end)
