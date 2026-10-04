@@ -77,6 +77,38 @@ Last updated: 2026-10-04 (integrator: E1 to E3). Each assistant edits only its o
 SOLZERO_ADMIN_TOKEN=t .venv/bin/python -m world.loadtest --url http://127.0.0.1:8000 --admin-token t --sessions 16 --out runs/loadtest
 ```
 
+**Update 2026-10-04 05:00 (integrator)**
+
+- Dependencies: `mujoco==3.14.0` (sim lane) and `mlflow-skinny==3.16.1` (lane B) are in `pyproject.toml`, and `runs/` is in `.gitignore`. Sim tests run on main once the assets are fetched with `python -m sim.fetch_assets`: 12 passed. Full suite after merging `omnigent`: 142 passed, about 13 min (sim renders).
+- Claim rule: scripted policies now claim non-ordinary physics by the 2-sd grading rule (`eval/lawform.py`). The 60-world results were regraded without rerunning. Control false discovery:
+
+  | Claim rule | Random | Greedy | Paired difference |
+  | --- | --- | --- | --- |
+  | Selected form (as run) | 3/15 | 2/15 | -0.07 [-0.33, +0.20] |
+  | 2-sd rule (regraded) | 2/15 | 1/15 | -0.07 [-0.27, +0.13] |
+
+  Full table: `calibration/results/dev60/primary_table.md`.
+- `experiments_used` is now in the per-run metrics and the report. `eval.run` has `--max-concurrency` and a comma-separated `--condition` list. A provider limit pauses the batch until the stated reset (plus 2 min), then resumes the run in the same session with `--resume` (SPEC 5.6). Tested with the stub.
+- Power (`python -m eval.power calibration/results/dev60`, realized shots redrawn from per-target hit probabilities; smallest detectable mission-hit difference at alpha 0.05 and 80% power):
+
+  | Test worlds | Detectable difference | Power at the dev-world gap (+5.6 points) |
+  | --- | --- | --- |
+  | 40 | 7.9 points | 61% |
+  | 20 | 11.2 points | 33% |
+  | 12 | 14.5 points | 17% |
+
+- **Pilot (running, partial):** `runs/pilot/`, dev 1000 to 1007. The references are done (textbook, oracle, scripted random). The lab, random and single batch was started with nohup at 04:51 (pid 72954), 4 at a time, with the placeholder caps.
+  - The provider session limit hit after about 4.5 min. The batch is paused until 06:52 and resumes on its own.
+  - First window: 4 sessions, 12 experiments, about 168k tokens and 91 s of wall time per experiment, including cache.
+  - At that rate a 12-experiment session uses about 2.0M tokens, right at the 2M placeholder cap. Pilot runs may stop at `cap_reached`, which would censor the token p95.
+  - Throughput is bound by the provider quota: about 12 experiments per quota window at 4-way concurrency.
+- **Provisional recommendation:** 20 test worlds, not 40. 40 worlds × 3 agent conditions × about 2M tokens is about 240M tokens. With the quota seen in the pilot, that is not achievable in the remaining build time; 20 already needs many quota windows. 12 worlds can only detect a 14.5-point difference, against an observed effect near 6. Confirm once the pilot reports sessions per hour.
+- **Left:**
+  - Finish the pilot.
+  - `eval.grade runs/pilot && eval.report runs/pilot`.
+  - Set caps at about twice the pilot's p95 tokens and minutes.
+  - Finalize the size recommendation with the measured sessions per hour.
+
 **Blockers:** none of my own. The agent conditions need lane B's CLI (see Requests).
 
 **Next step:** once lane B implements SPEC 5.6, run lab, single and random through the CLI on 3 dev worlds, then on the 60 dev worlds for a dev-world comparison. Then wait for the human freeze.
